@@ -1,6 +1,12 @@
  ### Esp32_Viessm_Analog_Meter
 
-This is an App for an Esp32 Dev Board which retrieves sensor data via the Viessmann Api from the Viessmann Cloud and stores the data in Azure Storage Tables in a special way that they can be graphically visualized as time series graphs with my iPhone App **'Charts4Azure'**.
+This is work in progress, in the moment not valuable for others.
+
+Have a look on: Esp32_Viessm_DatBase_Bridge
+
+Esp32_Viessm_DatBase_Bridge is an App for an Esp32 Dev Board which retrieves sensor data via the Viessmann Api from the Viessmann Cloud and stores the data in Azure Storage Tables in a special way that they can be graphically visualized as time series graphs with my iPhone App **'Charts4Azure'**.
+
+Esp32_Viessm-Analog_Meter shall have an additional feature: Reading consumption values from an analog gasmeter which is watched by an Esp32-Cam running "AI-on-the-edge-device" using the Rest-Api.
 
 ![gallery](https://github.com/RoSchmi/Esp32_Viessm_DatBase_Bridge/blob/master/pictures/Heating_Graph_2.PNG)
 
