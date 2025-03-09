@@ -8,7 +8,7 @@ Esp32_Viessm_DatBase_Bridge is an App for an Esp32 Dev Board which retrieves sen
 
 Esp32_Viessm-Analog_Meter shall have an additional feature: Reading consumption values from an analog gasmeter which is watched by an Esp32-Cam running "AI-on-the-edge-device" using the Rest-Api.
 
-![gallery](https://github.com/RoSchmi/Esp32_Viessm_DatBase_Bridge/blob/master/pictures/Heating_Graph_2.PNG)
+![gallery](https://github.com/RoSchmi/Esp32_Viessm_Analog_Meter/blob/master/pictures/Heating_Graph_2.PNG)
 
 This App is based on the code of my App https://github.com/RoSchmi/Esp32_WiFiManager_HeatingSurvey
 This other App for Esp32 monitors the activity of the burner of an oil-heating
