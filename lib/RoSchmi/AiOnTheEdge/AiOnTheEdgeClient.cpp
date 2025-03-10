@@ -1,12 +1,12 @@
-#include "ViessmannClient.h"
+#include "AiOnTheEdgeClient.h"
 #include "config.h"
 
-WiFiClient * _viessmannWifiClient;
+WiFiClient * _aiOnTheEdgeWifiClient;
 
-ViessmannApiAccount  * _viessmannAccountPtr;
-HTTPClient * _viessmannHttpPtr;
+RestApiAccount  * _restApiAccountPtr;
+HTTPClient * _aiOnTheEdgeHttpPtr;
 
-const char * _viessmannCaCert;
+const char * _aiOnTheEdgeCaCert;
 
 typedef int t_httpCode;
 
@@ -17,15 +17,15 @@ char initValue[FEATUREVALUELENGTH] {0};
 */
 
 // Constructor
-ViessmannClient::ViessmannClient(ViessmannApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient * wifiClient, uint8_t * bufferStorePtr)
+AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient * wifiClient, uint8_t * bufferStorePtr)
 {  
-    _viessmannAccountPtr = account;
-    _viessmannCaCert = caCert;
-    _viessmannHttpPtr = httpClient;
+    _restApiAccountPtr = account;
+    _aiOnTheEdgeCaCert = caCert;
+    _aiOnTheEdgeHttpPtr = httpClient;
     // RoSchmi
-    _viessmannHttpPtr -> setReuse(false);
+    _aiOnTheEdgeHttpPtr -> setReuse(false);
 
-    _viessmannWifiClient = wifiClient;
+    _aiOnTheEdgeWifiClient = wifiClient;
 
     // Some buffers located in memory segment .dram0.bss are injected to achieve lesser stack consumption
     
@@ -48,30 +48,32 @@ ViessmannClient::ViessmannClient(ViessmannApiAccount * account, const char * caC
     */
 }
 
-t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t reponseBufferLength, const uint32_t data_0_id, const char * gateways_0_serial, const char * gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr)
+//t_httpCode AiOnTheEdgeClient::GetItems(uint8_t* responseBuffer, const uint16_t reponseBufferLength, AiOnTheEdgeSelection * apiSelectionPtr)
+t_httpCode AiOnTheEdgeClient::GetItems(uint8_t* responseBuffer, const uint16_t reponseBufferLength)
+
 {
     char InstallationId[20] = {0};
-    sprintf(InstallationId, "%d", data_0_id);
+    //sprintf(InstallationId, "%d", data_0_id);
 
-    char GatewaySerial[30] = {0};
+    //char GatewaySerial[30] = {0};
     
-    String addendum = "features/installations/" + (String)InstallationId + "/gateways/" + (String(gateways_0_serial) + "/devices/" + String(gateways_0_devices_0_id) + "/features"); 
-    String Url = _viessmannAccountPtr -> UriEndPointIot + addendum;
-    String authorizationHeader = "Bearer " + _viessmannAccountPtr ->AccessToken;
-    Serial.println(F("Loading features"));
+    //String addendum = "/json"; 
+    String Url = _restApiAccountPtr -> UriEndPointJson;
+    //String authorizationHeader = "Bearer " + _viessmannAccountPtr ->AccessToken;
+    Serial.println(F("Loading items"));
     //Serial.println(Url);
 
     //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient/
 
-    _viessmannHttpPtr ->useHTTP10(true);   // Must be reset to false for Azure requests
+    _aiOnTheEdgeHttpPtr ->useHTTP10(false);   // Must be reset to false for Azure requests
                                            // Is needed to load the long features JSON string
 
     //Serial.println(F("Set httpClient to true"));   
-    _viessmannHttpPtr ->begin(Url);
+    _aiOnTheEdgeHttpPtr ->begin(Url);
     
-    _viessmannHttpPtr ->addHeader("Authorization", authorizationHeader); 
+   // _httpPtr ->addHeader("Authorization", authorizationHeader); 
                
-    t_httpCode httpResponseCode = _viessmannHttpPtr ->GET();
+    t_httpCode httpResponseCode = _aiOnTheEdgeHttpPtr ->GET();
                 
     if (httpResponseCode > 0) 
     { 
@@ -81,28 +83,44 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             #if SERIAL_PRINT == 1
               Serial.println("Received ResponseCode > 0");
             #endif
-            */ 
+            */
+           String payload = _aiOnTheEdgeHttpPtr ->getString();      
+           int charsToCopy = payload.length() < reponseBufferLength ? payload.length() : reponseBufferLength;
+           for (int i = 0; i < charsToCopy; i++)
+           {
+               responseBuffer[i] = payload[i];
+           }
+           
+           const char* json = (char *)responseBuffer;
+
+            //uint16_t cntToCopy = strlen((char*)responseBuffer) < 200 ? strlen((char*)responseBuffer) : 200 -1;
+            //memcpy(viessmannApiEquipment, bufferStorePtr, cntToCopy);       
+            //memcpy(viessmannApiEquipment, bufferStorePtr, cntToCopy);
+            
             JsonDocument doc;
+            deserializeJson(doc, json);
+            /*
             StaticJsonDocument<64> filter;
             filter["data"][0]["feature"] = true,
             filter["data"][0]["timestamp"] = true,
             filter["data"][0]["properties"] = true 
             ;
-            deserializeJson(doc, _viessmannHttpPtr ->getStream(),DeserializationOption::Filter(filter));
+            */
+            //deserializeJson(doc, _viessmannHttpPtr ->getStream(),DeserializationOption::Filter(filter));
             
             Serial.println(F("JsonDoc is deserialized"));
-
+            /*
             int nameLen = apiSelectionPtr ->nameLenght;
             int stampLen = apiSelectionPtr -> stampLength;
             int valLen = apiSelectionPtr -> valueLength;
-
-            char tempVal[valLen] = {"\0"};
             
+            char tempVal[valLen] = {"\0"};
+            */
             if (!doc.overflowed())
             {
                 Serial.printf("Number of elements = %d\n", doc.size());
                 // From the long Features JSON string get the selected entities
-        
+                /*
                 apiSelectionPtr -> _3_temperature_main.idx = 3;
                 strncpy(apiSelectionPtr -> _3_temperature_main.name, doc["data"][3]["feature"], nameLen - 1);
                 strncpy(apiSelectionPtr-> _3_temperature_main.timestamp, doc["data"][3]["timestamp"], stampLen - 1);
@@ -238,9 +256,10 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                 strncpy(apiSelectionPtr-> _95_heating_temperature_outside.timestamp, doc["data"][95]["timestamp"], stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][95]["properties"]["value"]["value"]);
                 snprintf(apiSelectionPtr -> _95_heating_temperature_outside.value, valLen - 1, (const char*)tempVal);
-                            
+                           
                 //Serial.println(F("Doc 17"));
-                //Serial.printf("%s   %s   %s\n", apiSelectionPtr -> _95_heating_temperature_outside.name, apiSelectionPtr -> _95_heating_temperature_outside.timestamp, apiSelectionPtr -> _95_heating_temperature_outside.value);   
+                //Serial.printf("%s   %s   %s\n", apiSelectionPtr -> _95_heating_temperature_outside.name, apiSelectionPtr -> _95_heating_temperature_outside.timestamp, apiSelectionPtr -> _95_heating_temperature_outside.value);
+                */   
             }
             else
             {
@@ -250,7 +269,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
         else
         {
             // If request doesn't return with ok, we printout the begin of the response string
-            WiFiClient *stream = _viessmannHttpPtr ->getStreamPtr();        
+            WiFiClient *stream = _aiOnTheEdgeHttpPtr ->getStreamPtr();        
             uint32_t bytesRead = 0;
             uint32_t chunkSize = 1000;       
             uint16_t maxRounds = 10;
@@ -272,125 +291,11 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     {
         Serial.printf("Features: Error performing the request, HTTP-Code: %d\n", httpResponseCode);
     }
-    _viessmannHttpPtr ->useHTTP10(false);
-    _viessmannHttpPtr->end();
+    _aiOnTheEdgeHttpPtr ->useHTTP10(false);
+    _aiOnTheEdgeHttpPtr->end();
     //Serial.println(F("Returning"));
     return httpResponseCode;
 }
+AiOnTheEdgeClient::~AiOnTheEdgeClient()
 
-t_httpCode ViessmannClient::RefreshAccessToken(uint8_t* responseBuffer, const uint16_t reponseBufferLength, const char * refreshToken)
-{
-    //#define MAXCOUNT 2
-    
-    // t_httpCode httpResponseCode = 0;
-
-    //for (int i = 0; i < MAXCOUNT; i++)
-    //{
-        // Try first with invalid grant to avoid connection refused error
-        //String body = i == 0 ? "grant_type=refresh_token&client_id=" + (String)_viessmannAccountPtr ->ClientId + "&refresh_token=" + (String)refreshToken + "*" 
-        //      : "grant_type=refresh_token&client_id=" + (String)_viessmannAccountPtr ->ClientId + "&refresh_token=" + (String)refreshToken; 
-
-        String body = "grant_type=refresh_token&client_id=" + (String)_viessmannAccountPtr ->ClientId + "&refresh_token=" + (String)refreshToken; 
-           
-        String Url = _viessmannAccountPtr -> UriEndPointToken;
-
-        //Url = "https://iam.viessmann.com/idp/v3/token";
-    
-        #if SERIAL_PRINT == 1
-            Serial.println(Url);
-            Serial.println(body);
-        #endif
-
-        _viessmannHttpPtr ->begin(Url);
-
-        _viessmannHttpPtr ->addHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
-    
-        t_httpCode httpResponseCode =_viessmannHttpPtr ->POST((String)body);
-        if (httpResponseCode > 0) 
-        {
-            #if SERIAL_PRINT == 1
-            Serial.printf("Refresh Token: ResponseCode is: %d\n", httpResponseCode);
-            #endif
-
-            String payload = _viessmannHttpPtr ->getString();
-            
-            #if SERIAL_PRINT == 1
-                //Serial.println("Got payload:\n");
-                //Serial.println(payload);
-            #endif
-
-            int charsToCopy = payload.length() < reponseBufferLength ? payload.length() : reponseBufferLength;
-            for (int i = 0; i < charsToCopy; i++)
-            {
-                responseBuffer[i] = payload[i];
-            } 
-        } 
-        else 
-        {
-            Serial.printf("Refresh token: Error performing the request, HTTP-Code: %d\n", httpResponseCode);
-            if (httpResponseCode == HTTPC_ERROR_CONNECTION_REFUSED)
-            {
-                Serial.println("Viessmann Server: Connection refused");
-                delay(500);          
-            }
-        }
-        _viessmannHttpPtr->end();  
-    
-    return httpResponseCode;
-}
-    
-
-t_httpCode ViessmannClient::GetEquipment(uint8_t* responseBuffer, const uint16_t reponseBufferLength)
-{
-    String Url = _viessmannAccountPtr -> UriEndPointIot + "equipment/installations" + "?includeGateways=true"; 
-    String authorizationHeader = "Bearer " + _viessmannAccountPtr ->AccessToken;
-    Serial.println(Url);
-    _viessmannHttpPtr ->begin(Url);
-    _viessmannHttpPtr ->addHeader("Authorization", authorizationHeader);
-    t_httpCode httpResponseCode = _viessmannHttpPtr ->GET();   
-    if (httpResponseCode > 0) 
-    {
-        String payload = _viessmannHttpPtr ->getString();      
-        int charsToCopy = payload.length() < reponseBufferLength ? payload.length() : reponseBufferLength;
-        for (int i = 0; i < charsToCopy; i++)
-        {
-            responseBuffer[i] = payload[i];
-        }               
-    } 
-    else 
-    {
-        Serial.printf("Eqipment: Error performing the request, HTTP-Code: %d\n", httpResponseCode);
-    }
-    _viessmannHttpPtr->end();
-    return httpResponseCode;
-} 
-
-t_httpCode ViessmannClient::GetUser(uint8_t* responseBuffer, const uint16_t reponseBufferLength)
-{
-    String Url = _viessmannAccountPtr -> UriEndPointUser + "?sections=identity"; 
-
-    String authorizationHeader = "Bearer " + _viessmannAccountPtr ->AccessToken;
-    Serial.println(Url);
-
-    _viessmannHttpPtr ->begin(Url);
-    _viessmannHttpPtr ->addHeader("Authorization", authorizationHeader);
-    t_httpCode httpResponseCode = _viessmannHttpPtr ->GET();   
-    if (httpResponseCode > 0) 
-    {
-        String payload = _viessmannHttpPtr ->getString();      
-        int charsToCopy = payload.length() < reponseBufferLength ? payload.length() : reponseBufferLength;
-        for (int i = 0; i < charsToCopy; i++)
-        {
-            responseBuffer[i] = payload[i];
-        }               
-    } 
-    else 
-    {
-        Serial.printf("Fehler bei der Anfrage, HTTP-Code: %d\n", httpResponseCode);
-    }
-    _viessmannHttpPtr->end();  
-    return httpResponseCode; 
-}
-
-ViessmannClient::~ViessmannClient()
 {};

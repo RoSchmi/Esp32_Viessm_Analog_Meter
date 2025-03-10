@@ -124,6 +124,10 @@
 #include "ViessmannClient.h"
 #include "ViessmannApiSelection.h"
 
+#include "RestApiAccount.h"
+#include "AiOnTheEdgeClient.h"
+#include "AiOnTheEdgeSelection.h"
+
 #include "NTPClient_Generic.h"
 #include "Timezone_Generic.h"
 #include "WiFiUdp.h"
@@ -201,6 +205,9 @@ char Gateways_0_Devices_0_Id[equipBufLen] = {0};
 
 #define FEATURES_COUNT 16
 ViessmannApiSelection::Feature features[FEATURES_COUNT];
+
+#define ITEMS_COUNT 2
+AiOnTheEdgeSelection::Feature items[ITEMS_COUNT];
 
 #define IS_ACTIVE true
 OnOffSensor OnOffBurnerStatus(IS_ACTIVE, false, true, true, DateTime());
@@ -327,6 +334,7 @@ uint32_t failedUploadCounter = 0;
 uint32_t timeNtpUpdateCounter = 0;
 
 uint32_t loadFeaturesCount = 0;
+uint32_t loadGasMeterJsonCount = 0;
 uint32_t loadRefreshTokenCount = 0;
 
 // not used on Esp32
@@ -366,6 +374,15 @@ char sSwiThresholdStr[6] = SOUNDSWITCHER_THRESHOLD;
 #define ViessmannRefreshToken_Label "viessmannRefreshToken"
 #define SoundSwitcherThresholdString_Label "sSwiThresholdStr"
 
+// for Ai-on-the-edge-devices
+char GasMeterAccountName[20] =  "gasmeter";
+char GasMeterHostName[20] = "gasmeter";
+
+char WaterMeterAccountName[20] =  "watermeter";
+char WaterMeterHostName[20] = "watermeter";
+
+
+
 // Function Prototypes for WiFiManager
 bool loadApplConfigData();
 bool saveApplConfigData();
@@ -373,6 +390,10 @@ bool saveApplConfigData();
 // Note: AzureAccountName and azureccountKey will be changed later in setup
 CloudStorageAccount myCloudStorageAccount(azureAccountName, azureAccountKey, UseHttps_State);
 CloudStorageAccount * myCloudStorageAccountPtr = &myCloudStorageAccount;
+
+RestApiAccount gasMeterAccount(GasMeterAccountName, "", GasMeterHostName, false);
+RestApiAccount * gasMeterAccountPtr = &gasMeterAccount; 
+
 
 void GPIOPinISR()
 {
@@ -1155,7 +1176,7 @@ void setup()
     delay(10);
   }
   
-  Serial.print(F("\nStarting 'ESP32_Viessm_DatBase_Bridge' Version "));
+  Serial.print(F("\nStarting 'ESP32_Viessm_Analog_Meter' Version "));
   Serial.print(PROGRAMVERSION);
   Serial.print(" using");  
   Serial.print(FS_Name);
@@ -2776,9 +2797,77 @@ bool extractSubString (const char * source, const String startTag, const String 
   }
 }
 
+t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMeterAccountPtr, ViessmannApiSelection * apiSelectionPtr)
+{
+  #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1
+    static WiFiClientSecure wifi_client;
+  #else
+    static WiFiClient wifi_client;
+  #endif
+
+  #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1 
+    wifi_client.setCACert(myX509Certificate);
+  #endif
+
+  #if WORK_WITH_WATCHDOG == 1
+      esp_task_wdt_reset();
+  #endif
+  
+  memset(bufferStorePtr, '\0', bufferStoreLength);
+  AiOnTheEdgeClient aiOnTheEdgeClient(gasMeterAccountPtr, pCaCert,  httpPtr, &wifi_client, bufferStorePtr);
+  Serial.printf("\r\n(%u) ",loadGasMeterJsonCount);
+  Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
+                                        localTime.month() , localTime.day(),
+                                        localTime.hour() , localTime.minute());
+  t_httpCode responseCode = aiOnTheEdgeClient.GetItems(bufferStorePtr, bufferStoreLength);
+  //uint8_t * reponsePtr, const uint16_t reponseBufferLength
+  if (responseCode == t_http_codes::HTTP_CODE_OK)
+  {
+    // Populate features array and replace the name read from Api
+    // with the name used in this Application
+    /*
+    features[0] = apiSelectionPtr ->_3_temperature_main;
+    strcpy(features[0].name, (const char *)"_3_temperature_main");
+    features[1] = apiSelectionPtr ->_5_boiler_temperature;
+    strcpy(features[1].name, (const char *)"_5_boiler_temperature");
+    features[2] = apiSelectionPtr ->_7_burner_modulation;
+    strcpy(features[2].name, (const char *)"_7_burner_modulation");
+    features[3] = apiSelectionPtr ->_8_burner_hours;
+    strcpy(features[3].name, (const char *)"_8_burner_hours");
+    features[4] = apiSelectionPtr ->_8_burner_starts;
+    strcpy(features[4].name, (const char *)"_8_burner_starts");
+    features[5] = apiSelectionPtr ->_9_burner_is_active;
+    strcpy(features[5].name, (const char *)"_9_burner_is_active");
+    features[6] = apiSelectionPtr ->_23_heating_curve_shift;
+    strcpy(features[6].name, (const char *)"_23_heating_curve_shift");
+    features[7] = apiSelectionPtr ->_23_heating_curve_slope;
+    strcpy(features[7].name, (const char *)"_23_heating_curve_slope");
+    features[8] = apiSelectionPtr ->_77_temperature_supply;
+    strcpy(features[8].name, (const char *)"_77_temperature_supply");
+    features[9] = apiSelectionPtr ->_85_heating_dhw_charging;
+    strcpy(features[9].name, (const char *)"_85_heating_dhw_charging");
+    features[10] = apiSelectionPtr ->_86_heating_dhw_pump_status;
+    strcpy(features[10].name, (const char *)"_86_heating_dhw_pump_status");
+    features[11] = apiSelectionPtr ->_88_heating_dhw_pump_primary_status;
+    strcpy(features[11].name, (const char *)"_88_heating_dhw_pump_primary_status");
+    features[12] = apiSelectionPtr ->_90_heating_dhw_cylinder_temperature;
+    strcpy(features[12].name, (const char *)"_90_heating_dhw_cylinder_temperature");
+    features[13] = apiSelectionPtr ->_92_heating_dhw_outlet_temperature;
+    strcpy(features[13].name, (const char *)"_92_heating_dhw_outlet_temperature");
+    features[14] = apiSelectionPtr ->_93_heating_dhw_main_temperature;
+    strcpy(features[14].name, (const char *)"_93_heating_dhw_main_temperature");
+    features[15] = apiSelectionPtr ->_95_heating_temperature_outside;
+    strcpy(features[15].name, (const char *)"_95_heating_temperature_outside");
+    */
+  }
+  return responseCode;
+} 
+
+
+
 t_httpCode readFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const uint32_t data_0_id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr)
 {  
-   #if VIESSMANN_TRANSPORT_PROTOCOL == 1
+  #if VIESSMANN_TRANSPORT_PROTOCOL == 1
     static WiFiClientSecure wifi_client;
   #else
     static WiFiClient wifi_client;
@@ -3206,6 +3295,7 @@ void print_reset_reason(RESET_REASON reason)
     default : Serial.println ("NO_MEAN");
   }
 }
+
 
 
 
