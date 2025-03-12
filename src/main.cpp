@@ -126,7 +126,7 @@
 
 #include "RestApiAccount.h"
 #include "AiOnTheEdgeClient.h"
-#include "AiOnTheEdgeSelection.h"
+#include "AiOnTheEdgeApiSelection.h"
 
 #include "NTPClient_Generic.h"
 #include "Timezone_Generic.h"
@@ -190,6 +190,12 @@ ViessmannApiAccount * myViessmannApiAccountPtr = &myViessmannApiAccount;
 ViessmannApiSelection viessmannApiSelection(DateTime(), TimeSpan(VIESSMANN_API_READ_INTERVAL_SECONDS));
 ViessmannApiSelection * viessmannApiSelectionPtr = &viessmannApiSelection;
 
+RestApiAccount gasmeterApiAccount("gasmeter", "","gasmeter", false);
+RestApiAccount * gasmeterApiAccountPtr = &gasmeterApiAccount;
+
+AiOnTheEdgeApiSelection aiOnTheEdgeApiSelection(DateTime(), TimeSpan(AIONTHEEDGE_API_READ_INTERVAL_SECONDS));
+AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = &aiOnTheEdgeApiSelection;
+
 bool viessmannUserId_is_read = false;
 const uint16_t viessmannUserBufLen = 1000;
 uint8_t viessmannApiUser [viessmannUserBufLen] {0};
@@ -206,8 +212,8 @@ char Gateways_0_Devices_0_Id[equipBufLen] = {0};
 #define FEATURES_COUNT 16
 ViessmannApiSelection::Feature features[FEATURES_COUNT];
 
-#define ITEMS_COUNT 2
-AiOnTheEdgeSelection::Feature items[ITEMS_COUNT];
+#define AI_ITEMS_COUNT 2
+AiOnTheEdgeApiSelection::Feature ai_features[AI_ITEMS_COUNT];
 
 #define IS_ACTIVE true
 OnOffSensor OnOffBurnerStatus(IS_ACTIVE, false, true, true, DateTime());
@@ -403,10 +409,13 @@ void GPIOPinISR()
 // function forward declarations
 void trimLeadingSpaces(char * workstr);
 ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char * pSensorName);
+AiOnTheEdgeApiSelection:: Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, const char * pSensorName);
 t_httpCode refreshAccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const char * refreshToken); 
 t_httpCode readFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t Data_0_Id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr);
 t_httpCode readEquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id);
 t_httpCode readUserFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr);
+t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMeterAccountPtr, AiOnTheEdgeApiSelection * apiSelectionPtr);
+
 void print_reset_reason(RESET_REASON reason);
 void scan_WIFI();
 String floToStr(float value);
@@ -1869,7 +1878,7 @@ void loop()
       // and store the values in a container
       dataContainer.SetNewValue(0, dateTimeUTCNow, ReadAnalogSensor(0));
       dataContainer.SetNewValue(1, dateTimeUTCNow, ReadAnalogSensor(1));
-      dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor(2));
+      dataContainer.SetNewValue(2, dateTimeUTCNow, atof((ReadAiOnTheEdgeApi_Analog_01(2, (const char *)"_value")).value)); // Aussen);
       dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3));
       
       ledState = !ledState;
@@ -2505,6 +2514,46 @@ ViessmannApiSelection::Feature ReadViessmannFeatureFromSelection(const char * pS
   return returnFeature;
 }
 
+AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, const char* pSensorName)
+{
+  // Use values read from the AiOnTheEge Rest API
+  // pSensorIndex determins the position (from 4). pSensorName is the name of the feature (see AinTheEdgeSelection.h)
+  
+  // preset a 'returnFeature' with value = MAGIC_NUMBER_INVALID (999.9)
+  AiOnTheEdgeApiSelection::Feature returnFeature;
+  strncpy(returnFeature.value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.value) - 1);
+  
+  // Only read features from the cloud when readInterval has expired
+  if ((aiOnTheEdgeApiSelection.lastReadTime.operator+(aiOnTheEdgeApiSelection.readInterval)).operator<(dateTimeUTCNow))
+  { 
+    httpCode = readJsonFromRestApi(myX509Certificate, gasmeterApiAccountPtr, aiOnTheEdgeApiSelectionPtr);
+    if (httpCode == t_http_codes::HTTP_CODE_OK)
+    {
+      aiOnTheEdgeApiSelection.lastReadTime = dateTimeUTCNow;  
+    }
+    else
+    {
+      aiOnTheEdgeApiSelection.lastReadTime = dateTimeUTCNow;
+      Serial.println(F("Failed to read Features from Ai-On-The-Edge-Device")); 
+      Serial.println((char*)bufferStorePtr);
+    }
+  }
+  
+  if (analogSensorMgr_Api_01.HasToBeRead(pSensorIndex, dateTimeUTCNow))
+  {
+    for (int i = 0; i < FEATURES_COUNT; i++)
+    {       
+      if (strcmp((const char *)ai_features[i].name, pSensorName) == 0)
+      {
+        returnFeature = ai_features[i];
+        analogSensorMgr_Api_01.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, atof(returnFeature.value), 0.0f, MAGIC_NUMBER_INVALID);           
+        break;
+      }
+    } 
+  }
+
+  return returnFeature;
+}
 
 ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char* pSensorName)
 {
@@ -2797,7 +2846,7 @@ bool extractSubString (const char * source, const String startTag, const String 
   }
 }
 
-t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMeterAccountPtr, ViessmannApiSelection * apiSelectionPtr)
+t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMeterAccountPtr, AiOnTheEdgeApiSelection * apiSelectionPtr)
 {
   #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1
     static WiFiClientSecure wifi_client;
@@ -2819,7 +2868,7 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMete
   Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
                                         localTime.month() , localTime.day(),
                                         localTime.hour() , localTime.minute());
-  t_httpCode responseCode = aiOnTheEdgeClient.GetItems(bufferStorePtr, bufferStoreLength);
+  t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures(bufferStorePtr, bufferStoreLength);
   //uint8_t * reponsePtr, const uint16_t reponseBufferLength
   if (responseCode == t_http_codes::HTTP_CODE_OK)
   {

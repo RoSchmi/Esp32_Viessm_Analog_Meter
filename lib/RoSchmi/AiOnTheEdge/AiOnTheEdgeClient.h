@@ -4,7 +4,7 @@
 #include "HTTPClient.h"
 #include "DateTime.h"
 #include "RestApiAccount.h"
-#include "AiOnTheEdgeSelection.h"
+#include "AiOnTheEdgeApiSelection.h"
 //#include "ViessmannApiSelection.h"
 #include "ArduinoJson.h"
 
@@ -18,8 +18,8 @@ class AiOnTheEdgeClient
     AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient *httpClient, WiFiClient * wifiClient, uint8_t * bufferStore);
     ~AiOnTheEdgeClient();
     
-    //int GetItems(uint8_t * reponsePtr, const uint16_t reponseBufferLength);
-    int GetItems(uint8_t * reponsePtr, const uint16_t reponseBufferLength);
+    //int GetFeatures(uint8_t * reponsePtr, const uint16_t reponseBufferLength);
+    int GetFeatures(uint8_t * reponsePtr, const uint16_t reponseBufferLength);
     /*
     int GetUser(uint8_t * reponsePtr, const uint16_t reponseBufferLength);
     int GetEquipment(uint8_t* responseBuffer, const uint16_t reponseBufferLength);

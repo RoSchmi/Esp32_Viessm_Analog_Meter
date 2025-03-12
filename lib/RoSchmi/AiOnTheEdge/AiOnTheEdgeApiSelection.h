@@ -8,7 +8,7 @@
 #define FEATURENAMELENGTH 60
 #define FEATURESTAMPLENGTH 30
 
-class AiOnTheEdgeSelection
+class AiOnTheEdgeApiSelection
 {
     public:  
     int  valueLength = FEATUREVALUELENGTH;
@@ -26,9 +26,9 @@ class AiOnTheEdgeSelection
         char value[FEATUREVALUELENGTH] = {0};       
     }Feature;
 
-    AiOnTheEdgeSelection();
-    AiOnTheEdgeSelection(DateTime pLastReadTime, TimeSpan pReadInterval);
-    ~AiOnTheEdgeSelection();
+    AiOnTheEdgeApiSelection();
+    AiOnTheEdgeApiSelection(DateTime pLastReadTime, TimeSpan pReadInterval);
+    ~AiOnTheEdgeApiSelection();
     
     //static Feature featureEmpty;
 

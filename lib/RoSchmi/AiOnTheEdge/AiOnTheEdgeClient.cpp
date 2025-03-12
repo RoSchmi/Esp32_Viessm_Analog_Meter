@@ -49,7 +49,7 @@ AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCe
 }
 
 //t_httpCode AiOnTheEdgeClient::GetItems(uint8_t* responseBuffer, const uint16_t reponseBufferLength, AiOnTheEdgeSelection * apiSelectionPtr)
-t_httpCode AiOnTheEdgeClient::GetItems(uint8_t* responseBuffer, const uint16_t reponseBufferLength)
+t_httpCode AiOnTheEdgeClient::GetFeatures(uint8_t* responseBuffer, const uint16_t reponseBufferLength)
 
 {
     char InstallationId[20] = {0};
