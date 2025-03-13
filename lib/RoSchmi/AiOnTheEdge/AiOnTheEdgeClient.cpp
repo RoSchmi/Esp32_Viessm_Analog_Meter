@@ -77,7 +77,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(uint8_t* responseBuffer, const uint16_
     Serial.println("Im in GetFeatures");
     
     String Url = _restApiAccountPtr -> UriEndPointJson;
-    //String authorizationHeader = "Bearer " + _viessmannAccountPtr ->AccessToken;
+    
     Serial.println(F("Loading gasmeter Features"));
     Serial.println(Url);
 
@@ -85,34 +85,13 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(uint8_t* responseBuffer, const uint16_
 
     //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient/
 
-    //_aiOnTheEdgeHttpPtr ->useHTTP10(false);   // Must be reset to false for Azure requests
+    _aiOnTheEdgeHttpPtr ->useHTTP10(false);   // Must be reset to false for Azure requests
                                            // Is needed to load the long features JSON string
-
-    //Serial.println(F("Set httpClient to true"));
     
-    //_aiOnTheEdgeHttpPtr ->begin();
-    //_aiOnTheEdgeHttpPtr ->begin();
-
-    //Url = "http://192.168.1.71/json";
-
     _aiOnTheEdgeHttpPtr ->begin(_aiOnTheEdgeWifiClient, Url);
-
-
-    if (_aiOnTheEdgeHttpPtr ->headers() > 0)
-    {
-        Serial.println(F("Has headers"));
-    }
-    else
-    {
-        Serial.println(F("Has no headers"));
-    }
-
-    
+  
     Serial.println(F("I am after begin"));
-    
-    
-   // _httpPtr ->addHeader("Authorization", authorizationHeader); 
-               
+              
     t_httpCode httpResponseCode = _aiOnTheEdgeHttpPtr ->GET();
 
     
@@ -131,10 +110,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(uint8_t* responseBuffer, const uint16_
            Serial.println("\nPrinting payload");
            printf(payload.c_str());
 
-           while(true)
-            {
-                delay(500);
-            }
+           
            int charsToCopy = payload.length() < reponseBufferLength ? payload.length() : reponseBufferLength;
            for (int i = 0; i < charsToCopy; i++)
            {

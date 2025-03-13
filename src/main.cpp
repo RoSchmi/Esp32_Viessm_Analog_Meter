@@ -1792,15 +1792,16 @@ void setup()
   }
 
   // RoSchmi delete the following
+  /*
   httpCode = testReadJsonFromApi(myX509Certificate, gasMeterAccountPtr);
   if (httpCode == t_http_codes::HTTP_CODE_OK)
   {
-    Serial.println(F("Equipment successfully read from Viessmann Cloud"));
-    viessmannEquip_is_read = true;
+    Serial.println(F("Success"));
+    
   }
   else
   {     
-    Serial.println(F("Couldn't read Equipment from Viessmann Cloud.\r\nError message is:"));
+    Serial.println(F("Couldn't read.\r\nError message is:"));
     Serial.println((char*)bufferStorePtr);
     ESP.restart();
     while(true)
@@ -1808,7 +1809,7 @@ void setup()
       delay(500);
     }
   }
-
+  */
 
 
 }
@@ -1887,12 +1888,12 @@ void loop()
       dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, (float)d3); // Boiler
       dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, (float)d4);  // Modulation
       */
-      /*
+      
       dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_95_heating_temperature_outside")).value)); // Aussen
       dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_3_temperature_main")).value)); // Vorlauf                
       dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"_90_heating_dhw_cylinder_temperature")).value)); // Boiler
       dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(3, (const char *)"_7_burner_modulation")).value));  // Modulation
-      */
+      
       ledState = !ledState;
       digitalWrite(LED_BUILTIN, ledState);    // toggle LED to signal that App is running
 
@@ -1902,12 +1903,13 @@ void loop()
       dataContainer.SetNewValue(1, dateTimeUTCNow, ReadAnalogSensor(1));
       
       Serial.printf("\r\nBefore Setting newValue3\n");
+      /*
       Serial.printf((ReadAiOnTheEdgeApi_Analog_01(2, (const char *)"_value")).value);
-      Serial.printf("\r\nAfter Setting newValue3\n");
+      */
       
       dataContainer.SetNewValue(2, dateTimeUTCNow, atof((ReadAiOnTheEdgeApi_Analog_01(2, (const char *)"_value")).value)); // Aussen);
       dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3));
-      
+      Serial.printf("\r\nAfter Setting newValue3\n");
       ledState = !ledState;
       digitalWrite(LED_BUILTIN, ledState);    // toggle LED to signal that App is running
 
@@ -2880,8 +2882,7 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMete
   
   #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1
     static WiFiClientSecure wifi_client;
-  #else
-    //static WiFiClientSecure wifi_client;
+  #else  
     static WiFiClient wifi_client;
   #endif
   
