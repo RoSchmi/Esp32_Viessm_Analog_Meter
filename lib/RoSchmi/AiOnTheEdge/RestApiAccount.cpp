@@ -11,7 +11,7 @@ RestApiAccount::RestApiAccount(String accountName, String accountKey, String hos
     char strData[accountName.length() + 30];
     const char * insert = (char *)useHttps ? "s" : "";
 
-    sprintf(strData, "http%s://%s/%s/", insert, HostName.c_str(), "Json");
+    sprintf(strData, "http%s://%s/%s", insert, HostName.c_str(), "json");
     UriEndPointJson = String(strData);  
 }
 
@@ -21,7 +21,7 @@ void RestApiAccount::ChangeAccountParams(String accountName, String accountKey, 
     AccountKey = accountKey;
     char strData[accountName.length() + 30];
     const char * insert = (char *)useHttps ? "s" : "";
-    sprintf(strData, "http%s://%s/%s/", insert, HostName.c_str(), "Json");
+    sprintf(strData, "http%s://%s/%s/", insert, HostName.c_str(), "json");
     UriEndPointJson = String(strData);  
 }
 

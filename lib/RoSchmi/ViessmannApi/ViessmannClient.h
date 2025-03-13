@@ -23,8 +23,8 @@ class ViessmannClient
     int GetFeatures(uint8_t* responseBuffer, const uint16_t reponseBufferLength, const uint32_t data_0_id, const char * gateways_0_serial, const char * gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr);
     int RefreshAccessToken(uint8_t* responseBuffer, const uint16_t reponseBufferLength,  const char * refreshToken);  
 
-    private:
-    private:
+    
+   private:
    char initName[FEATURENAMELENGTH] {0};
    char initTimestamp[FEATURESTAMPLENGTH] {0};
    char initValue[FEATUREVALUELENGTH] {0};

@@ -14,8 +14,11 @@
 
 class AiOnTheEdgeClient
 {
-    public:    
-    AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient *httpClient, WiFiClient * wifiClient, uint8_t * bufferStore);
+    public:
+    //AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient *httpClient, WiFiClient * wifiClient, uint8_t * bufferStore);
+    AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient pWifiClient);
+    
+    
     ~AiOnTheEdgeClient();
     
     //int GetFeatures(uint8_t * reponsePtr, const uint16_t reponseBufferLength);
@@ -27,6 +30,12 @@ class AiOnTheEdgeClient
     int RefreshAccessToken(uint8_t* responseBuffer, const uint16_t reponseBufferLength,  const char * refreshToken);  
     */
    private:
+
+   //WiFiClient * _aiOnTheEdgeWifiClient;
+   //HTTPClient * _aiOnTheEdgeHttpPtr;
+   RestApiAccount * _restApiAccountPtr;
+   char * _aiOnTheEdgeCaCert;
+
    char initName[FEATURENAMELENGTH] {0};
    char initTimestamp[FEATURESTAMPLENGTH] {0};
    char initValue[FEATUREVALUELENGTH] {0};

@@ -1,12 +1,12 @@
 #include "AiOnTheEdgeClient.h"
 #include "config.h"
 
-WiFiClient * _aiOnTheEdgeWifiClient;
+WiFiClient _aiOnTheEdgeWifiClient;
 
-RestApiAccount  * _restApiAccountPtr;
+//RestApiAccount  * _restApiAccountPtr;
 HTTPClient * _aiOnTheEdgeHttpPtr;
 
-const char * _aiOnTheEdgeCaCert;
+//char * _aiOnTheEdgeCaCert;
 
 typedef int t_httpCode;
 
@@ -17,15 +17,30 @@ char initValue[FEATUREVALUELENGTH] {0};
 */
 
 // Constructor
-AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient * wifiClient, uint8_t * bufferStorePtr)
-{  
+//AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient * wifiClient, uint8_t * bufferStorePtr)
+AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient pWifiClient)
+{ 
+    Serial.println("In constructor AiOnTheEdgeClient");
     _restApiAccountPtr = account;
-    _aiOnTheEdgeCaCert = caCert;
+    Serial.println("In constructor after account");
+    _aiOnTheEdgeCaCert = (char *)caCert;
     _aiOnTheEdgeHttpPtr = httpClient;
     // RoSchmi
     _aiOnTheEdgeHttpPtr -> setReuse(false);
 
-    _aiOnTheEdgeWifiClient = wifiClient;
+    Serial.println("In constructor after caCert");
+    _aiOnTheEdgeWifiClient = pWifiClient;
+    
+   // _aiOnTheEdgeHttpPtr = httpClient;
+
+
+    //_aiOnTheEdgeHttpPtr->begin("http://gasmeter/json");
+
+    
+    // RoSchmi
+    //_aiOnTheEdgeHttpPtr -> setReuse(false);
+
+    
 
     // Some buffers located in memory segment .dram0.bss are injected to achieve lesser stack consumption
     
@@ -57,23 +72,50 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(uint8_t* responseBuffer, const uint16_
 
     //char GatewaySerial[30] = {0};
     
-    //String addendum = "/json"; 
+    //String addendum = "/json";
+    
+    Serial.println("Im in GetFeatures");
+    
     String Url = _restApiAccountPtr -> UriEndPointJson;
     //String authorizationHeader = "Bearer " + _viessmannAccountPtr ->AccessToken;
-    Serial.println(F("Loading items"));
-    //Serial.println(Url);
+    Serial.println(F("Loading gasmeter Features"));
+    Serial.println(Url);
+
+    
 
     //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient/
 
-    _aiOnTheEdgeHttpPtr ->useHTTP10(false);   // Must be reset to false for Azure requests
+    //_aiOnTheEdgeHttpPtr ->useHTTP10(false);   // Must be reset to false for Azure requests
                                            // Is needed to load the long features JSON string
 
-    //Serial.println(F("Set httpClient to true"));   
-    _aiOnTheEdgeHttpPtr ->begin(Url);
+    //Serial.println(F("Set httpClient to true"));
+    
+    //_aiOnTheEdgeHttpPtr ->begin();
+    //_aiOnTheEdgeHttpPtr ->begin();
+
+    //Url = "http://192.168.1.71/json";
+
+    _aiOnTheEdgeHttpPtr ->begin(_aiOnTheEdgeWifiClient, Url);
+
+
+    if (_aiOnTheEdgeHttpPtr ->headers() > 0)
+    {
+        Serial.println(F("Has headers"));
+    }
+    else
+    {
+        Serial.println(F("Has no headers"));
+    }
+
+    
+    Serial.println(F("I am after begin"));
+    
     
    // _httpPtr ->addHeader("Authorization", authorizationHeader); 
                
     t_httpCode httpResponseCode = _aiOnTheEdgeHttpPtr ->GET();
+
+    
                 
     if (httpResponseCode > 0) 
     { 
@@ -84,7 +126,15 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(uint8_t* responseBuffer, const uint16_
               Serial.println("Received ResponseCode > 0");
             #endif
             */
-           String payload = _aiOnTheEdgeHttpPtr ->getString();      
+           String payload = _aiOnTheEdgeHttpPtr ->getString();
+           
+           Serial.println("\nPrinting payload");
+           printf(payload.c_str());
+
+           while(true)
+            {
+                delay(500);
+            }
            int charsToCopy = payload.length() < reponseBufferLength ? payload.length() : reponseBufferLength;
            for (int i = 0; i < charsToCopy; i++)
            {

@@ -212,8 +212,8 @@ char Gateways_0_Devices_0_Id[equipBufLen] = {0};
 #define FEATURES_COUNT 16
 ViessmannApiSelection::Feature features[FEATURES_COUNT];
 
-#define AI_ITEMS_COUNT 2
-AiOnTheEdgeApiSelection::Feature ai_features[AI_ITEMS_COUNT];
+#define AI_FEATURES_COUNT 2
+AiOnTheEdgeApiSelection::Feature ai_features[AI_FEATURES_COUNT];
 
 #define IS_ACTIVE true
 OnOffSensor OnOffBurnerStatus(IS_ACTIVE, false, true, true, DateTime());
@@ -415,7 +415,8 @@ t_httpCode readFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * my
 t_httpCode readEquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id);
 t_httpCode readUserFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr);
 t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMeterAccountPtr, AiOnTheEdgeApiSelection * apiSelectionPtr);
-
+// RoSchmi, delete next
+t_httpCode testReadJsonFromApi(X509Certificate pCaCert, RestApiAccount * gasMeterAccountPtr);
 void print_reset_reason(RESET_REASON reason);
 void scan_WIFI();
 String floToStr(float value);
@@ -1789,6 +1790,27 @@ void setup()
       delay(500);
     }
   }
+
+  // RoSchmi delete the following
+  httpCode = testReadJsonFromApi(myX509Certificate, gasMeterAccountPtr);
+  if (httpCode == t_http_codes::HTTP_CODE_OK)
+  {
+    Serial.println(F("Equipment successfully read from Viessmann Cloud"));
+    viessmannEquip_is_read = true;
+  }
+  else
+  {     
+    Serial.println(F("Couldn't read Equipment from Viessmann Cloud.\r\nError message is:"));
+    Serial.println((char*)bufferStorePtr);
+    ESP.restart();
+    while(true)
+    {
+      delay(500);
+    }
+  }
+
+
+
 }
   
 void loop()
@@ -1865,12 +1887,12 @@ void loop()
       dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, (float)d3); // Boiler
       dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, (float)d4);  // Modulation
       */
-      
+      /*
       dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_95_heating_temperature_outside")).value)); // Aussen
       dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_3_temperature_main")).value)); // Vorlauf                
       dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"_90_heating_dhw_cylinder_temperature")).value)); // Boiler
       dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(3, (const char *)"_7_burner_modulation")).value));  // Modulation
-      
+      */
       ledState = !ledState;
       digitalWrite(LED_BUILTIN, ledState);    // toggle LED to signal that App is running
 
@@ -1878,6 +1900,11 @@ void loop()
       // and store the values in a container
       dataContainer.SetNewValue(0, dateTimeUTCNow, ReadAnalogSensor(0));
       dataContainer.SetNewValue(1, dateTimeUTCNow, ReadAnalogSensor(1));
+      
+      Serial.printf("\r\nBefore Setting newValue3\n");
+      Serial.printf((ReadAiOnTheEdgeApi_Analog_01(2, (const char *)"_value")).value);
+      Serial.printf("\r\nAfter Setting newValue3\n");
+      
       dataContainer.SetNewValue(2, dateTimeUTCNow, atof((ReadAiOnTheEdgeApi_Analog_01(2, (const char *)"_value")).value)); // Aussen);
       dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3));
       
@@ -2525,8 +2552,10 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
   
   // Only read features from the cloud when readInterval has expired
   if ((aiOnTheEdgeApiSelection.lastReadTime.operator+(aiOnTheEdgeApiSelection.readInterval)).operator<(dateTimeUTCNow))
-  { 
+  {
+    printf("\nGoing to perform readsonFromResrApi\n");
     httpCode = readJsonFromRestApi(myX509Certificate, gasmeterApiAccountPtr, aiOnTheEdgeApiSelectionPtr);
+    
     if (httpCode == t_http_codes::HTTP_CODE_OK)
     {
       aiOnTheEdgeApiSelection.lastReadTime = dateTimeUTCNow;  
@@ -2539,14 +2568,14 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
     }
   }
   
-  if (analogSensorMgr_Api_01.HasToBeRead(pSensorIndex, dateTimeUTCNow))
+  if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
   {
-    for (int i = 0; i < FEATURES_COUNT; i++)
+    for (int i = 0; i < AI_FEATURES_COUNT; i++)
     {       
       if (strcmp((const char *)ai_features[i].name, pSensorName) == 0)
       {
         returnFeature = ai_features[i];
-        analogSensorMgr_Api_01.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, atof(returnFeature.value), 0.0f, MAGIC_NUMBER_INVALID);           
+        analogSensorMgr.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, atof(returnFeature.value), 0.0f, MAGIC_NUMBER_INVALID);           
         break;
       }
     } 
@@ -2848,11 +2877,14 @@ bool extractSubString (const char * source, const String startTag, const String 
 
 t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMeterAccountPtr, AiOnTheEdgeApiSelection * apiSelectionPtr)
 {
+  
   #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1
     static WiFiClientSecure wifi_client;
   #else
+    //static WiFiClientSecure wifi_client;
     static WiFiClient wifi_client;
   #endif
+  
 
   #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1 
     wifi_client.setCACert(myX509Certificate);
@@ -2863,7 +2895,9 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMete
   #endif
   
   memset(bufferStorePtr, '\0', bufferStoreLength);
-  AiOnTheEdgeClient aiOnTheEdgeClient(gasMeterAccountPtr, pCaCert,  httpPtr, &wifi_client, bufferStorePtr);
+  //AiOnTheEdgeClient aiOnTheEdgeClient(gasMeterAccountPtr, pCaCert,  httpPtr, &wifi_client, bufferStorePtr);
+  AiOnTheEdgeClient aiOnTheEdgeClient(gasMeterAccountPtr, pCaCert, httpPtr, wifi_client);
+  
   Serial.printf("\r\n(%u) ",loadGasMeterJsonCount);
   Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
                                         localTime.month() , localTime.day(),
@@ -3081,6 +3115,83 @@ t_httpCode readEquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * m
       }
   return responseCode; 
 }
+
+// RoSchmi
+t_httpCode testReadJsonFromApi(X509Certificate pCaCert, RestApiAccount * pGasmeterApiAccountPtr)
+{
+  
+  //#if VIESSMANN_TRANSPORT_PROTOCOL == 1
+  #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1
+    static WiFiClientSecure wifi_client;
+  #else
+    static WiFiClient wifi_client;
+  #endif
+
+    //#if VIESSMANN_TRANSPORT_PROTOCOL == 1
+    #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1
+    
+    wifi_client.setCACert(myX509Certificate);
+  #endif
+  
+
+  #if WORK_WITH_WATCHDOG == 1
+      esp_task_wdt_reset();
+  #endif
+
+  Serial.println("\n Arrived in testReadJsonFromApi");
+  //AiOnTheEdgeClient gasmeterClient(pGasmeterApiAccountPtr, pCaCert,  httpPtr, &wifi_client, bufferStorePtr);
+  
+  AiOnTheEdgeClient gasmeterClient(pGasmeterApiAccountPtr, pCaCert, httpPtr, wifi_client);
+  
+  
+  
+  #if SERIAL_PRINT == 1
+        //Serial.println(myViessmannApiAccount.ClientId);
+      #endif
+      
+      memset(bufferStorePtr, '\0', bufferStoreLength); 
+      t_httpCode responseCode = gasmeterClient.GetFeatures(bufferStorePtr, bufferStoreLength);
+          
+      Serial.printf("\r\nReadJson httpResponseCode is: %d\r\n", responseCode);
+
+      if (responseCode == t_http_codes::HTTP_CODE_OK)
+      {
+        const char* json = (char *)bufferStorePtr;
+        JsonDocument doc;
+        deserializeJson(doc, json);
+        
+        /*
+        uint32_t data_0_id = doc["data"][0]["id"];
+        const char * data_0_description = doc["data"][0]["description"];
+        const char * data_0_address_street = doc["data"][0]["address"]["street"];
+        const char * data_0_address_houseNumber = doc["data"][0]["address"]["houseNumber"];
+        const char * gateways_0_serial = doc["data"][0]["gateways"][0]["serial"];
+        const char * gateways_0_devices_0_id = doc["data"][0]["gateways"][0]["devices"][0]["id"];
+        
+        *p_data_0_id = data_0_id;
+        memset(bufferStorePtr, '\0', bufferStoreLength);
+         
+        memset(p_data_0_description, '\0', equipBufLen);
+        memset(p_data_0_address_street, '\0', equipBufLen);
+        memset(p_data_0_address_houseNumber,'\0', equipBufLen);
+
+        memset(p_gateways_0_serial,'\0', equipBufLen);
+        memset(p_gateways_0_devices_0_id,'\0', equipBufLen);
+
+        strncpy(p_data_0_description, data_0_description, equipBufLen - 1);
+        strncpy(p_data_0_address_street, data_0_address_street, equipBufLen - 1);
+        strncpy(p_data_0_address_houseNumber, data_0_address_houseNumber, equipBufLen - 1);
+
+        strncpy(p_gateways_0_serial, gateways_0_serial, equipBufLen - 1);
+        strncpy(p_gateways_0_devices_0_id, gateways_0_devices_0_id, equipBufLen - 1);       
+        */
+      }
+  return responseCode; 
+}
+
+
+
+
 
 t_httpCode refreshAccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const char * refreshToken)
 {
