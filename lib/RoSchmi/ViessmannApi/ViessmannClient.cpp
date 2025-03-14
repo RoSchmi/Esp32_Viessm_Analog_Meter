@@ -3,6 +3,8 @@
 
 WiFiClient * _viessmannWifiClient;
 
+//WiFiClient  _viessmannWifiClient;
+
 ViessmannApiAccount  * _viessmannAccountPtr;
 HTTPClient * _viessmannHttpPtr;
 

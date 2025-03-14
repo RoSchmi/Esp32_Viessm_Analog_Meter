@@ -415,8 +415,6 @@ t_httpCode readFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * my
 t_httpCode readEquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id);
 t_httpCode readUserFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr);
 t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMeterAccountPtr, AiOnTheEdgeApiSelection * apiSelectionPtr);
-// RoSchmi, delete next
-t_httpCode testReadJsonFromApi(X509Certificate pCaCert, RestApiAccount * gasMeterAccountPtr);
 void print_reset_reason(RESET_REASON reason);
 void scan_WIFI();
 String floToStr(float value);
@@ -2903,7 +2901,7 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMete
   Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
                                         localTime.month() , localTime.day(),
                                         localTime.hour() , localTime.minute());
-  t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures(bufferStorePtr, bufferStoreLength);
+  t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures(bufferStorePtr, bufferStoreLength, aiOnTheEdgeApiSelectionPtr);
   //uint8_t * reponsePtr, const uint16_t reponseBufferLength
   if (responseCode == t_http_codes::HTTP_CODE_OK)
   {
@@ -3116,82 +3114,6 @@ t_httpCode readEquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * m
       }
   return responseCode; 
 }
-
-// RoSchmi
-t_httpCode testReadJsonFromApi(X509Certificate pCaCert, RestApiAccount * pGasmeterApiAccountPtr)
-{
-  
-  //#if VIESSMANN_TRANSPORT_PROTOCOL == 1
-  #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1
-    static WiFiClientSecure wifi_client;
-  #else
-    static WiFiClient wifi_client;
-  #endif
-
-    //#if VIESSMANN_TRANSPORT_PROTOCOL == 1
-    #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1
-    
-    wifi_client.setCACert(myX509Certificate);
-  #endif
-  
-
-  #if WORK_WITH_WATCHDOG == 1
-      esp_task_wdt_reset();
-  #endif
-
-  Serial.println("\n Arrived in testReadJsonFromApi");
-  //AiOnTheEdgeClient gasmeterClient(pGasmeterApiAccountPtr, pCaCert,  httpPtr, &wifi_client, bufferStorePtr);
-  
-  AiOnTheEdgeClient gasmeterClient(pGasmeterApiAccountPtr, pCaCert, httpPtr, wifi_client);
-  
-  
-  
-  #if SERIAL_PRINT == 1
-        //Serial.println(myViessmannApiAccount.ClientId);
-      #endif
-      
-      memset(bufferStorePtr, '\0', bufferStoreLength); 
-      t_httpCode responseCode = gasmeterClient.GetFeatures(bufferStorePtr, bufferStoreLength);
-          
-      Serial.printf("\r\nReadJson httpResponseCode is: %d\r\n", responseCode);
-
-      if (responseCode == t_http_codes::HTTP_CODE_OK)
-      {
-        const char* json = (char *)bufferStorePtr;
-        JsonDocument doc;
-        deserializeJson(doc, json);
-        
-        /*
-        uint32_t data_0_id = doc["data"][0]["id"];
-        const char * data_0_description = doc["data"][0]["description"];
-        const char * data_0_address_street = doc["data"][0]["address"]["street"];
-        const char * data_0_address_houseNumber = doc["data"][0]["address"]["houseNumber"];
-        const char * gateways_0_serial = doc["data"][0]["gateways"][0]["serial"];
-        const char * gateways_0_devices_0_id = doc["data"][0]["gateways"][0]["devices"][0]["id"];
-        
-        *p_data_0_id = data_0_id;
-        memset(bufferStorePtr, '\0', bufferStoreLength);
-         
-        memset(p_data_0_description, '\0', equipBufLen);
-        memset(p_data_0_address_street, '\0', equipBufLen);
-        memset(p_data_0_address_houseNumber,'\0', equipBufLen);
-
-        memset(p_gateways_0_serial,'\0', equipBufLen);
-        memset(p_gateways_0_devices_0_id,'\0', equipBufLen);
-
-        strncpy(p_data_0_description, data_0_description, equipBufLen - 1);
-        strncpy(p_data_0_address_street, data_0_address_street, equipBufLen - 1);
-        strncpy(p_data_0_address_houseNumber, data_0_address_houseNumber, equipBufLen - 1);
-
-        strncpy(p_gateways_0_serial, gateways_0_serial, equipBufLen - 1);
-        strncpy(p_gateways_0_devices_0_id, gateways_0_devices_0_id, equipBufLen - 1);       
-        */
-      }
-  return responseCode; 
-}
-
-
-
 
 
 t_httpCode refreshAccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const char * refreshToken)
