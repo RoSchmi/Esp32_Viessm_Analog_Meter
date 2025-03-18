@@ -2550,10 +2550,10 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
   AiOnTheEdgeApiSelection::Feature returnFeature;
   strncpy(returnFeature.value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.value) - 1);
   
-  // Only read features from the cloud when readInterval has expired
+  // Only read features from AiOnTheEdgeDevice when readInterval has expired
   if ((aiOnTheEdgeApiSelection.lastReadTime.operator+(aiOnTheEdgeApiSelection.readInterval)).operator<(dateTimeUTCNow))
   {
-    printf("\nGoing to perform readsonFromResrApi\n");
+    printf("\nGoing to perform readsonFromRestApi\n");
     httpCode = readJsonFromRestApi(myX509Certificate, gasmeterApiAccountPtr, aiOnTheEdgeApiSelectionPtr);
     
     if (httpCode == t_http_codes::HTTP_CODE_OK)

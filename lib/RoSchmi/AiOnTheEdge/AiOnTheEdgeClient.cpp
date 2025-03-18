@@ -17,7 +17,7 @@ char initValue[FEATUREVALUELENGTH] {0};
 */
 
 // Constructor
-//AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient * wifiClient, uint8_t * bufferStorePtr)
+
 AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient pWifiClient)
 { 
     Serial.println("In constructor AiOnTheEdgeClient");
@@ -64,25 +64,16 @@ AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCe
     */
 }
 
-//t_httpCode AiOnTheEdgeClient::GetItems(uint8_t* responseBuffer, const uint16_t reponseBufferLength, AiOnTheEdgeSelection * apiSelectionPtr)
 t_httpCode AiOnTheEdgeClient::GetFeatures(uint8_t* responseBuffer, const uint16_t reponseBufferLength, AiOnTheEdgeApiSelection * apiSelectionPtr)
-
 {
     char InstallationId[20] = {0};
-    //sprintf(InstallationId, "%d", data_0_id);
-
-    //char GatewaySerial[30] = {0};
-    
-    //String addendum = "/json";
-    
+      
     Serial.println("Im in GetFeatures");
     
     String Url = _restApiAccountPtr -> UriEndPointJson;
     
     Serial.println(F("Loading gasmeter Features"));
-    Serial.println(Url);
-
-    
+    Serial.println(Url);  
 
     //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient/
 
@@ -119,21 +110,9 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(uint8_t* responseBuffer, const uint16_
            }
            
            const char* json = (char *)responseBuffer;
-
-            //uint16_t cntToCopy = strlen((char*)responseBuffer) < 200 ? strlen((char*)responseBuffer) : 200 -1;
-            //memcpy(viessmannApiEquipment, bufferStorePtr, cntToCopy);       
-            //memcpy(viessmannApiEquipment, bufferStorePtr, cntToCopy);
-            
+           
             JsonDocument doc;
             deserializeJson(doc, json);
-            /*
-            StaticJsonDocument<64> filter;
-            filter["data"][0]["feature"] = true,
-            filter["data"][0]["timestamp"] = true,
-            filter["data"][0]["properties"] = true 
-            ;
-            */
-            //deserializeJson(doc, _viessmannHttpPtr ->getStream(),DeserializationOption::Filter(filter));
             
             Serial.println(F("JsonDoc is deserialized"));
             
