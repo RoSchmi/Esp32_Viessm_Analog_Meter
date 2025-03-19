@@ -193,8 +193,8 @@ ViessmannApiSelection * viessmannApiSelectionPtr = &viessmannApiSelection;
 RestApiAccount gasmeterApiAccount("gasmeter", "","gasmeter", false);
 RestApiAccount * gasmeterApiAccountPtr = &gasmeterApiAccount;
 
-AiOnTheEdgeApiSelection aiOnTheEdgeApiSelection(DateTime(), TimeSpan(AIONTHEEDGE_API_READ_INTERVAL_SECONDS));
-AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = &aiOnTheEdgeApiSelection;
+AiOnTheEdgeApiSelection gasmeterApiSelection(DateTime(), TimeSpan(AIONTHEEDGE_API_READ_INTERVAL_SECONDS));
+AiOnTheEdgeApiSelection * gasmeterApiSelectionPtr = &gasmeterApiSelection;
 
 bool viessmannUserId_is_read = false;
 const uint16_t viessmannUserBufLen = 1000;
@@ -409,7 +409,7 @@ void GPIOPinISR()
 // function forward declarations
 void trimLeadingSpaces(char * workstr);
 ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char * pSensorName);
-AiOnTheEdgeApiSelection:: Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, const char * pSensorName);
+AiOnTheEdgeApiSelection:: Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, const char * pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr);
 t_httpCode refreshAccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const char * refreshToken); 
 t_httpCode readFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t Data_0_Id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr);
 t_httpCode readEquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id);
@@ -1905,7 +1905,7 @@ void loop()
       Serial.printf((ReadAiOnTheEdgeApi_Analog_01(2, (const char *)"_value")).value);
       */
       
-      dataContainer.SetNewValue(2, dateTimeUTCNow, atof((ReadAiOnTheEdgeApi_Analog_01(2, (const char *)"_value")).value)); // Aussen);
+      dataContainer.SetNewValue(2, dateTimeUTCNow, atof((ReadAiOnTheEdgeApi_Analog_01(2, (const char *)"_value", gasmeterApiSelectionPtr).value))); // Aussen);
       dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3));
       Serial.printf("\r\nAfter Setting newValue3\n");
       ledState = !ledState;
@@ -2541,7 +2541,7 @@ ViessmannApiSelection::Feature ReadViessmannFeatureFromSelection(const char * pS
   return returnFeature;
 }
 
-AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, const char* pSensorName)
+AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, const char* pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr)
 {
   // Use values read from the AiOnTheEge Rest API
   // pSensorIndex determins the position (from 4). pSensorName is the name of the feature (see AinTheEdgeSelection.h)
@@ -2551,18 +2551,18 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
   strncpy(returnFeature.value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.value) - 1);
   
   // Only read features from AiOnTheEdgeDevice when readInterval has expired
-  if ((aiOnTheEdgeApiSelection.lastReadTime.operator+(aiOnTheEdgeApiSelection.readInterval)).operator<(dateTimeUTCNow))
+  if ((pAiOnTheEdgeApiSelectionPtr ->lastReadTime.operator+(pAiOnTheEdgeApiSelectionPtr -> readInterval)).operator<(dateTimeUTCNow))
   {
     printf("\nGoing to perform readsonFromRestApi\n");
-    httpCode = readJsonFromRestApi(myX509Certificate, gasmeterApiAccountPtr, aiOnTheEdgeApiSelectionPtr);
+    httpCode = readJsonFromRestApi(myX509Certificate, gasmeterApiAccountPtr, pAiOnTheEdgeApiSelectionPtr);
     
     if (httpCode == t_http_codes::HTTP_CODE_OK)
     {
-      aiOnTheEdgeApiSelection.lastReadTime = dateTimeUTCNow;  
+      pAiOnTheEdgeApiSelectionPtr -> lastReadTime = dateTimeUTCNow;  
     }
     else
     {
-      aiOnTheEdgeApiSelection.lastReadTime = dateTimeUTCNow;
+      pAiOnTheEdgeApiSelectionPtr ->lastReadTime = dateTimeUTCNow;
       Serial.println(F("Failed to read Features from Ai-On-The-Edge-Device")); 
       Serial.println((char*)bufferStorePtr);
     }
@@ -2901,7 +2901,7 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMete
   Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
                                         localTime.month() , localTime.day(),
                                         localTime.hour() , localTime.minute());
-  t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures(bufferStorePtr, bufferStoreLength, aiOnTheEdgeApiSelectionPtr);
+  t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures(bufferStorePtr, bufferStoreLength, apiSelectionPtr);
   //uint8_t * reponsePtr, const uint16_t reponseBufferLength
   if (responseCode == t_http_codes::HTTP_CODE_OK)
   {
