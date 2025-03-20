@@ -193,7 +193,7 @@ ViessmannApiSelection * viessmannApiSelectionPtr = &viessmannApiSelection;
 RestApiAccount gasmeterApiAccount("gasmeter", "","gasmeter", false);
 RestApiAccount * gasmeterApiAccountPtr = &gasmeterApiAccount;
 
-AiOnTheEdgeApiSelection gasmeterApiSelection(DateTime(), TimeSpan(AIONTHEEDGE_API_READ_INTERVAL_SECONDS));
+AiOnTheEdgeApiSelection gasmeterApiSelection(DateTime(), TimeSpan(GASMETER_AI_API_READ_INTERVAL_SECONDS));
 AiOnTheEdgeApiSelection * gasmeterApiSelectionPtr = &gasmeterApiSelection;
 
 bool viessmannUserId_is_read = false;
@@ -209,10 +209,10 @@ char Data_0_Address_HouseNumber[equipBufLen] = {0};
 char Gateways_0_Serial[equipBufLen] = {0};
 char Gateways_0_Devices_0_Id[equipBufLen] = {0};
 
-#define FEATURES_COUNT 16
-ViessmannApiSelection::Feature features[FEATURES_COUNT];
+#define VI_FEATURES_COUNT 16
+ViessmannApiSelection::Feature features[VI_FEATURES_COUNT];
 
-#define AI_FEATURES_COUNT 2
+#define AI_FEATURES_COUNT 6
 AiOnTheEdgeApiSelection::Feature ai_features[AI_FEATURES_COUNT];
 
 #define IS_ACTIVE true
@@ -1733,8 +1733,11 @@ void setup()
                                         localTime.month() , localTime.day(),
                                         localTime.hour() , localTime.minute());
   Serial.println("\n");
-
+  
+  // Set Standard Read Interval
   analogSensorMgr.SetReadInterval(ANALOG_SENSOR_READ_INTERVAL_SECONDS);
+  // Set Read Interval for special sensor
+  analogSensorMgr.SetReadInterval(2, GASMETER_AI_API_READ_INTERVAL_SECONDS);
 
   analogSensorMgr_Api_01.SetReadInterval(API_ANALOG_SENSOR_READ_INTERVAL_SECONDS);
   
@@ -1873,20 +1876,6 @@ void loop()
       // Get readings from 4 different analog sensors stored in the Viessmann Cloud    
       // and store the values in a container
        
-       /*
-       double d1 = atof((ReadViessmannApi_Analog_01(0, (const char *)"_95_heating_temperature_outside")).value); // Aussen
-       double d2 = atof((ReadViessmannApi_Analog_01(1, (const char *)"_3_temperature_main")).value); // Aussen
-       double d3 = atof((ReadViessmannApi_Analog_01(2, (const char *)"_90_heating_dhw_cylinder_temperature")).value); // Aussen
-       double d4 = atof((ReadViessmannApi_Analog_01(3, (const char *)"_7_burner_modulation")).value); // Aussen
-       */
-      // Serial.printf("TV %.1f\n", d1);
-      /*
-      dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, (float)d1); // Aussen
-      dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, (float)d2); // Vorlauf                
-      dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, (float)d3); // Boiler
-      dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, (float)d4);  // Modulation
-      */
-      
       dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_95_heating_temperature_outside")).value)); // Aussen
       dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_3_temperature_main")).value)); // Vorlauf                
       dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"_90_heating_dhw_cylinder_temperature")).value)); // Boiler
@@ -1899,13 +1888,9 @@ void loop()
       // and store the values in a container
       dataContainer.SetNewValue(0, dateTimeUTCNow, ReadAnalogSensor(0));
       dataContainer.SetNewValue(1, dateTimeUTCNow, ReadAnalogSensor(1));
-      
-      Serial.printf("\r\nBefore Setting newValue3\n");
-      /*
-      Serial.printf((ReadAiOnTheEdgeApi_Analog_01(2, (const char *)"_value")).value);
-      */
-      
-      dataContainer.SetNewValue(2, dateTimeUTCNow, atof((ReadAiOnTheEdgeApi_Analog_01(2, (const char *)"_value", gasmeterApiSelectionPtr).value))); // Aussen);
+        
+      dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor(2));
+      Serial.printf("\r\nAfter Setting newValue2\n");
       dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3));
       Serial.printf("\r\nAfter Setting newValue3\n");
       ledState = !ledState;
@@ -1926,6 +1911,8 @@ void loop()
       // Check if one of the here listed On/Off states has changed     
       // (here: Burner, Circulation Pump, HotWaterCirculation Pump,
       // HotWaterPimary Pump)
+
+      Serial.printf("\Before OnOffBurnerStatus.HasChangedState\n");
 
       if (OnOffBurnerStatus.HasChangedState())
       {    
@@ -1970,11 +1957,12 @@ void loop()
           }           
       }
       */
-      
-        
+      Serial.printf("\Before dataContainerAnalogViessmann01.hasToBeSent\n");      
       // Check if something is to do: send analog data ? send On/Off-Data ? Handle EndOfDay stuff ?
       if (dataContainerAnalogViessmann01.hasToBeSent() || dataContainer.hasToBeSent() || onOffDataContainer.One_hasToBeBeSent(localTime) || isLast15SecondsOfDay)
-      {    
+      {
+        Serial.printf("\After dataContainerAnalogViessmann01.hasToBeSent\n");      
+         
         //Create some buffer
         char sampleTime[25] {0};    // Buffer to hold sampletime        
         char strData[100] {0};          // Buffer to hold display message
@@ -1993,6 +1981,7 @@ void loop()
         
         if (dataContainerAnalogViessmann01.hasToBeSent())   // have to send analog values read from Viessmann ?
         {
+          Serial.printf("\dataContainerAnalogViessmann01.hasToBeSent");
           // Retrieve edited sample values from container
           SampleValueSet sampleValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, true);
                   
@@ -2074,9 +2063,11 @@ void loop()
               
 
         } 
-        
+        printf("Test if dataContainer has to be sent");
         if (dataContainer.hasToBeSent())   // have to send analog values read by Device (e.g. noise)?
-        {    
+        {
+          printf("dataContainer has to be sent");
+          
           // Retrieve edited sample values from container
           SampleValueSet sampleValueSet = dataContainer.getCheckedSampleValues(dateTimeUTCNow, true);
                   
@@ -2164,7 +2155,7 @@ void loop()
           #endif
 
           OnOffSampleValueSet onOffValueSet = onOffDataContainer.GetOnOffValueSet();
-
+          
           for (int i = 0; i < 4; i++)    // Do for 4 OnOff-Tables  
           {
             DateTime lastSwitchTimeDate = DateTime(onOffValueSet.OnOffSampleValues[i].LastSwitchTime.year(), 
@@ -2172,8 +2163,11 @@ void loop()
                                                 onOffValueSet.OnOffSampleValues[i].LastSwitchTime.day());
 
             DateTime actTimeDate = DateTime(localTime.year(), localTime.month(), localTime.day());
-
-            if (onOffValueSet.OnOffSampleValues[i].hasToBeSent || ((onOffValueSet.OnOffSampleValues[i].actState == true) &&  (lastSwitchTimeDate.operator!=(actTimeDate))))
+            
+            //RoSchmi
+            //if (onOffValueSet.OnOffSampleValues[i].hasToBeSent || ((onOffValueSet.OnOffSampleValues[i].actState == true) &&  (lastSwitchTimeDate.operator!=(actTimeDate))))
+            
+            if (false)
             {
               if (onOffValueSet.OnOffSampleValues[i].hasToBeSent)
               {
@@ -2190,6 +2184,7 @@ void loop()
                   {
                     onOffDataContainer.Set_LastSwitchTime(i, actTimeDate);
                   }
+              
                 }
                           
               char OnTimeDay[15] = {0};
@@ -2219,6 +2214,11 @@ void loop()
                     //SCB_AIRCR = 0x05FA0004;      
                  }
               }
+
+              //RoSchmi
+              Serial.printf("\nDidn't need to create Tabele");
+
+              
               
               TimeSpan TimeFromLast = onOffValueSet.OnOffSampleValues[i].TimeFromLast;
 
@@ -2277,9 +2277,15 @@ void loop()
                 }              
               }
               } 
-            }                        
-          }         
-        } 
+            }                                
+          }
+          Serial.printf("\nEnding One has to be sent ");       
+        }
+        Serial.printf("\nEnding One of all has to be sent ");
+      }
+      else
+      {
+        printf("nichts");
       }     
   } 
 }
@@ -2542,6 +2548,8 @@ ViessmannApiSelection::Feature ReadViessmannFeatureFromSelection(const char * pS
 }
 
 AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, const char* pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr)
+//AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, const char* pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr)
+
 {
   // Use values read from the AiOnTheEge Rest API
   // pSensorIndex determins the position (from 4). pSensorName is the name of the feature (see AinTheEdgeSelection.h)
@@ -2555,7 +2563,7 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
   {
     printf("\nGoing to perform readsonFromRestApi\n");
     httpCode = readJsonFromRestApi(myX509Certificate, gasmeterApiAccountPtr, pAiOnTheEdgeApiSelectionPtr);
-    
+    printf("\nBack from readJsonFromRestApi");
     if (httpCode == t_http_codes::HTTP_CODE_OK)
     {
       pAiOnTheEdgeApiSelectionPtr -> lastReadTime = dateTimeUTCNow;  
@@ -2567,20 +2575,30 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
       Serial.println((char*)bufferStorePtr);
     }
   }
-  
+  printf("Before: has to be read?");
   if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
   {
+    printf("\nAfter: has to be read?");
     for (int i = 0; i < AI_FEATURES_COUNT; i++)
     {       
       if (strcmp((const char *)ai_features[i].name, pSensorName) == 0)
       {
+        printf("Sensor name found\n");
         returnFeature = ai_features[i];
         analogSensorMgr.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, atof(returnFeature.value), 0.0f, MAGIC_NUMBER_INVALID);           
         break;
       }
+      else
+      {
+        printf("Sensor name not found");
+      }
     } 
   }
-
+  else
+  {
+    printf("\nhas to be read? No");
+  }
+  printf("\nReturning from ReadAiOnTheEdgeApi_Analog_01");
   return returnFeature;
 }
 
@@ -2611,7 +2629,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   
   if (analogSensorMgr_Api_01.HasToBeRead(pSensorIndex, dateTimeUTCNow))
   {
-    for (int i = 0; i < FEATURES_COUNT; i++)
+    for (int i = 0; i < VI_FEATURES_COUNT; i++)
     {       
       if (strcmp((const char *)features[i].name, pSensorName) == 0)
       {
@@ -2627,6 +2645,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
 
 float ReadAnalogSensor(int pSensorIndex)
 {
+
 #ifndef USE_SIMULATED_SENSORVALUES
             // Use values read from an analog source
             // Change the function for each sensor to your needs
@@ -2637,7 +2656,7 @@ float ReadAnalogSensor(int pSensorIndex)
               switch (pSensorIndex)
               {
                 case 0:
-                    {
+                    {                     
                       // must be called in the first case
                       feedResult = soundSwitcher.feed();
                       if (feedResult.isValid)  
@@ -2654,7 +2673,7 @@ float ReadAnalogSensor(int pSensorIndex)
                       // As an example we use it here to display an analog value read from the Viessmann Api   
                       
                       // Possible way to get a Viessmann Api Sensor value
-                      ViessmannApiSelection::Feature featureValue = ReadViessmannFeatureFromSelection((const char *)"_92_heating_dhw_outlet_temperature", FEATURES_COUNT);
+                      ViessmannApiSelection::Feature featureValue = ReadViessmannFeatureFromSelection((const char *)"_92_heating_dhw_outlet_temperature", VI_FEATURES_COUNT);
                       theRead = atof((char *)featureValue.value);
 
                       // This is an alternative way to get a Viessmann Api Sensor valu                      
@@ -2676,7 +2695,7 @@ float ReadAnalogSensor(int pSensorIndex)
                     }
                     break;                   
                 case 1:
-                    {
+                    {                     
                       if (feedResult.isValid)  
                       {
                         float soundValues[2] = {0};
@@ -2704,20 +2723,33 @@ float ReadAnalogSensor(int pSensorIndex)
                     }
                     break;
                 case 2:
-                    {  
+                    {                      
+                      char consumption[12] = {0};
+                      AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;
+                      
+                      AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(2, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
+                      
+                      strncpy(consumption, selectedFeature.value, 11);
+
+                      printf("\nThe Consumption value is: %s", consumption);                     
+                      theRead = atof(consumption) / 10;
+                      printf("\nTheRead is: %.2f", theRead);
+
+
+                      //return atof(consumption);
                         // Show ascending lines from 0 to 5, so re-boots of the board are indicated                                                
-                        theRead = ((double)(insertCounterAnalogTable % 50)) / 10;
-                        return theRead;                                                                   
+                        //theRead = ((double)(insertCounterAnalogTable % 50)) / 10;
+                        //return theRead;                                                                   
                     }
                     break;
                 case 3:
-                    {
+                    {                      
                       // Line for the switch threshold
                       theRead = atoi((char *)sSwiThresholdStr) / 10; // dummy                     
                     }                   
                     break;
               }
-            }                    
+            }                               
             return (float)theRead ;
 #endif
 
@@ -2903,13 +2935,24 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMete
                                         localTime.hour() , localTime.minute());
   t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures(bufferStorePtr, bufferStoreLength, apiSelectionPtr);
   //uint8_t * reponsePtr, const uint16_t reponseBufferLength
+  printf("I am back after GetFeatures, Response Code = %d", responseCode );
   if (responseCode == t_http_codes::HTTP_CODE_OK)
   {
     // Populate features array and replace the name read from Api
     // with the name used in this Application
+    printf("\nI am in Response Code = HTTP_CODE_OK");
+    ai_features[0] = apiSelectionPtr ->_0_value;
+    ai_features[1] = apiSelectionPtr ->_1_raw;
+    ai_features[2] = apiSelectionPtr ->_2_pre;
+    ai_features[3] = apiSelectionPtr ->_3_error;
+    ai_features[4] = apiSelectionPtr ->_4_rate;
+    ai_features[5] = apiSelectionPtr ->_5_timestamp;
+
+    printf("\nai_features_0_value = %s\n", ai_features[0].value);
+    //strcpy(ai_features[0].name, (const char *)"_0_value");
+    
+    
     /*
-    features[0] = apiSelectionPtr ->_3_temperature_main;
-    strcpy(features[0].name, (const char *)"_3_temperature_main");
     features[1] = apiSelectionPtr ->_5_boiler_temperature;
     strcpy(features[1].name, (const char *)"_5_boiler_temperature");
     features[2] = apiSelectionPtr ->_7_burner_modulation;
