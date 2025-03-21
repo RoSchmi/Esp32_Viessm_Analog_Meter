@@ -19,17 +19,13 @@ char initValue[FEATUREVALUELENGTH] {0};
 // Constructor
 
 AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient pWifiClient)
-{ 
-    Serial.println("In constructor AiOnTheEdgeClient");
-    _restApiAccountPtr = account;
-    Serial.println("In constructor after account");
+{   
+    _restApiAccountPtr = account;  
     _aiOnTheEdgeCaCert = (char *)caCert;
     _aiOnTheEdgeHttpPtr = httpClient;
     // RoSchmi
     _aiOnTheEdgeHttpPtr -> setReuse(false);
-
-    Serial.println("In constructor after caCert");
-    
+  
     _aiOnTheEdgeWifiClient = pWifiClient;
     
    // _aiOnTheEdgeHttpPtr = httpClient;

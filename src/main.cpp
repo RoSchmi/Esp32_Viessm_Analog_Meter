@@ -1891,8 +1891,7 @@ void loop()
         
       dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor(2));
       Serial.printf("\r\nAfter Setting newValue2\n");
-      dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3));
-      Serial.printf("\r\nAfter Setting newValue3\n");
+      dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3)); 
       ledState = !ledState;
       digitalWrite(LED_BUILTIN, ledState);    // toggle LED to signal that App is running
 
@@ -1956,13 +1955,10 @@ void loop()
             Serial.println();
           }           
       }
-      */
-      Serial.printf("\Before dataContainerAnalogViessmann01.hasToBeSent\n");      
+      */           
       // Check if something is to do: send analog data ? send On/Off-Data ? Handle EndOfDay stuff ?
       if (dataContainerAnalogViessmann01.hasToBeSent() || dataContainer.hasToBeSent() || onOffDataContainer.One_hasToBeBeSent(localTime) || isLast15SecondsOfDay)
-      {
-        Serial.printf("\After dataContainerAnalogViessmann01.hasToBeSent\n");      
-         
+      {     
         //Create some buffer
         char sampleTime[25] {0};    // Buffer to hold sampletime        
         char strData[100] {0};          // Buffer to hold display message
@@ -1980,8 +1976,7 @@ void loop()
         az_span rowKey = AZ_SPAN_FROM_BUFFER(rowKeySpan);
         
         if (dataContainerAnalogViessmann01.hasToBeSent())   // have to send analog values read from Viessmann ?
-        {
-          Serial.printf("\dataContainerAnalogViessmann01.hasToBeSent");
+        {         
           // Retrieve edited sample values from container
           SampleValueSet sampleValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, true);
                   
@@ -2060,14 +2055,11 @@ void loop()
 
           // Store Entity to Azure Cloud   
           __unused az_http_status_code insertResult =  insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str(), analogTableEntity, (char *)EtagBuffer);
-              
+        }
 
-        } 
-        printf("Test if dataContainer has to be sent");
         if (dataContainer.hasToBeSent())   // have to send analog values read by Device (e.g. noise)?
         {
-          printf("dataContainer has to be sent");
-          
+          printf("dataContainer has to be sent");         
           // Retrieve edited sample values from container
           SampleValueSet sampleValueSet = dataContainer.getCheckedSampleValues(dateTimeUTCNow, true);
                   
@@ -2278,15 +2270,9 @@ void loop()
               }
               } 
             }                                
-          }
-          Serial.printf("\nEnding One has to be sent ");       
-        }
-        Serial.printf("\nEnding One of all has to be sent ");
-      }
-      else
-      {
-        printf("nichts");
-      }     
+          }               
+        }       
+      }          
   } 
 }
 
@@ -2561,9 +2547,8 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
   // Only read features from AiOnTheEdgeDevice when readInterval has expired
   if ((pAiOnTheEdgeApiSelectionPtr ->lastReadTime.operator+(pAiOnTheEdgeApiSelectionPtr -> readInterval)).operator<(dateTimeUTCNow))
   {
-    printf("\nGoing to perform readsonFromRestApi\n");
-    httpCode = readJsonFromRestApi(myX509Certificate, gasmeterApiAccountPtr, pAiOnTheEdgeApiSelectionPtr);
-    printf("\nBack from readJsonFromRestApi");
+    printf("\nGoing to perform read json fromRestApi\n");
+    httpCode = readJsonFromRestApi(myX509Certificate, gasmeterApiAccountPtr, pAiOnTheEdgeApiSelectionPtr);   
     if (httpCode == t_http_codes::HTTP_CODE_OK)
     {
       pAiOnTheEdgeApiSelectionPtr -> lastReadTime = dateTimeUTCNow;  
@@ -2575,30 +2560,20 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
       Serial.println((char*)bufferStorePtr);
     }
   }
-  printf("Before: has to be read?");
+  printf("Before: analogSensorMgr has to be read?");
   if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
   {
     printf("\nAfter: has to be read?");
     for (int i = 0; i < AI_FEATURES_COUNT; i++)
     {       
       if (strcmp((const char *)ai_features[i].name, pSensorName) == 0)
-      {
-        printf("Sensor name found\n");
+      {       
         returnFeature = ai_features[i];
         analogSensorMgr.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, atof(returnFeature.value), 0.0f, MAGIC_NUMBER_INVALID);           
         break;
-      }
-      else
-      {
-        printf("Sensor name not found");
-      }
+      }     
     } 
   }
-  else
-  {
-    printf("\nhas to be read? No");
-  }
-  printf("\nReturning from ReadAiOnTheEdgeApi_Analog_01");
   return returnFeature;
 }
 
@@ -2731,9 +2706,9 @@ float ReadAnalogSensor(int pSensorIndex)
                       
                       strncpy(consumption, selectedFeature.value, 11);
 
-                      printf("\nThe Consumption value is: %s", consumption);                     
-                      theRead = atof(consumption) / 10;
-                      printf("\nTheRead is: %.2f", theRead);
+                      printf("\nThe Consumption value is: %s\n", consumption);                     
+                      theRead = (atof(consumption)) / 10;
+                      printf("\nTheRead is: %.2f\n", (float)theRead);
 
 
                       //return atof(consumption);
@@ -2927,7 +2902,7 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMete
   
   memset(bufferStorePtr, '\0', bufferStoreLength);
   //AiOnTheEdgeClient aiOnTheEdgeClient(gasMeterAccountPtr, pCaCert,  httpPtr, &wifi_client, bufferStorePtr);
-  AiOnTheEdgeClient aiOnTheEdgeClient(gasMeterAccountPtr, pCaCert, httpPtr, wifi_client);
+    AiOnTheEdgeClient aiOnTheEdgeClient(gasMeterAccountPtr, pCaCert, httpPtr, wifi_client);
   
   Serial.printf("\r\n(%u) ",loadGasMeterJsonCount);
   Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
