@@ -16,13 +16,13 @@ class AiOnTheEdgeClient
 {
     public:
     //AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient *httpClient, WiFiClient * wifiClient, uint8_t * bufferStore);
-    AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient pWifiClient);
+    AiOnTheEdgeClient(const char * caCert, HTTPClient * httpClient, WiFiClient pWifiClient);
     
     
     ~AiOnTheEdgeClient();
     
     //int GetFeatures(uint8_t * reponsePtr, const uint16_t reponseBufferLength);
-    int GetFeatures(uint8_t * reponsePtr, const uint16_t reponseBufferLength, AiOnTheEdgeApiSelection * apiSelectionPtr);
+    int GetFeatures(const char * url, uint8_t * reponsePtr, const uint16_t reponseBufferLength, AiOnTheEdgeApiSelection * apiSelectionPtr);
     /*
     int GetUser(uint8_t * reponsePtr, const uint16_t reponseBufferLength);
     int GetEquipment(uint8_t* responseBuffer, const uint16_t reponseBufferLength);
@@ -33,7 +33,9 @@ class AiOnTheEdgeClient
 
    //WiFiClient * _aiOnTheEdgeWifiClient;
    //HTTPClient * _aiOnTheEdgeHttpPtr;
-   RestApiAccount * _restApiAccountPtr;
+   //RestApiAccount _restApiAccount;
+   //RestApiAccount * _restApiAccountPtr;
+   char _url[40] {0};
    char * _aiOnTheEdgeCaCert;
 
    char initName[FEATURENAMELENGTH] {0};

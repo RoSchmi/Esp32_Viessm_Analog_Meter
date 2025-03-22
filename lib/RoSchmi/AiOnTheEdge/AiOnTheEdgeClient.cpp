@@ -18,9 +18,9 @@ char initValue[FEATUREVALUELENGTH] {0};
 
 // Constructor
 
-AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient pWifiClient)
+AiOnTheEdgeClient::AiOnTheEdgeClient(const char * caCert, HTTPClient * httpClient, WiFiClient pWifiClient)
 {   
-    _restApiAccountPtr = account;  
+    //_restApiAccount = restApiAccount;  
     _aiOnTheEdgeCaCert = (char *)caCert;
     _aiOnTheEdgeHttpPtr = httpClient;
     // RoSchmi
@@ -60,20 +60,31 @@ AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCe
     */
 }
 
-t_httpCode AiOnTheEdgeClient::GetFeatures(uint8_t* responseBuffer, const uint16_t reponseBufferLength, AiOnTheEdgeApiSelection * apiSelectionPtr)
+t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuffer, const uint16_t reponseBufferLength, AiOnTheEdgeApiSelection * apiSelectionPtr)
 {
     char InstallationId[20] = {0};  
-    String Url = _restApiAccountPtr -> UriEndPointJson;
-    
-    Serial.println(F("Loading gasmeter Features"));
+    //String Url = (String)_restApiAccountPtr -> UriEndPointJson;
+    //String Url = _restApiAccount.UriEndPointJson;
+
+    Serial.println(F("Loading gasmeter Features from"));
       
     //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient/
     
    // _aiOnTheEdgeHttpPtr -> setReuse(false);
    // _aiOnTheEdgeHttpPtr ->useHTTP10(false);   // Must be reset to false for Azure requests
                                            // Is needed to load the long features JSON string
-    
-    _aiOnTheEdgeHttpPtr ->begin(_aiOnTheEdgeWifiClient, Url);
+    //char c_url[30] {0};
+    //Url.toCharArray(c_url, sizeof(c_url));
+
+
+    Serial.printf("Url: %s\n", url);
+
+
+    Serial.printf("%d\n", &_aiOnTheEdgeWifiClient);
+
+    //Url = "http://gasmeter/json";
+
+    _aiOnTheEdgeHttpPtr ->begin(_aiOnTheEdgeWifiClient, url);
 
     _aiOnTheEdgeHttpPtr -> setReuse(false);
     _aiOnTheEdgeHttpPtr ->useHTTP10(false);   // Must be reset to false for Azure requests

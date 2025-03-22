@@ -191,7 +191,7 @@ ViessmannApiSelection viessmannApiSelection(DateTime(), TimeSpan(VIESSMANN_API_R
 ViessmannApiSelection * viessmannApiSelectionPtr = &viessmannApiSelection;
 
 RestApiAccount gasmeterApiAccount("gasmeter", "","gasmeter", false);
-RestApiAccount * gasmeterApiAccountPtr = &gasmeterApiAccount;
+//RestApiAccount * gasmeterApiAccountPtr = &gasmeterApiAccount;
 
 AiOnTheEdgeApiSelection gasmeterApiSelection(DateTime(), TimeSpan(GASMETER_AI_API_READ_INTERVAL_SECONDS));
 AiOnTheEdgeApiSelection * gasmeterApiSelectionPtr = &gasmeterApiSelection;
@@ -292,11 +292,12 @@ X509Certificate myX509Certificate = digicert_globalroot_g2_ca;
   static HTTPClient * httpPtr = &http;
 
 // Define Datacontainer with SendInterval and InvalidateInterval as defined in config.h
-int sendIntervalSeconds = (SENDINTERVAL_MINUTES * 60) < 1 ? 1 : (SENDINTERVAL_MINUTES * 60);
+int sendIntervalSeconds_Vi = (SENDINTERVAL_MINUTES_VI * 60) < 1 ? 1 : (SENDINTERVAL_MINUTES_VI * 60);
+int sendIntervalSeconds_Ai = (SENDINTERVAL_MINUTES_AI * 60) < 1 ? 1 : (SENDINTERVAL_MINUTES_AI * 60);
 
-DataContainerWio dataContainer(TimeSpan(sendIntervalSeconds), TimeSpan(0, 0, INVALIDATEINTERVAL_MINUTES % 60, 0), (float)MIN_DATAVALUE, (float)MAX_DATAVALUE, (float)MAGIC_NUMBER_INVALID);
+DataContainerWio dataContainer(TimeSpan(sendIntervalSeconds_Ai), TimeSpan(0, 0, INVALIDATEINTERVAL_MINUTES % 60, 0), (float)MIN_DATAVALUE, (float)MAX_DATAVALUE, (float)MAGIC_NUMBER_INVALID);
 
-DataContainerWio dataContainerAnalogViessmann01(TimeSpan(sendIntervalSeconds), TimeSpan(0, 0, INVALIDATEINTERVAL_MINUTES % 60, 0), (float)MIN_DATAVALUE, (float)MAX_DATAVALUE, (float)MAGIC_NUMBER_INVALID);
+DataContainerWio dataContainerAnalogViessmann01(TimeSpan(sendIntervalSeconds_Vi), TimeSpan(0, 0, INVALIDATEINTERVAL_MINUTES % 60, 0), (float)MIN_DATAVALUE, (float)MAX_DATAVALUE, (float)MAGIC_NUMBER_INVALID);
 
 AnalogSensorMgr analogSensorMgr(MAGIC_NUMBER_INVALID);
 
@@ -398,7 +399,7 @@ CloudStorageAccount myCloudStorageAccount(azureAccountName, azureAccountKey, Use
 CloudStorageAccount * myCloudStorageAccountPtr = &myCloudStorageAccount;
 
 RestApiAccount gasMeterAccount(GasMeterAccountName, "", GasMeterHostName, false);
-RestApiAccount * gasMeterAccountPtr = &gasMeterAccount; 
+//RestApiAccount * gasMeterAccountPtr = &gasMeterAccount; 
 
 
 void GPIOPinISR()
@@ -414,7 +415,7 @@ t_httpCode refreshAccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccoun
 t_httpCode readViessmannFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t Data_0_Id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr);
 t_httpCode readEquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id);
 t_httpCode readUserFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr);
-t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMeterAccountPtr, AiOnTheEdgeApiSelection * apiSelectionPtr);
+t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int pMaxUrlLength, AiOnTheEdgeApiSelection * apiSelectionPtr);
 void print_reset_reason(RESET_REASON reason);
 void scan_WIFI();
 String floToStr(float value);
@@ -2059,7 +2060,7 @@ void loop()
           // Store Entity to Azure Cloud   
           __unused az_http_status_code insertResult =  insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str(), analogTableEntity, (char *)EtagBuffer);
         }
-
+        
         if (dataContainer.hasToBeSent())   // have to send analog values read by Device (e.g. noise)?
         {
           printf("dataContainer has to be sent");         
@@ -2537,11 +2538,9 @@ ViessmannApiSelection::Feature ReadViessmannFeatureFromSelection(const char * pS
 }
 
 AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, const char* pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr)
-//AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, const char* pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr)
-
 {
   // Use values read from the AiOnTheEge Rest API
-  // pSensorIndex determins the position (from 4). pSensorName is the name of the feature (see AinTheEdgeSelection.h)
+  // pSensorIndex determins the position (from 4). pSensorName is the name of the feature (see AiOnTheEdgeSelection.h)
   
   // preset a 'returnFeature' with value = MAGIC_NUMBER_INVALID (999.9)
   AiOnTheEdgeApiSelection::Feature returnFeature;
@@ -2551,7 +2550,14 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
   if ((pAiOnTheEdgeApiSelectionPtr ->lastReadTime.operator+(pAiOnTheEdgeApiSelectionPtr -> readInterval)).operator<(dateTimeUTCNow))
   {
     printf("\nGoing to perform read json fromRestApi\n");
-    httpCode = readJsonFromRestApi(myX509Certificate, gasmeterApiAccountPtr, pAiOnTheEdgeApiSelectionPtr);   
+    //gasmeterApiAccount.UriEndPointJson.c_str();
+    char myUriEndpoint[50] = {0}; 
+    strncpy(myUriEndpoint, "http://gasmeter/json", sizeof(myUriEndpoint) - 1);
+    
+
+    //httpCode = readJsonFromRestApi(myX509Certificate, (const char *)gasmeterApiAccount.UriEndPointJson.c_str(), gasmeterApiAccount.UriEndPointJson.length(), pAiOnTheEdgeApiSelectionPtr);   
+    httpCode = readJsonFromRestApi(myX509Certificate, (const char *)myUriEndpoint, sizeof(myUriEndpoint), pAiOnTheEdgeApiSelectionPtr);   
+    
     if (httpCode == t_http_codes::HTTP_CODE_OK)
     {
       pAiOnTheEdgeApiSelectionPtr -> lastReadTime = dateTimeUTCNow;  
@@ -2706,7 +2712,7 @@ float ReadAnalogSensor(int pSensorIndex)
                       
                       AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(2, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
                       
-                      strncpy(consumption, selectedFeature.value, 11);                        
+                      strncpy(consumption, selectedFeature.value, sizeof(consumption));                        
                       theRead = (atof(consumption)) / 10;
                       printf("\nTheRead is: %.2f\n", (float)theRead);
 
@@ -2882,9 +2888,8 @@ bool extractSubString (const char * source, const String startTag, const String 
   }
 }
 
-t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMeterAccountPtr, AiOnTheEdgeApiSelection * apiSelectionPtr)
-{
-  
+t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int pUrlMaxlength, AiOnTheEdgeApiSelection * apiSelectionPtr)
+{  
   #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1
     static WiFiClientSecure wifi_client;
   #else  
@@ -2901,14 +2906,27 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMete
   #endif
   
   memset(bufferStorePtr, '\0', bufferStoreLength);
-  //AiOnTheEdgeClient aiOnTheEdgeClient(gasMeterAccountPtr, pCaCert,  httpPtr, &wifi_client, bufferStorePtr);
-    AiOnTheEdgeClient aiOnTheEdgeClient(gasMeterAccountPtr, pCaCert, httpPtr, wifi_client);
   
-  Serial.printf("\r\n(%u) ",loadGasMeterJsonCount);
+  AiOnTheEdgeClient aiOnTheEdgeClient(pCaCert, httpPtr, wifi_client);
+  
+  Serial.printf("\r\n(%u) ", loadGasMeterJsonCount);
   Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
                                         localTime.month() , localTime.day(),
                                         localTime.hour() , localTime.minute());
-  t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures(bufferStorePtr, bufferStoreLength, apiSelectionPtr);
+  
+  char url[pUrlMaxlength + 1] = {0};
+  strncpy(url, pUrl, pUrlMaxlength);
+   
+  //const char * theUrl = "http://gasmeter/json";
+   
+   //String uriEndpoint = restApiAccount.UriEndPointJson;
+
+   //char Url[40] = {0};
+   //uriEndpoint.toCharArray(Url, sizeof(Url) - 1);
+   
+   Serial.printf("\nreadJsonFromRestApi: %s\n", (const char *)url);
+
+  t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures((const char *)url, bufferStorePtr, bufferStoreLength, apiSelectionPtr);
   //uint8_t * reponsePtr, const uint16_t reponseBufferLength
   printf("\nReadJsonFromRestApi: Back after AiOnTheEdge GetFeatures, Response Code = %d\n", responseCode );
   if (responseCode == t_http_codes::HTTP_CODE_OK)
