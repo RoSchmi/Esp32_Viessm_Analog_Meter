@@ -411,7 +411,7 @@ void trimLeadingSpaces(char * workstr);
 ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char * pSensorName);
 AiOnTheEdgeApiSelection:: Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, const char * pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr);
 t_httpCode refreshAccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const char * refreshToken); 
-t_httpCode readFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t Data_0_Id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr);
+t_httpCode readViessmannFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t Data_0_Id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr);
 t_httpCode readEquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id);
 t_httpCode readUserFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr);
 t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMeterAccountPtr, AiOnTheEdgeApiSelection * apiSelectionPtr);
@@ -1889,8 +1889,13 @@ void loop()
       dataContainer.SetNewValue(0, dateTimeUTCNow, ReadAnalogSensor(0));
       dataContainer.SetNewValue(1, dateTimeUTCNow, ReadAnalogSensor(1));
         
-      dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor(2));
-      Serial.printf("\r\nAfter Setting newValue2\n");
+      //dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor(2));
+      float newValue2 = ReadAnalogSensor(2);
+      dataContainer.SetNewValue(2, dateTimeUTCNow, newValue2);
+      if (newValue2 < 999.0 )
+      {
+        Serial.printf("\r\nAfter Setting newValue2, Value: %.2f\n", newValue2);
+      }
       dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3)); 
       ledState = !ledState;
       digitalWrite(LED_BUILTIN, ledState);    // toggle LED to signal that App is running
@@ -1910,9 +1915,7 @@ void loop()
       // Check if one of the here listed On/Off states has changed     
       // (here: Burner, Circulation Pump, HotWaterCirculation Pump,
       // HotWaterPimary Pump)
-
-      Serial.printf("\Before OnOffBurnerStatus.HasChangedState\n");
-
+   
       if (OnOffBurnerStatus.HasChangedState())
       {    
         onOffDataContainer.SetNewOnOffValue(0, OnOffBurnerStatus.GetStateAndResetChangedFlag(), dateTimeUTCNow, timeZoneOffsetUTC);
@@ -2560,10 +2563,10 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
       Serial.println((char*)bufferStorePtr);
     }
   }
-  printf("Before: analogSensorMgr has to be read?");
+  
   if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
   {
-    printf("\nAfter: has to be read?");
+    printf("\nAnalogSensorMgr has to be read?");
     for (int i = 0; i < AI_FEATURES_COUNT; i++)
     {       
       if (strcmp((const char *)ai_features[i].name, pSensorName) == 0)
@@ -2589,7 +2592,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   // Only read features from the cloud when readInterval has expired
   if ((viessmannApiSelection.lastReadTime.operator+(viessmannApiSelection.readInterval)).operator<(dateTimeUTCNow))
   { 
-    httpCode = readFeaturesFromApi(myX509Certificate, myViessmannApiAccountPtr, Data_0_Id, Gateways_0_Serial, Gateways_0_Devices_0_Id, viessmannApiSelectionPtr);
+    httpCode = readViessmannFeaturesFromApi(myX509Certificate, myViessmannApiAccountPtr, Data_0_Id, Gateways_0_Serial, Gateways_0_Devices_0_Id, viessmannApiSelectionPtr);
     if (httpCode == t_http_codes::HTTP_CODE_OK)
     {
       viessmannApiSelection.lastReadTime = dateTimeUTCNow;  
@@ -2620,7 +2623,6 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
 
 float ReadAnalogSensor(int pSensorIndex)
 {
-
 #ifndef USE_SIMULATED_SENSORVALUES
             // Use values read from an analog source
             // Change the function for each sensor to your needs
@@ -2704,9 +2706,7 @@ float ReadAnalogSensor(int pSensorIndex)
                       
                       AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(2, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
                       
-                      strncpy(consumption, selectedFeature.value, 11);
-
-                      printf("\nThe Consumption value is: %s\n", consumption);                     
+                      strncpy(consumption, selectedFeature.value, 11);                        
                       theRead = (atof(consumption)) / 10;
                       printf("\nTheRead is: %.2f\n", (float)theRead);
 
@@ -2910,12 +2910,12 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMete
                                         localTime.hour() , localTime.minute());
   t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures(bufferStorePtr, bufferStoreLength, apiSelectionPtr);
   //uint8_t * reponsePtr, const uint16_t reponseBufferLength
-  printf("I am back after GetFeatures, Response Code = %d", responseCode );
+  printf("\nReadJsonFromRestApi: Back after AiOnTheEdge GetFeatures, Response Code = %d\n", responseCode );
   if (responseCode == t_http_codes::HTTP_CODE_OK)
   {
     // Populate features array and replace the name read from Api
     // with the name used in this Application
-    printf("\nI am in Response Code = HTTP_CODE_OK");
+    
     ai_features[0] = apiSelectionPtr ->_0_value;
     ai_features[1] = apiSelectionPtr ->_1_raw;
     ai_features[2] = apiSelectionPtr ->_2_pre;
@@ -2923,49 +2923,15 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * gasMete
     ai_features[4] = apiSelectionPtr ->_4_rate;
     ai_features[5] = apiSelectionPtr ->_5_timestamp;
 
-    printf("\nai_features_0_value = %s\n", ai_features[0].value);
-    //strcpy(ai_features[0].name, (const char *)"_0_value");
-    
-    
-    /*
-    features[1] = apiSelectionPtr ->_5_boiler_temperature;
-    strcpy(features[1].name, (const char *)"_5_boiler_temperature");
-    features[2] = apiSelectionPtr ->_7_burner_modulation;
-    strcpy(features[2].name, (const char *)"_7_burner_modulation");
-    features[3] = apiSelectionPtr ->_8_burner_hours;
-    strcpy(features[3].name, (const char *)"_8_burner_hours");
-    features[4] = apiSelectionPtr ->_8_burner_starts;
-    strcpy(features[4].name, (const char *)"_8_burner_starts");
-    features[5] = apiSelectionPtr ->_9_burner_is_active;
-    strcpy(features[5].name, (const char *)"_9_burner_is_active");
-    features[6] = apiSelectionPtr ->_23_heating_curve_shift;
-    strcpy(features[6].name, (const char *)"_23_heating_curve_shift");
-    features[7] = apiSelectionPtr ->_23_heating_curve_slope;
-    strcpy(features[7].name, (const char *)"_23_heating_curve_slope");
-    features[8] = apiSelectionPtr ->_77_temperature_supply;
-    strcpy(features[8].name, (const char *)"_77_temperature_supply");
-    features[9] = apiSelectionPtr ->_85_heating_dhw_charging;
-    strcpy(features[9].name, (const char *)"_85_heating_dhw_charging");
-    features[10] = apiSelectionPtr ->_86_heating_dhw_pump_status;
-    strcpy(features[10].name, (const char *)"_86_heating_dhw_pump_status");
-    features[11] = apiSelectionPtr ->_88_heating_dhw_pump_primary_status;
-    strcpy(features[11].name, (const char *)"_88_heating_dhw_pump_primary_status");
-    features[12] = apiSelectionPtr ->_90_heating_dhw_cylinder_temperature;
-    strcpy(features[12].name, (const char *)"_90_heating_dhw_cylinder_temperature");
-    features[13] = apiSelectionPtr ->_92_heating_dhw_outlet_temperature;
-    strcpy(features[13].name, (const char *)"_92_heating_dhw_outlet_temperature");
-    features[14] = apiSelectionPtr ->_93_heating_dhw_main_temperature;
-    strcpy(features[14].name, (const char *)"_93_heating_dhw_main_temperature");
-    features[15] = apiSelectionPtr ->_95_heating_temperature_outside;
-    strcpy(features[15].name, (const char *)"_95_heating_temperature_outside");
-    */
+    printf("\nReadJsonFromRestApi: ai_features_0_value = %s\n", ai_features[0].value);
+      
   }
   return responseCode;
 } 
 
 
 
-t_httpCode readFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const uint32_t data_0_id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr)
+t_httpCode readViessmannFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const uint32_t data_0_id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr)
 {  
   #if VIESSMANN_TRANSPORT_PROTOCOL == 1
     static WiFiClientSecure wifi_client;
@@ -2988,7 +2954,7 @@ t_httpCode readFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * my
                                         localTime.month() , localTime.day(),
                                         localTime.hour() , localTime.minute());
   t_httpCode responseCode = viessmannClient.GetFeatures(bufferStorePtr, bufferStoreLength, data_0_id, Gateways_0_Serial, Gateways_0_Devices_0_Id, apiSelectionPtr);
-  Serial.printf("(%u) Features: httpResponseCode is: %d\r\n", loadFeaturesCount++, responseCode);
+  Serial.printf("(%u) Viessmann Features: httpResponseCode is: %d\r\n", loadFeaturesCount++, responseCode);
   if (responseCode == t_http_codes::HTTP_CODE_OK)
   {
     // Populate features array and replace the name read from Api

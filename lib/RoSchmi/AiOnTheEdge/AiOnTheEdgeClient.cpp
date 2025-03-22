@@ -62,28 +62,25 @@ AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCe
 
 t_httpCode AiOnTheEdgeClient::GetFeatures(uint8_t* responseBuffer, const uint16_t reponseBufferLength, AiOnTheEdgeApiSelection * apiSelectionPtr)
 {
-    char InstallationId[20] = {0};
-      
-    Serial.println("Im in GetFeatures");
-    
+    char InstallationId[20] = {0};  
     String Url = _restApiAccountPtr -> UriEndPointJson;
     
     Serial.println(F("Loading gasmeter Features"));
-    Serial.println(Url);  
-
+      
     //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient/
-
-    _aiOnTheEdgeHttpPtr ->useHTTP10(false);   // Must be reset to false for Azure requests
+    
+   // _aiOnTheEdgeHttpPtr -> setReuse(false);
+   // _aiOnTheEdgeHttpPtr ->useHTTP10(false);   // Must be reset to false for Azure requests
                                            // Is needed to load the long features JSON string
     
     _aiOnTheEdgeHttpPtr ->begin(_aiOnTheEdgeWifiClient, Url);
-  
-    Serial.println(F("I am after begin"));
-              
-    t_httpCode httpResponseCode = _aiOnTheEdgeHttpPtr ->GET();
 
+    _aiOnTheEdgeHttpPtr -> setReuse(false);
+    _aiOnTheEdgeHttpPtr ->useHTTP10(false);   // Must be reset to false for Azure requests
     
-                
+               
+    t_httpCode httpResponseCode = _aiOnTheEdgeHttpPtr ->GET();
+              
     if (httpResponseCode > 0) 
     { 
         if (httpResponseCode == HTTP_CODE_OK)
@@ -93,12 +90,9 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(uint8_t* responseBuffer, const uint16_
               Serial.println("Received ResponseCode > 0");
             #endif
             */
-           String payload = _aiOnTheEdgeHttpPtr ->getString();
-           
-           Serial.println("\nPrinting payload");
+           String payload = _aiOnTheEdgeHttpPtr ->getString();          
            printf(payload.c_str());
-
-           
+          
            int charsToCopy = payload.length() < reponseBufferLength ? payload.length() : reponseBufferLength;
            for (int i = 0; i < charsToCopy; i++)
            {
@@ -109,9 +103,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(uint8_t* responseBuffer, const uint16_
            
             JsonDocument doc;
             deserializeJson(doc, json);
-            
-            Serial.println(F("JsonDoc is deserialized"));
-            
+              
             int nameLen = apiSelectionPtr ->nameLenght;
             int stampLen = apiSelectionPtr -> stampLength;
             int valLen = apiSelectionPtr -> valueLength;
@@ -119,8 +111,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(uint8_t* responseBuffer, const uint16_
             char tempVal[valLen] = {"\0"};
             
             if (!doc.overflowed())
-            {
-                Serial.printf("Number of elements = %d\n", doc.size());
+            {               
                 // From the Features JSON string get the selected entities
                 
                 apiSelectionPtr -> _0_value.idx = 0;               
@@ -157,7 +148,6 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(uint8_t* responseBuffer, const uint16_
                 strncpy(apiSelectionPtr-> _5_timestamp.timestamp, doc["main"]["timestamp"], stampLen - 1);
                 strncpy(apiSelectionPtr-> _5_timestamp.value, doc["main"]["timestamp"], nameLen - 1);
                
-                Serial.printf("Name of first item is \n%s\n", apiSelectionPtr -> _0_value.name);
                 Serial.printf("Index: %d\n", apiSelectionPtr -> _0_value.idx);
                 Serial.printf("Value: %s\n", apiSelectionPtr -> _0_value.value);
                 Serial.printf("Timestamp: %s\n", apiSelectionPtr -> _0_value.timestamp);                
@@ -181,7 +171,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(uint8_t* responseBuffer, const uint16_
             {
             bytesRead += stream ->readBytes(chunkBuffer, chunkSize);
             chunkBuffer[chunkSize] = '\0'; 
-            //Serial.println(chunkBuffer);
+            Serial.println(chunkBuffer);
             strcat((char *)responseBuffer, chunkBuffer);
             responseBuffer += chunkSize;
             //Serial.printf("\r\n%d\r\n", bytesRead);
@@ -194,9 +184,8 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(uint8_t* responseBuffer, const uint16_
     }
     _aiOnTheEdgeHttpPtr ->useHTTP10(false);
     _aiOnTheEdgeHttpPtr->end();
-    //Serial.println(F("Returning"));
+    
     return httpResponseCode;
 }
 AiOnTheEdgeClient::~AiOnTheEdgeClient()
-
 {};

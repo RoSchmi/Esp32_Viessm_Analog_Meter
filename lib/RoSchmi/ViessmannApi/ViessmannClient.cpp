@@ -60,7 +60,8 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     String addendum = "features/installations/" + (String)InstallationId + "/gateways/" + (String(gateways_0_serial) + "/devices/" + String(gateways_0_devices_0_id) + "/features"); 
     String Url = _viessmannAccountPtr -> UriEndPointIot + addendum;
     String authorizationHeader = "Bearer " + _viessmannAccountPtr ->AccessToken;
-    Serial.println(F("Loading features"));
+    Serial.println(F("Loading Viessmann features"));
+    Serial.println("");
     //Serial.println(Url);
 
     //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient/
