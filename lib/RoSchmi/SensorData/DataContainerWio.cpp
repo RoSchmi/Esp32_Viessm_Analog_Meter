@@ -23,30 +23,45 @@ DataContainerWio::DataContainerWio(TimeSpan pSendInterval, TimeSpan pInvalidateI
     MagicNumberInvalid = pMagicNumberInvalid;
 }
 
-void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float pSampleValue)
+void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float pSampleValue, bool pIsConsumption)
 {
     // Ignore invalid readings with value 999.9 (MagicNumberInvalid)
     if (pSampleValue > (MagicNumberInvalid + 0.11) || pSampleValue < (MagicNumberInvalid - 0.11))
-    { 
-        SampleValues[pIndex].feedCount++;
-        SampleValues[pIndex].SummedValues += pSampleValue;
-        SampleValues[pIndex].AverageValue = SampleValues[pIndex].SummedValues / SampleValues[pIndex].feedCount;
-        
-        SampleValues[pIndex].Value = pSampleValue; 
+    {
+        //Serial.println(F("Set new value 1"));
+        if (!pIsConsumption)
+        {
+            SampleValues[pIndex].feedCount++;
+            SampleValues[pIndex].SummedValues += pSampleValue;
+            SampleValues[pIndex].AverageValue = SampleValues[pIndex].SummedValues / SampleValues[pIndex].feedCount;
+        }
+
+        SampleValues[pIndex].LastValue = SampleValues[pIndex].Value;
+        SampleValues[pIndex].Value = pSampleValue;
+        //Serial.println(F("Set new value 2")); 
         SampleValues[pIndex].LastSendTime = pActDateTime;
         _SampleValuesSet.LastUpdateTime = pActDateTime;
     }
 
+    if (pIsConsumption && (SampleValues[pIndex].LastSendTime.day() != pActDateTime.day()))
+    {
+        SampleValues[pIndex].BaseValue = pSampleValue;
+    }
+    //Serial.println(F("Set new value 3"));
     if (_isFirstTransmission)
     {       
         _hasToBeSent = true;
         _lastSentTime = pActDateTime;
-        _isFirstTransmission = false;       
+        _isFirstTransmission = false;
+        SampleValues[pIndex].BaseValue = pSampleValue;
+        Serial.println(F("Set new value in first transmission"));  
     }
     else
     {
         if (_lastSentTime.operator<=(pActDateTime.operator-(SendInterval)))
         {
+            Serial.println(F("AiOnTheEdge Sent Flag set ************"));
+
             _hasToBeSent = true;     
         }       
     }   

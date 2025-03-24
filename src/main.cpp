@@ -295,9 +295,9 @@ X509Certificate myX509Certificate = digicert_globalroot_g2_ca;
 int sendIntervalSeconds_Vi = (SENDINTERVAL_MINUTES_VI * 60) < 1 ? 1 : (SENDINTERVAL_MINUTES_VI * 60);
 int sendIntervalSeconds_Ai = (SENDINTERVAL_MINUTES_AI * 60) < 1 ? 1 : (SENDINTERVAL_MINUTES_AI * 60);
 
-DataContainerWio dataContainer(TimeSpan(sendIntervalSeconds_Ai), TimeSpan(0, 0, INVALIDATEINTERVAL_MINUTES % 60, 0), (float)MIN_DATAVALUE, (float)MAX_DATAVALUE, (float)MAGIC_NUMBER_INVALID);
+DataContainerWio dataContainer(TimeSpan(sendIntervalSeconds_Ai), TimeSpan(0, 0, INVALIDATEINTERVAL_MINUTES % 60, 0), (float)MIN_DATAVALUE_AI, (float)MAX_DATAVALUE_AI, (float)MAGIC_NUMBER_INVALID);
 
-DataContainerWio dataContainerAnalogViessmann01(TimeSpan(sendIntervalSeconds_Vi), TimeSpan(0, 0, INVALIDATEINTERVAL_MINUTES % 60, 0), (float)MIN_DATAVALUE, (float)MAX_DATAVALUE, (float)MAGIC_NUMBER_INVALID);
+DataContainerWio dataContainerAnalogViessmann01(TimeSpan(sendIntervalSeconds_Vi), TimeSpan(0, 0, INVALIDATEINTERVAL_MINUTES % 60, 0), (float)MIN_DATAVALUE_VI, (float)MAX_DATAVALUE_VI, (float)MAGIC_NUMBER_INVALID);
 
 AnalogSensorMgr analogSensorMgr(MAGIC_NUMBER_INVALID);
 
@@ -1736,9 +1736,10 @@ void setup()
   Serial.println("\n");
   
   // Set Standard Read Interval
-  analogSensorMgr.SetReadInterval(ANALOG_SENSOR_READ_INTERVAL_SECONDS);
+  // Is limited to be not below 2 seconds
+  analogSensorMgr.SetReadInterval(ANALOG_SENSOR_READ_INTERVAL_SECONDS < 2 ? 2 : ANALOG_SENSOR_READ_INTERVAL_SECONDS);
   // Set Read Interval for special sensor
-  analogSensorMgr.SetReadInterval(2, GASMETER_AI_API_READ_INTERVAL_SECONDS);
+  analogSensorMgr.SetReadInterval(1, GASMETER_AI_API_READ_INTERVAL_SECONDS);
 
   analogSensorMgr_Api_01.SetReadInterval(API_ANALOG_SENSOR_READ_INTERVAL_SECONDS);
   
@@ -1888,15 +1889,16 @@ void loop()
       // Get readings from 4 different analog sensors, (preferably measured by the Esp 32 device, e.g. noise level)     
       // and store the values in a container
       dataContainer.SetNewValue(0, dateTimeUTCNow, ReadAnalogSensor(0));
-      dataContainer.SetNewValue(1, dateTimeUTCNow, ReadAnalogSensor(1));
-        
+       
       //dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor(2));
-      float newValue2 = ReadAnalogSensor(2);
-      dataContainer.SetNewValue(2, dateTimeUTCNow, newValue2);
-      if (newValue2 < 999.0 )
+      float newValue1 = ReadAnalogSensor(1);
+      dataContainer.SetNewValue(1, dateTimeUTCNow, newValue1, true);
+      if (newValue1 < 999.0 )
       {
-        Serial.printf("\r\nAfter Setting newValue2, Value: %.2f\n", newValue2);
+        Serial.printf("\r\nAfter Setting newValue1, Value: %.2f\n", newValue1);
       }
+      dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor(2));
+       
       dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3)); 
       ledState = !ledState;
       digitalWrite(LED_BUILTIN, ledState);    // toggle LED to signal that App is running
@@ -2547,6 +2549,14 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
   strncpy(returnFeature.value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.value) - 1);
   
   // Only read features from AiOnTheEdgeDevice when readInterval has expired
+  
+  
+  //Serial.printf("\nIn AiOnTHeEdge dateTimeUtcNow: %d\n", dateTimeUTCNow.secondstime());
+  //Serial.printf("\nAiOnTheEdge Last Read Time: %d\n", pAiOnTheEdgeApiSelectionPtr ->lastReadTime.secondstime());
+  
+  int32_t remainigSeconds = pAiOnTheEdgeApiSelectionPtr ->lastReadTime.secondstime() + pAiOnTheEdgeApiSelectionPtr -> readInterval.totalseconds() - dateTimeUTCNow.secondstime();
+  //Serial.printf("\nRemaining seconds to read AiOnTheEdgeDevice: %d\n", remainigSeconds);
+
   if ((pAiOnTheEdgeApiSelectionPtr ->lastReadTime.operator+(pAiOnTheEdgeApiSelectionPtr -> readInterval)).operator<(dateTimeUTCNow))
   {
     printf("\nGoing to perform read json fromRestApi\n");
@@ -2569,6 +2579,7 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
       Serial.println((char*)bufferStorePtr);
     }
   }
+   
   
   if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
   {
@@ -2583,11 +2594,15 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
       }     
     } 
   }
+  //Serial.printf("\nReturning AiOnTheEdge returnFeature: %s\n",returnFeature.value);
+  Serial.printf("\nAiOnTheEdge returnFeature: %s  Remained seconds to read %d \n", returnFeature.value, remainigSeconds);
+
   return returnFeature;
 }
 
 ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char* pSensorName)
 {
+  
   // Use values read from the Viessmann API
   // pSensorIndex determins the position (from 4). pSensorName is the name of the feature (see ViessmannApiSelection.h)
   
@@ -2596,12 +2611,23 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   strncpy(returnFeature.value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.value) - 1);
   
   // Only read features from the cloud when readInterval has expired
+  
+  //Serial.println(F("Going to read Viessmann features"));
+  //Serial.printf("\nLast Viessman Api Read Time: %d\n", viessmannApiSelection.lastReadTime.secondstime());
+  //Serial.printf("\ndateTimeUtcNow: %d\n", dateTimeUTCNow.secondstime());
+  int32_t remainigSeconds = viessmannApiSelection.lastReadTime.secondstime() + viessmannApiSelection.readInterval.totalseconds() - dateTimeUTCNow.secondstime();
+  //Serial.printf("\nRemaining seconds to read Viessmann Cloud: %d\n", remainigSeconds);
+
+
+
+
   if ((viessmannApiSelection.lastReadTime.operator+(viessmannApiSelection.readInterval)).operator<(dateTimeUTCNow))
   { 
     httpCode = readViessmannFeaturesFromApi(myX509Certificate, myViessmannApiAccountPtr, Data_0_Id, Gateways_0_Serial, Gateways_0_Devices_0_Id, viessmannApiSelectionPtr);
     if (httpCode == t_http_codes::HTTP_CODE_OK)
     {
-      viessmannApiSelection.lastReadTime = dateTimeUTCNow;  
+      viessmannApiSelection.lastReadTime = dateTimeUTCNow;
+      Serial.println(F("Succeeded to read Features from Viessmann Cloud"));
     }
     else
     {
@@ -2613,6 +2639,8 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   
   if (analogSensorMgr_Api_01.HasToBeRead(pSensorIndex, dateTimeUTCNow))
   {
+    Serial.println(F("Has to be read is true")); 
+      
     for (int i = 0; i < VI_FEATURES_COUNT; i++)
     {       
       if (strcmp((const char *)features[i].name, pSensorName) == 0)
@@ -2623,7 +2651,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
       }
     } 
   }
-    
+  Serial.printf("\nViessmann returnFeature: %s  Remained seconds to read %d ", returnFeature.value, remainigSeconds);
   return returnFeature;
 }
 
@@ -2634,25 +2662,12 @@ float ReadAnalogSensor(int pSensorIndex)
             // Change the function for each sensor to your needs
 
             double theRead = MAGIC_NUMBER_INVALID;           
-            if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
-            {                              
+           // if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
+           // {                              
               switch (pSensorIndex)
               {
                 case 0:
                     {                     
-                      // must be called in the first case
-                      feedResult = soundSwitcher.feed();
-                      if (feedResult.isValid)  
-                      {
-                        float soundValues[2] = {0};
-                        soundValues[0] = feedResult.avValue;
-                        soundValues[1] = feedResult.highAvValue;
-                        analogSensorMgr.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, soundValues[1], soundValues[0], MAGIC_NUMBER_INVALID);                 
-                        //theRead = feedResult.highAvValue / 10;
-                        // Function not used in this App, can be used to display another sensor
-                        // theRead = MAGIC_NUMBER_INVALID;
-                      } 
-
                       // As an example we use it here to display an analog value read from the Viessmann Api   
                       
                       // Possible way to get a Viessmann Api Sensor value
@@ -2678,59 +2693,34 @@ float ReadAnalogSensor(int pSensorIndex)
                     }
                     break;                   
                 case 1:
-                    {                     
-                      if (feedResult.isValid)  
-                      {
-                        float soundValues[2] = {0};
-                        soundValues[0] = feedResult.avValue;
-                        soundValues[1] = feedResult.highAvValue;
-                        
-                        // Here we look if the sound sensor was updated in this loop
-                        // If yes, we can get the average value from the index 0 sensor
-                        AnalogSensor tempSensor = analogSensorMgr.GetSensorDates(0);
-                        
-                        if (tempSensor.LastReadTime.operator==(dateTimeUTCNow))
-                        {                         
-                          analogSensorMgr.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, soundValues[1], soundValues[0], MAGIC_NUMBER_INVALID);
-                          theRead = feedResult.avValue / 10;
-                          // is limited to be not more than 100
-                          theRead = theRead <= 100 ? theRead : 100.0;
-                            // Take theRead (nearly) 0.0 as invalid
-                            // (if no sensor is connected the function returns 0)                        
-                            if ((theRead > - 0.00001 && theRead < 0.00001))
-                            {      
-                                  theRead = MAGIC_NUMBER_INVALID;                                                  
-                            }
-                        }                             
-                      }                
-                    }
-                    break;
-                case 2:
-                    {                      
+                    {
                       char consumption[12] = {0};
                       AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;
                       
-                      AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(2, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
+                      // select Feature by its name (pSensorName value, raw, pre, error, rate, timestamp)
+                      AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(1, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
                       
                       strncpy(consumption, selectedFeature.value, sizeof(consumption));                        
-                      theRead = (atof(consumption)) / 10;
-                      printf("\nTheRead is: %.2f\n", (float)theRead);
-
-
-                      //return atof(consumption);
-                        // Show ascending lines from 0 to 5, so re-boots of the board are indicated                                                
-                        //theRead = ((double)(insertCounterAnalogTable % 50)) / 10;
-                        //return theRead;                                                                   
+                      theRead = (atof(consumption)); //  / 10;
+                      printf("\nTheRead (AiOnTheEdge) is: %.2f\n", (float)theRead); 
+                           
+                    }
+                    break;
+                case 2:
+                    {                                          
+                                                                                                  
                     }
                     break;
                 case 3:
-                    {                      
-                      // Line for the switch threshold
-                      theRead = atoi((char *)sSwiThresholdStr) / 10; // dummy                     
+                    {
+                      
+                      //Show ascending lines from 0 to 5, so re-boots of the board are indicated                                                
+                      theRead = ((double)(insertCounterAnalogTable % 50)) / 10;
+                      return theRead;                       
                     }                   
                     break;
               }
-            }                               
+           // }                               
             return (float)theRead ;
 #endif
 
@@ -2927,8 +2917,6 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int p
    Serial.printf("\nreadJsonFromRestApi: %s\n", (const char *)url);
 
   t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures((const char *)url, bufferStorePtr, bufferStoreLength, apiSelectionPtr);
-  //uint8_t * reponsePtr, const uint16_t reponseBufferLength
-  printf("\nReadJsonFromRestApi: Back after AiOnTheEdge GetFeatures, Response Code = %d\n", responseCode );
   if (responseCode == t_http_codes::HTTP_CODE_OK)
   {
     // Populate features array and replace the name read from Api

@@ -35,7 +35,7 @@
 #define SOUNDSWITCHER_UPDATEINTERVAL 400    // Interval in ms for reading sound level
 #define SOUNDSWITCHER_READ_DELAYTIME 4000   // Delay in ms from switch to displayed value
 
-#define SENDINTERVAL_MINUTES_AI   1    // Sendinterval in minutes (5 - 10 is recommended), in this interval                                        
+#define SENDINTERVAL_MINUTES_AI   6    // Sendinterval in minutes (5 - 10 is recommended), in this interval                                        
                                        // data are sent to the Cloud (is limited to be not below 1 second)
 #define SENDINTERVAL_MINUTES_VI   5    // Sendinterval for Viessmann data in minutes (5 - 10 is recommended), in this interval                                        
                                        // data are sent to the Cloud (is limited to be not below 1 second)
@@ -85,13 +85,11 @@
                                            // With this option set, you can set  NTP_UPDATE_INTERVAL_MINUTES to a very
                                            // long time, so that it 'never' happens                                      
 
-#define ANALOG_SENSOR_READ_INTERVAL_SECONDS 0   // Analog sensors are read with this interval (seconds, can be 0)
+#define ANALOG_SENSOR_READ_INTERVAL_SECONDS 0   // Analog sensors are read with this interval (seconds, limeted to be not below 2)
 
-#define GASMETER_AI_API_READ_INTERVAL_SECONDS 30  //Values from the AiOnTheEdge gasmeter are read with this timeinterval
+#define GASMETER_AI_API_READ_INTERVAL_SECONDS 60  //Values from the AiOnTheEdge gasmeter are read with this timeinterval
 
 #define API_ANALOG_SENSOR_READ_INTERVAL_SECONDS 77  // Analog Sensor values from the Viessmann Api (seconds, can be 0)
-
-
 
 #define VIESSMANN_API_READ_INTERVAL_SECONDS 75  //Values from the Viessmann Api are read with this timeinterval
 
@@ -134,8 +132,12 @@
 #define USE_STATIC_IP 0                // 1 = use static IpAddress, 0 = use DHCP
                                         // for static IP: Ip-addresses have to be set in the code
 
-#define MIN_DATAVALUE -40.0             // Values below are treated as invalid
-#define MAX_DATAVALUE 140.0             // Values above are treated as invalid
+#define MIN_DATAVALUE_VI -40.0             // Values below are treated as invalid (Temperatures)
+#define MAX_DATAVALUE_VI 140.0             // Values above are treated as invalid (Temperatures)
+
+#define MIN_DATAVALUE_AI -0.1             // Values below are treated as invalid (Gas consumption)
+#define MAX_DATAVALUE_AI 999.89           // Values above are treated as invalid (Gas consumption)
+
 #define MAGIC_NUMBER_INVALID 999.9      // Invalid values are replaced with this value (should be 999.9)
                                         // Not sure if it works with other values than 999.9
 

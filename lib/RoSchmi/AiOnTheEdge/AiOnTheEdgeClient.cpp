@@ -63,26 +63,16 @@ AiOnTheEdgeClient::AiOnTheEdgeClient(const char * caCert, HTTPClient * httpClien
 t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuffer, const uint16_t reponseBufferLength, AiOnTheEdgeApiSelection * apiSelectionPtr)
 {
     char InstallationId[20] = {0};  
-    //String Url = (String)_restApiAccountPtr -> UriEndPointJson;
-    //String Url = _restApiAccount.UriEndPointJson;
-
-    Serial.println(F("Loading gasmeter Features from"));
+    
+    Serial.println(F("Loading gasmeter Features from:"));
       
     //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient/
-    
-   // _aiOnTheEdgeHttpPtr -> setReuse(false);
-   // _aiOnTheEdgeHttpPtr ->useHTTP10(false);   // Must be reset to false for Azure requests
-                                           // Is needed to load the long features JSON string
-    //char c_url[30] {0};
-    //Url.toCharArray(c_url, sizeof(c_url));
-
-
+                                      // Is needed to load the long features JSON string
     Serial.printf("Url: %s\n", url);
-
 
     Serial.printf("%d\n", &_aiOnTheEdgeWifiClient);
 
-    //Url = "http://gasmeter/json";
+   
 
     _aiOnTheEdgeHttpPtr ->begin(_aiOnTheEdgeWifiClient, url);
 

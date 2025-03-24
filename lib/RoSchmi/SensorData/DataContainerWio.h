@@ -9,16 +9,19 @@
 typedef struct
 {
     uint32_t feedCount = 0;
+    float BaseValue = 0.0;
     float SummedValues = 0.0;
     float AverageValue = 999.9;
-    float  Value = 999.9;
+    float Value = 999.9;
+    float LastValue = 999.9;
+    float LastSendValue = 999.9;
     DateTime LastSendTime;  
 }
 SampleValue; 
     
 typedef struct
 {  
-    DateTime LastSendTime;
+    DateTime LastSendTime = DateTime();
     DateTime LastUpdateTime;
     SampleValue SampleValues[PROPERTY_COUNT];
 }
@@ -34,7 +37,7 @@ public:
     String floToStr(float value);   
     SampleValue checkedSampleValue(SampleValue inSampleValue, float lowLimit, float upperLimit, float invalidSubstitute,  DateTime actDateTime, TimeSpan);
     
-    void SetNewValue(uint32_t pIndex, DateTime pActDateTime, float pSampleValue);
+    void SetNewValue(uint32_t pIndex, DateTime pActDateTime, float pSampleValue, bool pIsConsumption = false);
     
     SampleValueSet getCheckedSampleValues(DateTime pActDateTime, bool pUpdateSentFlags);
       
