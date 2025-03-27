@@ -419,7 +419,7 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int p
 void print_reset_reason(RESET_REASON reason);
 void scan_WIFI();
 String floToStr(float value);
-float ReadAnalogSensor(int pSensorIndex);
+float ReadAnalogSensor_01(int pSensorIndex);
 void createSampleTime(DateTime dateTimeUTCNow, int timeZoneOffsetUTC, char * sampleTime);
 az_http_status_code  createTable(CloudStorageAccount * myCloudStorageAccountPtr, X509Certificate pCaCert, const char * tableName);
 az_http_status_code insertTableEntity(CloudStorageAccount *myCloudStorageAccountPtr,X509Certificate pCaCert, const char * pTableName, TableEntity pTableEntity, char * outInsertETag);
@@ -1739,6 +1739,7 @@ void setup()
   // Is limited to be not below 2 seconds
   analogSensorMgr.SetReadInterval(ANALOG_SENSOR_READ_INTERVAL_SECONDS < 2 ? 2 : ANALOG_SENSOR_READ_INTERVAL_SECONDS);
   // Set Read Interval for special sensor
+  analogSensorMgr.SetReadInterval(0, GASMETER_AI_API_READ_INTERVAL_SECONDS);
   analogSensorMgr.SetReadInterval(1, GASMETER_AI_API_READ_INTERVAL_SECONDS);
 
   analogSensorMgr_Api_01.SetReadInterval(API_ANALOG_SENSOR_READ_INTERVAL_SECONDS);
@@ -1889,18 +1890,18 @@ void loop()
       // Get readings from 4 different analog sensors, (preferably measured by the Esp 32 device, e.g. noise level)     
       // and store the values in a container
       
-      dataContainer.SetNewValue(0, dateTimeUTCNow, ReadAnalogSensor(0), false);
+      dataContainer.SetNewValue(0, dateTimeUTCNow, ReadAnalogSensor_01(0), true);
         
-      //dataContainer.SetNewValue(1, dateTimeUTCNow, ReadAnalogSensor(1));
-      float newValue1 = ReadAnalogSensor(1);
+      //dataContainer.SetNewValue(1, dateTimeUTCNow, ReadAnalogSensor_01(1));
+      float newValue1 = ReadAnalogSensor_01(1);
       dataContainer.SetNewValue(1, dateTimeUTCNow, newValue1, true);
       if (newValue1 < 999.0 )
       {
-        Serial.printf("\r\nAfter Setting newValue1, Value: %.2f\n", newValue1);
+        //Serial.printf("\r\nAfter Setting newValue1, Value: %.2f\n", newValue1);
       }
-      dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor(2), false);
+      dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor_01(2), false);
        
-      dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor(3), false); 
+      dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor_01(3), false); 
       ledState = !ledState;
       digitalWrite(LED_BUILTIN, ledState);    // toggle LED to signal that App is running
 
@@ -2590,9 +2591,10 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
       }     
     } 
   //}
-  //Serial.printf("\nReturning AiOnTheEdge returnFeature: %s\n",returnFeature.value);
-  Serial.printf("\nAiOnTheEdge returnFeature: %s  Remained seconds to read %d \n", returnFeature.value, remainigSeconds);
-
+  if (remainigSeconds == 1)
+  {
+    Serial.printf("\nAiOnTheEdge returnFeature: %s  Remained seconds to read %d \n", returnFeature.value, remainigSeconds);
+  }
   return returnFeature;
 }
 
@@ -2640,16 +2642,22 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
       }
     } 
   }
-  Serial.printf("\nViessmann returnFeature: %s  Remained seconds to read %d ", returnFeature.value, remainigSeconds);
+  if (remainigSeconds == 1)
+  {
+    Serial.printf("\nViessmann returnFeature: %s  Remained seconds to read %d ", returnFeature.value, remainigSeconds);
+  }
   return returnFeature;
 }
 
-float ReadAnalogSensor(int pSensorIndex)
+float ReadAnalogSensor_01(int pSensorIndex)
 {
 #ifndef USE_SIMULATED_SENSORVALUES
             // Use values read from an analog source
             // Change the function for each sensor to your needs
-
+            // This is an an adaption for a gasmeter
+              
+              //RoSchmi: Next line was deleted
+              //static float unclippedBaseValue_01 = 0.0;
               double theRead = MAGIC_NUMBER_INVALID;           
               //if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
               //{                              
@@ -2657,8 +2665,45 @@ float ReadAnalogSensor(int pSensorIndex)
                 {
                   case 0:
                     { 
+                      char consumption[12] = {0};
+                      AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;
                       
-                      theRead = atoi((char *)sSwiThresholdStr) / 10; // dummy
+                      // select Feature by its name (pSensorName value, raw, pre, error, rate, timestamp)
+                      AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(1, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
+                      strncpy(consumption, selectedFeature.value, sizeof(consumption));                        
+                        
+                      //Serial.printf("Consumption is: %s\n", consumption);
+
+                      // Formatiere zu: Eine Nachkommastelle und nicht mehr als 4 Vorkommastellen
+                      float tempNumber = (atof((const char *)consumption));
+                      tempNumber = (tempNumber > 999.89 && tempNumber < 999.91) ? 999.9 : (tempNumber *10 );
+                      sprintf(consumption, "%.1f", tempNumber);
+                      while (strlen(consumption) > 6)
+                      {
+                        memmove(consumption, consumption + 1, strlen(consumption));
+                      }
+                      
+                      if (dataContainer._isFirstTransmission)
+                      {
+                        dataContainer._baseValue = atof((const char *)consumption);
+                        //dataContainer._SampleValuesSet.SampleValues[0].BaseValue = atof((const char *)consumption);
+                           
+                      }
+                      
+                      
+                      //baseValue = atof((const char *)consumption);
+
+                      //SampleValueSet sampleValueSet = dataContainer.getSampleValues(dateTimeUTCNow, false);
+                      
+                      //sampleValueSet.SampleValues[0].UnClippedValue = atof((const char *)consumption);
+
+                      theRead = atof((const char *)consumption);
+
+                      theRead = theRead / 100;
+
+                      //SampleValueSet sampleValueSetCopy = dataContainer.getSampleValues(dateTimeUTCNow, false);
+                      //Serial.printf("The retrieved copy is: %.2f\n", sampleValueSetCopy.SampleValues->UnClippedValue);
+                      
                       // As an example we use it here to display an analog value read from the Viessmann Api   
                       
                       // Possible way to get a Viessmann Api Sensor value
@@ -2676,16 +2721,17 @@ float ReadAnalogSensor(int pSensorIndex)
                       #endif
 
                       // Take theRead (nearly) 0.0 as invalid
-                      // (if no sensor is connected the function returns 0)                        
+                      // (if no sensor is connected the function returns 0)
+                      /*                       
                       if (theRead > - 0.00001 && theRead < 0.00001)
                       {
                         theRead = MAGIC_NUMBER_INVALID;
-                      }                                                                                                    
+                      }
+                      */                                                                                                    
                     }
                     break;                   
                   case 1:
-                    {
-                      
+                    { 
                       char consumption[12] = {0};
                       AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;
                       
@@ -2694,35 +2740,66 @@ float ReadAnalogSensor(int pSensorIndex)
                       
                       strncpy(consumption, selectedFeature.value, sizeof(consumption));                        
                       
-                      // delete the first character
-                      /*
-                      if (strlen(consumption) > 2)
-                      {
-                        memmove(consumption, consumption + 1, strlen(consumption));
-                      }
-                      */
+                      
                       Serial.printf("Consumption is: %s\n", consumption);
 
                       // Formatiere zu: Eine Nachkommastelle und nicht mehr als 3 Vorkommastellen
                       float tempNumber = (atof((const char *)consumption));
                       tempNumber = (tempNumber > 999.89 && tempNumber < 999.91) ? 999.9 : (tempNumber *10 );
                       sprintf(consumption, "%.1f", tempNumber);
-                      while (strlen(consumption) > 5)
+                      while (strlen(consumption) > 6)
                       {
                         memmove(consumption, consumption + 1, strlen(consumption));
                       }
 
-                      theRead = atof((const char *)consumption);
+                      float actValue = atof((const char *)consumption);
+                      float baseValue = dataContainer._baseValue;
+                      //float baseValue = unclippedBaseValue_01;
+                      //float baseValue = dataContainer._SampleValuesSet.SampleValues[0].BaseValue;
+                      
+                      //Serial.printf("To try: %.2f\n", dataContainer._baseValue);
+                      Serial.printf("In Case 1 actValue and baseValue are %.2f  %.2f\n", actValue, baseValue);
+                      theRead = actValue - baseValue;
 
-                      //theRead = (atoi((char *)sSwiThresholdStr) / 10) + 2;
-                    
-                     //theRead = atoi((char *)sSwiThresholdStr) / 10; // dummy
                       printf("\nTheRead (AiOnTheEdge) is: %.2f\n", (float)theRead); 
                          
                     }
                     break;
                   case 2:
                     {
+                      char consumption[12] = {0};
+                      AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;
+                      
+                      // select Feature by its name (pSensorName value, raw, pre, error, rate, timestamp)
+                      AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(1, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
+                      
+                      strncpy(consumption, selectedFeature.value, sizeof(consumption));                        
+                      
+                      
+                      Serial.printf("Consumption is: %s\n", consumption);
+
+                      // Formatiere zu: Eine Nachkommastelle und nicht mehr als 3 Vorkommastellen
+                      float tempNumber = (atof((const char *)consumption));
+                      tempNumber = (tempNumber > 999.89 && tempNumber < 999.91) ? 999.9 : (tempNumber *10 );
+                      sprintf(consumption, "%.1f", tempNumber);
+                      while (strlen(consumption) > 6)
+                      {
+                        memmove(consumption, consumption + 1, strlen(consumption));
+                      }
+
+                      float actValue = atof((const char *)consumption);
+                      float baseValue = dataContainer._baseValue;
+                      
+                      //Serial.printf("To try: %.2f\n", dataContainer._baseValue);
+                      Serial.printf("In Case 2 actValue and baseValue are %.1f  %.1f\n", actValue, baseValue);
+                      
+                      Serial.printf("Elapsed time is: %d\n", dateTimeUTCNow.secondstime() - dataContainer._lastSentTime.secondstime());
+                      //Serial.printf("DateTimeUTCNow: %d\n", dateTimeUTCNow.secondstime());
+                      //Serial.printf("LastSendTime: %d\n", dataContainer._lastSentTime.secondstime());
+                      
+                      theRead = (actValue - baseValue) * 100 / ((dateTimeUTCNow.secondstime() - dataContainer._lastSentTime.secondstime())/ 60);
+
+
                       /*
                       if (dataContainer.hasToBeSent())
                       {
@@ -2742,7 +2819,7 @@ float ReadAnalogSensor(int pSensorIndex)
                         //return theRead;
                       }
                       */
-                      theRead = atoi((char *)sSwiThresholdStr) / 10; // dummy
+                      
                     }
                     break;
                   case 3:

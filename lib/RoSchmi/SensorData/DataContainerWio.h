@@ -13,9 +13,9 @@ typedef struct
     float SummedValues = 0.0;
     float AverageValue = 999.9;
     float Value = 999.9;
-    float AugmentedValue = 999.9;
+    float UnClippedValue = 0.0;
     float LastValue = 999.9;
-    float AugmentedLastValue = 999.9;
+    float UnClippedLastValue = 0.0;
     float LastSendValue = 0;
     float LastLastSendValue = 0;
     DateTime LastSendTime;  
@@ -70,7 +70,9 @@ public:
 
     bool _hasToBeSent = false;
     uint16_t Year = 1900;
-
+    
+    //RoSchmi added 27.03.25
+    float _baseValue;
     DateTime _lastSentTime;
     SampleValue SampleValues[PROPERTY_COUNT];
     SampleValueSet _SampleValuesSet;
