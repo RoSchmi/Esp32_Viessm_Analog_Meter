@@ -13,8 +13,11 @@ typedef struct
     float SummedValues = 0.0;
     float AverageValue = 999.9;
     float Value = 999.9;
+    float AugmentedValue = 999.9;
     float LastValue = 999.9;
-    float LastSendValue = 999.9;
+    float AugmentedLastValue = 999.9;
+    float LastSendValue = 0;
+    float LastLastSendValue = 0;
     DateTime LastSendTime;  
 }
 SampleValue; 
@@ -37,7 +40,7 @@ public:
     String floToStr(float value);   
     SampleValue checkedSampleValue(SampleValue inSampleValue, float lowLimit, float upperLimit, float invalidSubstitute,  DateTime actDateTime, TimeSpan);
     
-    void SetNewValue(uint32_t pIndex, DateTime pActDateTime, float pSampleValue, bool pIsConsumption = false);
+    void SetNewValue(uint32_t pIndex, DateTime pActDateTime, float pSampleValue, bool pIsConsumption);
     
     SampleValueSet getCheckedSampleValues(DateTime pActDateTime, bool pUpdateSentFlags);
       

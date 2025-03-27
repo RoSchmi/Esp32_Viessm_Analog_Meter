@@ -35,7 +35,7 @@
 #define SOUNDSWITCHER_UPDATEINTERVAL 400    // Interval in ms for reading sound level
 #define SOUNDSWITCHER_READ_DELAYTIME 4000   // Delay in ms from switch to displayed value
 
-#define SENDINTERVAL_MINUTES_AI   6    // Sendinterval in minutes (5 - 10 is recommended), in this interval                                        
+#define SENDINTERVAL_MINUTES_AI   2    // Sendinterval in minutes (5 - 10 is recommended), in this interval                                        
                                        // data are sent to the Cloud (is limited to be not below 1 second)
 #define SENDINTERVAL_MINUTES_VI   5    // Sendinterval for Viessmann data in minutes (5 - 10 is recommended), in this interval                                        
                                        // data are sent to the Cloud (is limited to be not below 1 second)
@@ -136,7 +136,7 @@
 #define MAX_DATAVALUE_VI 140.0             // Values above are treated as invalid (Temperatures)
 
 #define MIN_DATAVALUE_AI -0.1             // Values below are treated as invalid (Gas consumption)
-#define MAX_DATAVALUE_AI 999.89           // Values above are treated as invalid (Gas consumption)
+#define MAX_DATAVALUE_AI 999.0           // Values above are treated as invalid (Gas consumption)
 
 #define MAGIC_NUMBER_INVALID 999.9      // Invalid values are replaced with this value (should be 999.9)
                                         // Not sure if it works with other values than 999.9

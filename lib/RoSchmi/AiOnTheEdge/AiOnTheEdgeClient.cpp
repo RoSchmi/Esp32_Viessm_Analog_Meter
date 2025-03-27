@@ -118,7 +118,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
                 apiSelectionPtr -> _0_value.idx = 0;               
                 strncpy(apiSelectionPtr -> _0_value.name, "value", nameLen - 1);
                 strncpy(apiSelectionPtr-> _0_value.timestamp, doc["main"]["timestamp"], stampLen - 1);
-                snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["main"]["value"]); 
+                snprintf(tempVal, sizeof(tempVal), "%.2f", (float)doc["main"]["value"]); 
                 snprintf(apiSelectionPtr -> _0_value.value, valLen - 1, (const char*)tempVal);
                 
                 apiSelectionPtr -> _1_raw.idx = 1;               

@@ -25,10 +25,11 @@ DataContainerWio::DataContainerWio(TimeSpan pSendInterval, TimeSpan pInvalidateI
 
 void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float pSampleValue, bool pIsConsumption)
 {
+    Serial.printf("I am in SetNewValue (1). Index: %d Arriving value: %.2f\n", pIndex, pSampleValue); 
     // Ignore invalid readings with value 999.9 (MagicNumberInvalid)
     if (pSampleValue > (MagicNumberInvalid + 0.11) || pSampleValue < (MagicNumberInvalid - 0.11))
-    {
-        //Serial.println(F("Set new value 1"));
+    { 
+        Serial.printf("I am in SetNewValue (2). Index: %d Arriving value: %.2f\n", pIndex, pSampleValue); 
         if (!pIsConsumption)
         {
             SampleValues[pIndex].feedCount++;
@@ -36,35 +37,48 @@ void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float
             SampleValues[pIndex].AverageValue = SampleValues[pIndex].SummedValues / SampleValues[pIndex].feedCount;
         }
 
-        SampleValues[pIndex].LastValue = SampleValues[pIndex].Value;
-        SampleValues[pIndex].Value = pSampleValue;
-        //Serial.println(F("Set new value 2")); 
-        SampleValues[pIndex].LastSendTime = pActDateTime;
-        _SampleValuesSet.LastUpdateTime = pActDateTime;
-    }
+        //if (_isFirstTransmission || (pIsConsumption && (SampleValues[pIndex].LastSendTime.day() != pActDateTime.day())))
+        if (_isFirstTransmission)
+        {
+            Serial.println(F("Setting BaseValue to pSampleVolume"));
+            SampleValues[pIndex].BaseValue = pSampleValue;
+        }
 
-    if (pIsConsumption && (SampleValues[pIndex].LastSendTime.day() != pActDateTime.day()))
-    {
-        SampleValues[pIndex].BaseValue = pSampleValue;
-    }
-    //Serial.println(F("Set new value 3"));
+        SampleValues[pIndex].LastValue = SampleValues[pIndex].Value;
+        SampleValues[pIndex].AugmentedLastValue = SampleValues[pIndex].AugmentedValue;
+        SampleValues[pIndex].AugmentedValue = pSampleValue;
+        SampleValues[pIndex].Value = pSampleValue;
+        
+         SampleValues[pIndex].LastSendTime = pActDateTime;
+        _SampleValuesSet.LastUpdateTime = pActDateTime;
+    
+    
     if (_isFirstTransmission)
     {       
-        _hasToBeSent = true;
+         _hasToBeSent = true;
         _lastSentTime = pActDateTime;
         _isFirstTransmission = false;
-        SampleValues[pIndex].BaseValue = pSampleValue;
-        Serial.println(F("Set new value in first transmission"));  
+
+        SampleValues[pIndex].LastSendTime = pActDateTime;
+        SampleValues[pIndex].LastLastSendValue = SampleValues[pIndex].LastSendValue; 
+        SampleValues[pIndex].LastSendValue = 0.0;
+        
+            Serial.println(F("Set new value in first transmission"));  
     }
     else
     {
         if (_lastSentTime.operator<=(pActDateTime.operator-(SendInterval)))
         {
             Serial.println(F("AiOnTheEdge Sent Flag set ************"));
+            _lastSentTime = pActDateTime;
+            //SampleValues[pIndex].LastSendTime = pActDateTime;
+            SampleValues[pIndex].LastLastSendValue = SampleValues[pIndex].LastSendValue;
+            SampleValues[pIndex].LastSendValue = SampleValues[pIndex].Value;
+            _hasToBeSent = true;
 
-            _hasToBeSent = true;     
         }       
-    }   
+    }
+    }     
 }
 
 void DataContainerWio::Set_Year(uint16_t year)
