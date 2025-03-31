@@ -22,8 +22,8 @@ typedef struct
     float UnClippedValue = 0.0;
     float LastValue = 999.9;
     float UnClippedLastValue = 0.0;
-    float LastUnClippedSendValue = 0;
-    float LastLastSendValue = 0;
+    float LastSendUnClippedValue = 0;
+    //float LastLastSendValue = 0;
     DateTime LastSendTime;  
 }
 SampleValue; 

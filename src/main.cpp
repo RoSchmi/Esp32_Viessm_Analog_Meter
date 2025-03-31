@@ -1901,23 +1901,10 @@ void loop()
 
       // Get readings from 4 different analog sensors, (preferably measured by the Esp 32 device, e.g. noise level)     
       // and store the values in a container
-      
-      //dataContainer.SetNewValue(0, dateTimeUTCNow, ReadAnalogSensor_01(0), true);
-      dataContainer.SetNewValueStruct(0, dateTimeUTCNow, ReadAnalogSensorStruct_01(0), true);
-      dataContainer.SetNewValueStruct(1, dateTimeUTCNow, ReadAnalogSensorStruct_01(1), true);
-      
-
-      //dataContainer.SetNewValue(1, dateTimeUTCNow, ReadAnalogSensor_01(1));
-      /*
-      float newValue1 = ReadAnalogSensor_01(1);
-      dataContainer.SetNewValue(1, dateTimeUTCNow, newValue1, true);
-      if (newValue1 < 999.0 )
-      {
-        //Serial.printf("\r\nAfter Setting newValue1, Value: %.2f\n", newValue1);
-      }
-      */
-      dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor_01(2), false);
        
+      dataContainer.SetNewValueStruct(0, dateTimeUTCNow, ReadAnalogSensorStruct_01(0), true);
+      dataContainer.SetNewValueStruct(1, dateTimeUTCNow, ReadAnalogSensorStruct_01(1), true);     
+      dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor_01(2), false);      
       dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor_01(3), false); 
       ledState = !ledState;
       digitalWrite(LED_BUILTIN, ledState);    // toggle LED to signal that App is running
@@ -2665,21 +2652,23 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   }
   return returnFeature;
 }
- ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
-  {
-    ValueStruct returnValueStruct = { 
+
+ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
+{
+  ValueStruct returnValueStruct = { 
       .displayValue = (float)MAGIC_NUMBER_INVALID,
       .unClippedValue = (float)MAGIC_NUMBER_INVALID};
 
-    char consumption[12] = {0};
+  char consumption[12] = {0};
     
-//if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
+  //if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
               //{
                                            
                 switch (pSensorIndex)
                 {
                   case 0:
-                    {  
+                    { 
+                      // Total Consumption, DisplayValue and UnClippedValue 
                       AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;                      
                       // select Feature by its name (pSensorName value, raw, pre, error, rate, timestamp)
                       AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(1, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
@@ -2694,58 +2683,33 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
 
                       sprintf(consumption, "%.1f", tempNumber * 10);
                       returnValueStruct.unClippedValue = atof((const char *)consumption);
-                      while (strlen(consumption) > 6)
+                      while (strlen(consumption) > 4)
                       {
                         memmove(consumption, consumption + 1, strlen(consumption));
                       }
-                      returnValueStruct.displayValue = atof((const char *)consumption) /1000; 
+                      returnValueStruct.displayValue = atof((const char *)consumption); 
 
-                      //return returnValueStruct;
-                     
-                      // As an example we use it here to display an analog value read from the Viessmann Api   
-                      
-                      // Possible way to get a Viessmann Api Sensor value
-                      //ViessmannApiSelection::Feature featureValue = ReadViessmannFeatureFromSelection((const char *)"_92_heating_dhw_outlet_temperature", VI_FEATURES_COUNT);
-                      //theRead = atof((char *)featureValue.value);
-
-                      // This is an alternative way to get a Viessmann Api Sensor valu                      
-                      /*
-                      SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
-                      theRead = featureValueSet.SampleValues[1].Value;
-                      */
-                     
                       //#if SERIAL_PRINT == 1
-                        //Serial.printf("\r\nApi-Sensor: %.1f\r\n", theRead);
-                      //#endif
-
-                      // Take theRead (nearly) 0.0 as invalid
-                      // (if no sensor is connected the function returns 0)
-                      /*                       
-                      if (theRead > - 0.00001 && theRead < 0.00001)
-                      {
-                        theRead = MAGIC_NUMBER_INVALID;
-                      }
-                      */                                                                                                    
+                        printf("\nDisplayValue: %.1f  UnClippedValue: %.1f\n", returnValueStruct.displayValue, returnValueStruct.unClippedValue);
+                      //#endif                                                                                                                        
                     }
                     break;                   
                   case 1:
-                    { 
+                    {
+                      // Calculate Day-Consumption from BaseValue and UnClippedValue 
                       float copyBaseValue = dataContainer.SampleValues[0].BaseValue;
                       float copyUnClippedValue = dataContainer.SampleValues[0].UnClippedValue;
                       returnValueStruct.displayValue = (copyUnClippedValue - copyBaseValue) * 10;
-                      returnValueStruct.unClippedValue = copyUnClippedValue;
-
-                      
-                      
-                      printf("\nDay-Consumption: %.1f\n", returnValueStruct.displayValue); 
-                      //return returnValueStruct;  
+                      returnValueStruct.unClippedValue = copyUnClippedValue;                      
+                      printf("\nDay-Consumption: %.1f\n", returnValueStruct.displayValue);                      
                     }
                     break;
                   case 2:
                     {
                       if (dataContainer._hasToBeSent)
                       {
-                        float copyLastSendUnClippedValue = dataContainer.SampleValues[0].LastUnClippedSendValue;
+                        // Calculate rate when sendinterval has elapsed
+                        float copyLastSendUnClippedValue = dataContainer.SampleValues[0].LastSendUnClippedValue;
                         float copyUnClippedValue = dataContainer.SampleValues[0].UnClippedValue;
                       
                         TimeSpan timeSinceLastSent = dateTimeUTCNow.operator-(dataContainer._lastSentTime);
@@ -2754,44 +2718,27 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
                      
                         returnValueStruct.displayValue = rate;
                         returnValueStruct.unClippedValue = copyUnClippedValue;
-
-                        // Take theRead (nearly) 0.0 as invalid
-                      // (if no sensor is connected the function returns 0)
-                                             
-                      if (returnValueStruct.displayValue > - 0.00001 && returnValueStruct.displayValue < 0.00001)
-                      {
-                        returnValueStruct.displayValue = MAGIC_NUMBER_INVALID;
-                      }
                       
-
-                      }
-                      /*
-                      if (dataContainer.hasToBeSent())
-                      {
-                        SampleValueSet sampleValueSet = dataContainer.getSampleValues(dateTimeUTCNow, false);
-                               
-                        uint32_t lastSendTime = sampleValueSet.LastSendTime.secondstime();
-                        Serial.printf("LastSendtime: %d\n", lastSendTime);
-                        uint32_t actTime = dateTimeUTCNow.secondstime();
-                        Serial.printf("ActTime: %d\n", actTime);
-                        float actConsumptionValue = sampleValueSet.SampleValues[1].Value;
-                        Serial.printf("Act. Consumption: %.2f\n", actConsumptionValue);
-                        float lastSendConsumptionValue = sampleValueSet.SampleValues[1].LastLastSendValue;
-                        Serial.printf("Last Consumption: %.2f\n", lastSendConsumptionValue);
-                        float rate = (actConsumptionValue - lastSendConsumptionValue) /  ((dateTimeUTCNow.secondstime() - lastSendTime) / 60);
-                        theRead = rate;
-                        //theRead = theRead + 1.0;
-                        //return theRead;
-                      }
-                      */
-                      
+                        if (rate > - 0.01 && rate < 0.01)
+                        {
+                          returnValueStruct.displayValue = MAGIC_NUMBER_INVALID;
+                        }
+                      }                     
                     }
                     break;
                   case 3:
                     {
+                      // in the forth graph show Viessmann Vorlauftemperatur
                       SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
                       returnValueStruct.displayValue = featureValueSet.SampleValues[1].Value;
                       returnValueStruct.unClippedValue = returnValueStruct.displayValue;
+                      
+                      // This is an alternative way to get a Viessmann Api Sensor valu                      
+                      /*
+                      SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
+                      theRead = featureValueSet.SampleValues[1].Value;
+                      */
+                      
                       //theRead = atoi((char *)sSwiThresholdStr) / 10; // dummy
                       //Show ascending lines from 0 to 5, so re-boots of the board are indicated                                                
                         //theRead = ((double)(insertCounterAnalogTable % 50)) / 10;                      
@@ -2929,7 +2876,7 @@ float ReadAnalogSensor_01(int pSensorIndex)
 
                       float actValue = atof((const char *)consumption);
                       //float baseValue = dataContainer._baseValue;
-                      float lastSentValue = dataContainer._SampleValuesSet.SampleValues[0].LastUnClippedSendValue;
+                      float lastSentValue = dataContainer._SampleValuesSet.SampleValues[0].LastSendUnClippedValue;
                       uint32_t elapsedTime = dateTimeUTCNow.secondstime() - dataContainer._lastSentTime.secondstime();
                       if ((elapsedTime % 5) == 0)  // show only every fifth case
                       {                
