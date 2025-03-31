@@ -63,8 +63,8 @@ void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float
         _isFirstTransmission = false;
 
         SampleValues[pIndex].LastSendTime = pActDateTime;
-        SampleValues[pIndex].LastLastSendValue = SampleValues[pIndex].LastSendValue; 
-        SampleValues[pIndex].LastSendValue = 0.0;
+        SampleValues[pIndex].LastLastSendValue = SampleValues[pIndex].LastUnClippedSendValue; 
+        SampleValues[pIndex].LastUnClippedSendValue = 0.0;
         
             Serial.println(F("Set new value in first transmission"));  
     }
@@ -80,8 +80,78 @@ void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float
             //SampleValues[pIndex].LastSendTime = pActDateTime;
             
             // RoSchmi: Think about deleting the next two lines
-            SampleValues[pIndex].LastLastSendValue = SampleValues[pIndex].LastSendValue;
-            SampleValues[pIndex].LastSendValue = SampleValues[pIndex].Value;
+            SampleValues[pIndex].LastLastSendValue = SampleValues[pIndex].LastUnClippedSendValue;
+            SampleValues[pIndex].LastUnClippedSendValue = SampleValues[pIndex].Value;
+            _hasToBeSent = true;
+
+        }       
+    }
+    }     
+}
+
+void DataContainerWio::SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime, ValueStruct pValueStruct, bool pIsConsumption)
+{
+    //Serial.printf("I am in SetNewValue (1). Index: %d Arriving value: %.2f\n", pIndex, pSampleValue); 
+    // Ignore invalid readings with value 999.9 (MagicNumberInvalid)
+    if (pValueStruct.displayValue > (MagicNumberInvalid + 0.11) || pValueStruct.displayValue < (MagicNumberInvalid - 0.11))
+    {
+        if (pIndex == 1)
+        { 
+            Serial.printf("I am in SetNewValueStruct (2). Index: %d Arriving value: %.2f\n", pIndex, pValueStruct.displayValue); 
+        }
+        if (!pIsConsumption)
+        {
+            SampleValues[pIndex].feedCount++;
+            SampleValues[pIndex].SummedValues += pValueStruct.displayValue;
+            SampleValues[pIndex].AverageValue = SampleValues[pIndex].SummedValues / SampleValues[pIndex].feedCount;
+        }
+
+        //if (_isFirstTransmission || (pIsConsumption && (SampleValues[pIndex].LastSendTime.day() != pActDateTime.day())))
+        extern TimeSpan timeDiffUtcToLocal;
+        
+        bool isNewDay = pActDateTime.operator+(timeDiffUtcToLocal).day() != _lastSentTime.operator+(timeDiffUtcToLocal).day();
+        
+        if (_isFirstTransmission || isNewDay)
+        {
+            Serial.printf("Setting BaseValueStruct pSampleValue: %.2f\n", pValueStruct.unClippedValue);
+            SampleValues[pIndex].BaseValue = pValueStruct.unClippedValue;
+        }
+
+        SampleValues[pIndex].LastValue = SampleValues[pIndex].Value;
+        SampleValues[pIndex].UnClippedLastValue = SampleValues[pIndex].UnClippedValue;
+        SampleValues[pIndex].UnClippedValue = pValueStruct.unClippedValue;
+        SampleValues[pIndex].Value = pValueStruct.displayValue;
+        
+         SampleValues[pIndex].LastSendTime = pActDateTime;
+        _SampleValuesSet.LastUpdateTime = pActDateTime;
+    
+    
+    if (_isFirstTransmission)
+    {       
+         _hasToBeSent = true;
+        _lastSentTime = pActDateTime;
+        _isFirstTransmission = false;
+
+        SampleValues[pIndex].LastSendTime = pActDateTime;
+        SampleValues[pIndex].LastLastSendValue = SampleValues[pIndex].LastUnClippedSendValue; 
+        SampleValues[pIndex].LastUnClippedSendValue = 0.0;
+        
+            Serial.println(F("Set new value in first transmission"));  
+    }
+    else
+    {
+        if (_lastSentTime.operator<=(pActDateTime.operator-(SendInterval)))
+        {
+            Serial.println(F("AiOnTheEdge Sent Flag set ************"));
+            
+            // RoSchmi: next line deleted, is already done in getCheckedSampleValues
+            //_lastSentTime = pActDateTime;
+
+            //SampleValues[pIndex].LastSendTime = pActDateTime;
+            
+            // RoSchmi: Think about deleting the next two lines
+            SampleValues[pIndex].LastLastSendValue = SampleValues[pIndex].LastUnClippedSendValue;
+            SampleValues[pIndex].LastUnClippedSendValue = SampleValues[pIndex].UnClippedValue;
             _hasToBeSent = true;
 
         }       

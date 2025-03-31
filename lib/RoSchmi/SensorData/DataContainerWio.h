@@ -8,6 +8,12 @@
 
 typedef struct
 {
+  float displayValue;
+  float unClippedValue;
+}  ValueStruct;
+
+typedef struct
+{
     uint32_t feedCount = 0;
     float BaseValue = 0.0;
     float SummedValues = 0.0;
@@ -16,7 +22,7 @@ typedef struct
     float UnClippedValue = 0.0;
     float LastValue = 999.9;
     float UnClippedLastValue = 0.0;
-    float LastSendValue = 0;
+    float LastUnClippedSendValue = 0;
     float LastLastSendValue = 0;
     DateTime LastSendTime;  
 }
@@ -42,6 +48,9 @@ public:
     
     void SetNewValue(uint32_t pIndex, DateTime pActDateTime, float pSampleValue, bool pIsConsumption);
     
+    void SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime, ValueStruct pValueSet, bool pIsConsumption);
+    
+
     SampleValueSet getCheckedSampleValues(DateTime pActDateTime, bool pUpdateSentFlags);
       
     SampleValueSet getSampleValues(DateTime pActDateTime, bool pUpdateSentFlags);

@@ -25,7 +25,7 @@ class AnalogSensorMgr
     AnalogSensorMgr(float pMagicNumberInvalid);
     void SetReadInterval(uint32_t pInterval);
     void SetReadInterval(int sensorIndex, uint32_t pInterval);
-    bool HasToBeRead(int pSensorIndex, DateTime now);
+    bool const HasToBeRead(int pSensorIndex, DateTime now);
     void SetReadTimeAndValues(int pSensorIndex, DateTime now, float pReadValue_1, float pReadValue_2, float pReadValue_3);
     
     AnalogSensor GetSensorDates(int pSensorIndex);

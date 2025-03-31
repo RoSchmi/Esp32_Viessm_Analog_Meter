@@ -24,7 +24,7 @@ void AnalogSensorMgr::SetReadInterval(int sensorIndex, uint32_t pInterval)
     readValues[sensorIndex].ReadInterval = pInterval;
 }
 
-bool AnalogSensorMgr::HasToBeRead(int pSensorIndex, DateTime now)
+bool const AnalogSensorMgr::HasToBeRead(int pSensorIndex, DateTime now)
 {
     //RoSchmi
     //Serial.println("Question Analog SensorMgr has to be read?");
