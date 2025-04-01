@@ -1752,6 +1752,9 @@ void setup()
   // Set Read Interval for special sensor
   analogSensorMgr.SetReadInterval(0, GASMETER_AI_API_READ_INTERVAL_SECONDS);
   analogSensorMgr.SetReadInterval(1, GASMETER_AI_API_READ_INTERVAL_SECONDS);
+  analogSensorMgr.SetReadInterval(2, GASMETER_AI_API_READ_INTERVAL_SECONDS);
+  
+
 
   analogSensorMgr_Api_01.SetReadInterval(API_ANALOG_SENSOR_READ_INTERVAL_SECONDS);
   
@@ -1799,11 +1802,14 @@ void setup()
   {     
     Serial.println(F("Couldn't read Equipment from Viessmann Cloud.\r\nError message is:"));
     Serial.println((char*)bufferStorePtr);
+    // RoSchmi
+    
     ESP.restart();
     while(true)
     {
       delay(500);
     }
+    
   }
 
   // RoSchmi delete the following
@@ -2155,7 +2161,7 @@ void loop()
         // Now test if Send On/Off values or End of day stuff?
         if (onOffDataContainer.One_hasToBeBeSent(localTime) || isLast15SecondsOfDay)
         {
-          Serial.println(F("..."));
+          //Serial.println(F("..."));
           #if SERIAL_PRINT == 1
           Serial.println("One On/Off Value has to be sent");
           #endif
@@ -2580,24 +2586,19 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
       Serial.println((char*)bufferStorePtr);
     }
   }
-    
-  //if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
-  //{
-    printf("\nAnalogSensorMgr has to be read!");
+   
+  if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
+  {
+    printf("\nAnalogSensorMgr: Value is used");
     for (int i = 0; i < AI_FEATURES_COUNT; i++)
     {       
       if (strcmp((const char *)ai_features[i].name, pSensorName) == 0)
       {       
         returnFeature = ai_features[i];
-        Serial.printf("Setting ReadTimeAndValues. Index: %d Value: %.2f \n", pSensorIndex, atof(returnFeature.value));
-        analogSensorMgr.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, atof(returnFeature.value), 0.0f, MAGIC_NUMBER_INVALID);           
+        analogSensorMgr.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, atof(returnFeature.value), 0.0f, MAGIC_NUMBER_INVALID);                         
         break;
       }     
     } 
-  //}
-  if (remainigSeconds == 1)
-  {
-    Serial.printf("\nAiOnTheEdge returnFeature: %s  Remained seconds to read %d \n", returnFeature.value, remainigSeconds);
   }
   return returnFeature;
 }
@@ -2613,8 +2614,6 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   strncpy(returnFeature.value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.value) - 1);
   
   // Only read features from the cloud when readInterval has expired
-  
-  int32_t remainigSeconds = viessmannApiSelection.lastReadTime.secondstime() + viessmannApiSelection.readInterval.totalseconds() - dateTimeUTCNow.secondstime();
   
   if ((viessmannApiSelection.lastReadTime.operator+(viessmannApiSelection.readInterval)).operator<(dateTimeUTCNow))
   { 
@@ -2634,7 +2633,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   
   if (analogSensorMgr_Api_01.HasToBeRead(pSensorIndex, dateTimeUTCNow))
   {
-    Serial.println(F("Viessmann has to be read is true")); 
+    //Serial.println(F("AnalogSensorMgr_Api_01: Value is used")); 
       
     for (int i = 0; i < VI_FEATURES_COUNT; i++)
     {       
@@ -2645,11 +2644,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
         break;
       }
     } 
-  }
-  if (remainigSeconds == 1)
-  {
-    Serial.printf("\nViessmann returnFeature: %s  Remained seconds to read %d ", returnFeature.value, remainigSeconds);
-  }
+  } 
   return returnFeature;
 }
 
@@ -2661,8 +2656,8 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
 
   char consumption[12] = {0};
     
-  //if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
-              //{
+  if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
+              {
                                            
                 switch (pSensorIndex)
                 {
@@ -2745,7 +2740,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
                     }                   
                     break;
                 }
-              //}                
+              }                
     return returnValueStruct;
   }
   
@@ -2760,8 +2755,8 @@ float ReadAnalogSensor_01(int pSensorIndex)
               //RoSchmi: Next line was deleted
               //static float unclippedBaseValue_01 = 0.0;
               double theRead = MAGIC_NUMBER_INVALID;           
-              //if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
-              //{                              
+              if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
+              {                              
                 switch (pSensorIndex)
                 {
                   case 0:
@@ -2918,7 +2913,7 @@ float ReadAnalogSensor_01(int pSensorIndex)
                     }                   
                     break;
                 }
-              //}                               
+              }                               
            return (float)theRead ;
 #endif
 
@@ -3104,15 +3099,8 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int p
   
   char url[pUrlMaxlength + 1] = {0};
   strncpy(url, pUrl, pUrlMaxlength);
-   
-  //const char * theUrl = "http://gasmeter/json";
-   
-   //String uriEndpoint = restApiAccount.UriEndPointJson;
-
-   //char Url[40] = {0};
-   //uriEndpoint.toCharArray(Url, sizeof(Url) - 1);
-   
-   Serial.printf("\nreadJsonFromRestApi: %s\n", (const char *)url);
+     
+   Serial.printf("readJsonFromRestApi: %s\n", (const char *)url);
 
   t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures((const char *)url, bufferStorePtr, bufferStoreLength, apiSelectionPtr);
   if (responseCode == t_http_codes::HTTP_CODE_OK)
@@ -3125,15 +3113,10 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int p
     ai_features[2] = apiSelectionPtr ->_2_pre;
     ai_features[3] = apiSelectionPtr ->_3_error;
     ai_features[4] = apiSelectionPtr ->_4_rate;
-    ai_features[5] = apiSelectionPtr ->_5_timestamp;
-
-    printf("\nReadJsonFromRestApi: ai_features_0_value = %s\n", ai_features[0].value);
-      
+    ai_features[5] = apiSelectionPtr ->_5_timestamp;      
   }
   return responseCode;
 } 
-
-
 
 t_httpCode readViessmannFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const uint32_t data_0_id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr)
 {  

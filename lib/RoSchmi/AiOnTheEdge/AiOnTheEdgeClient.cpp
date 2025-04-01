@@ -63,16 +63,10 @@ AiOnTheEdgeClient::AiOnTheEdgeClient(const char * caCert, HTTPClient * httpClien
 t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuffer, const uint16_t reponseBufferLength, AiOnTheEdgeApiSelection * apiSelectionPtr)
 {
     char InstallationId[20] = {0};  
-    
-    Serial.println(F("Loading gasmeter Features from:"));
       
     //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient/
                                       // Is needed to load the long features JSON string
-    Serial.printf("Url: %s\n", url);
-
-    Serial.printf("%d\n", &_aiOnTheEdgeWifiClient);
-
-   
+    Serial.printf("AI-WiFiClient Address: %d\n", &_aiOnTheEdgeWifiClient);
 
     _aiOnTheEdgeHttpPtr ->begin(_aiOnTheEdgeWifiClient, url);
 
@@ -181,7 +175,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
     } 
     else 
     {
-        Serial.printf("Features: Error performing the request, HTTP-Code: %d\n", httpResponseCode);
+        Serial.printf("Ai-Features: Error performing the request, HTTP-Code: %d\n", httpResponseCode);
     }
     _aiOnTheEdgeHttpPtr ->useHTTP10(false);
     _aiOnTheEdgeHttpPtr->end();

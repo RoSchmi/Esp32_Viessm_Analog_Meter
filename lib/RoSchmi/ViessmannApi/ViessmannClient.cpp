@@ -61,6 +61,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     String Url = _viessmannAccountPtr -> UriEndPointIot + addendum;
     String authorizationHeader = "Bearer " + _viessmannAccountPtr ->AccessToken;
     Serial.println(F("Loading Viessmann features"));
+    Serial.printf("VI-WiFiClient Address: %d\n", &_viessmannWifiClient);
     Serial.println("");
     //Serial.println(Url);
 
@@ -270,7 +271,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     } 
     else 
     {
-        Serial.printf("Features: Error performing the request, HTTP-Code: %d\n", httpResponseCode);
+        Serial.printf("Vi-Features: Error performing the request, HTTP-Code: %d\n", httpResponseCode);
     }
     _viessmannHttpPtr ->useHTTP10(false);
     _viessmannHttpPtr->end();
