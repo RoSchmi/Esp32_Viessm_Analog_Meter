@@ -1750,7 +1750,7 @@ void setup()
   // Is limited to be not below 2 seconds
   analogSensorMgr.SetReadInterval(ANALOG_SENSOR_READ_INTERVAL_SECONDS < 2 ? 2 : ANALOG_SENSOR_READ_INTERVAL_SECONDS);
   // Set Read Interval for special sensor
-  analogSensorMgr.SetReadInterval(0, GASMETER_AI_API_READ_INTERVAL_SECONDS);
+  //analogSensorMgr.SetReadInterval(0, GASMETER_AI_API_READ_INTERVAL_SECONDS);
   analogSensorMgr.SetReadInterval(1, GASMETER_AI_API_READ_INTERVAL_SECONDS);
   analogSensorMgr.SetReadInterval(2, GASMETER_AI_API_READ_INTERVAL_SECONDS);
   
@@ -1809,30 +1809,8 @@ void setup()
     {
       delay(500);
     }
-    
+      
   }
-
-  // RoSchmi delete the following
-  /*
-  httpCode = testReadJsonFromApi(myX509Certificate, gasMeterAccountPtr);
-  if (httpCode == t_http_codes::HTTP_CODE_OK)
-  {
-    Serial.println(F("Success"));
-    
-  }
-  else
-  {     
-    Serial.println(F("Couldn't read.\r\nError message is:"));
-    Serial.println((char*)bufferStorePtr);
-    ESP.restart();
-    while(true)
-    {
-      delay(500);
-    }
-  }
-  */
-
-
 }
   
 void loop()
@@ -1910,8 +1888,8 @@ void loop()
        
       dataContainer.SetNewValueStruct(0, dateTimeUTCNow, ReadAnalogSensorStruct_01(0), true);
       dataContainer.SetNewValueStruct(1, dateTimeUTCNow, ReadAnalogSensorStruct_01(1), true);     
-      dataContainer.SetNewValue(2, dateTimeUTCNow, ReadAnalogSensor_01(2), false);      
-      dataContainer.SetNewValue(3, dateTimeUTCNow, ReadAnalogSensor_01(3), false); 
+      dataContainer.SetNewValueStruct(2, dateTimeUTCNow, ReadAnalogSensorStruct_01(2), false);      
+      dataContainer.SetNewValueStruct(3, dateTimeUTCNow, ReadAnalogSensorStruct_01(3), false); 
       ledState = !ledState;
       digitalWrite(LED_BUILTIN, ledState);    // toggle LED to signal that App is running
 
@@ -2587,9 +2565,9 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
     }
   }
    
-  if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
+  if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
   {
-    printf("\nAnalogSensorMgr: Value is used");
+    printf("\nAnalogSensorMgr: Value is used %d\n", pSensorIndex);
     for (int i = 0; i < AI_FEATURES_COUNT; i++)
     {       
       if (strcmp((const char *)ai_features[i].name, pSensorName) == 0)
@@ -2633,7 +2611,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   
   if (analogSensorMgr_Api_01.HasToBeRead(pSensorIndex, dateTimeUTCNow))
   {
-    //Serial.println(F("AnalogSensorMgr_Api_01: Value is used")); 
+    printf("\nAnalogSensorMgr_Api_01: Value is used %d\n", pSensorIndex); 
       
     for (int i = 0; i < VI_FEATURES_COUNT; i++)
     {       
@@ -2656,91 +2634,92 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
 
   char consumption[12] = {0};
     
-  if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
-              {
-                                           
-                switch (pSensorIndex)
-                {
-                  case 0:
-                    { 
-                      // Total Consumption, DisplayValue and UnClippedValue 
-                      AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;                      
-                      // select Feature by its name (pSensorName value, raw, pre, error, rate, timestamp)
-                      AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(1, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
-                      strncpy(consumption, selectedFeature.value, sizeof(consumption));                                          
-                      float tempNumber = (atof((const char *)consumption));
-                      tempNumber = (tempNumber > 999.89 && tempNumber < 999.91) ? 999.9 : tempNumber;
-                      if (tempNumber > (MAGIC_NUMBER_INVALID - 0.01) && tempNumber < (MAGIC_NUMBER_INVALID + 0.01))
-                      {
-                         //return both with MAGIC_NUMBER_INVALID
-                        return returnValueStruct;
-                      }
+if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
+{                                          
+  switch (pSensorIndex)
+  {
+      case 0:
+      { 
+        // Total Consumption, DisplayValue and UnClippedValue 
+        AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;                      
+        // select Feature by its name (pSensorName value, raw, pre, error, rate, timestamp)
+        AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(1, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
+        strncpy(consumption, selectedFeature.value, sizeof(consumption));                                          
+        float tempNumber = (atof((const char *)consumption));
+        tempNumber = (tempNumber > 999.89 && tempNumber < 999.91) ? 999.9 : tempNumber;
+        if (tempNumber > (MAGIC_NUMBER_INVALID - 0.01) && tempNumber < (MAGIC_NUMBER_INVALID + 0.01))
+        {
+          //return both with MAGIC_NUMBER_INVALID
+          return returnValueStruct;
+        }
+        sprintf(consumption, "%.1f", tempNumber * 10);
+        returnValueStruct.unClippedValue = atof((const char *)consumption);
+        while (strlen(consumption) > 4)
+        {
+            memmove(consumption, consumption + 1, strlen(consumption));
+        }
+        returnValueStruct.displayValue = atof((const char *)consumption); 
 
-                      sprintf(consumption, "%.1f", tempNumber * 10);
-                      returnValueStruct.unClippedValue = atof((const char *)consumption);
-                      while (strlen(consumption) > 4)
-                      {
-                        memmove(consumption, consumption + 1, strlen(consumption));
-                      }
-                      returnValueStruct.displayValue = atof((const char *)consumption); 
-
-                      //#if SERIAL_PRINT == 1
-                        printf("\nDisplayValue: %.1f  UnClippedValue: %.1f\n", returnValueStruct.displayValue, returnValueStruct.unClippedValue);
-                      //#endif                                                                                                                        
-                    }
-                    break;                   
-                  case 1:
-                    {
-                      // Calculate Day-Consumption from BaseValue and UnClippedValue 
-                      float copyBaseValue = dataContainer.SampleValues[0].BaseValue;
-                      float copyUnClippedValue = dataContainer.SampleValues[0].UnClippedValue;
-                      returnValueStruct.displayValue = (copyUnClippedValue - copyBaseValue) * 10;
-                      returnValueStruct.unClippedValue = copyUnClippedValue;                      
-                      printf("\nDay-Consumption: %.1f\n", returnValueStruct.displayValue);                      
-                    }
-                    break;
-                  case 2:
-                    {
-                      if (dataContainer._hasToBeSent)
-                      {
-                        // Calculate rate when sendinterval has elapsed
-                        float copyLastSendUnClippedValue = dataContainer.SampleValues[0].LastSendUnClippedValue;
-                        float copyUnClippedValue = dataContainer.SampleValues[0].UnClippedValue;
+        //#if SERIAL_PRINT == 1
+            printf("\nDisplayValue: %.1f  UnClippedValue: %.1f\n", returnValueStruct.displayValue, returnValueStruct.unClippedValue);
+        //#endif                                                                                                                        
+      }
+      break;                   
+      case 1:
+      {
+        // Calculate Day-Consumption from BaseValue and UnClippedValue 
+        float copyBaseValue = dataContainer.SampleValues[0].BaseValue;
+        float copyUnClippedValue = dataContainer.SampleValues[0].UnClippedValue;
+        printf("\n Case 1: BaseValue: %.1f UnclippedValue: %.1f\n", copyBaseValue, copyUnClippedValue);
+        //returnValueStruct.displayValue = (copyUnClippedValue - copyBaseValue) * 10;
+        returnValueStruct.displayValue = (copyUnClippedValue - copyBaseValue);  
+        returnValueStruct.unClippedValue = copyUnClippedValue;                      
+        printf("\nDay-Consumption: %.1f\n", returnValueStruct.displayValue);                      
+      }
+      break;
+      case 2:
+      {
+        if (dataContainer._hasToBeSent)
+        {
+          // Calculate rate when sendinterval has elapsed
+          float copyLastSendUnClippedValue = dataContainer.SampleValues[0].LastSendUnClippedValue;
+          float copyUnClippedValue = dataContainer.SampleValues[0].UnClippedValue;                 
+          TimeSpan timeSinceLastSent = dateTimeUTCNow.operator-(dataContainer._lastSentTime);
+          float rate = (copyUnClippedValue - copyLastSendUnClippedValue) / (timeSinceLastSent.totalseconds() / 60);
+              
+          returnValueStruct.displayValue = rate;
+          returnValueStruct.unClippedValue = copyUnClippedValue;
+          /*           
+          if (rate > -0.1 && rate < 0.1)
+          {
+            returnValueStruct.displayValue = (float)MAGIC_NUMBER_INVALID;        
+          }
+          */
+          // RoSchmi
+          //returnValueStruct.displayValue = 20.0;
+        }                     
+        }
+        break;
+        case 3:
+        {
+          // in the forth graph show Viessmann Vorlauftemperatur
+          SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
+          returnValueStruct.displayValue = featureValueSet.SampleValues[1].Value;
+          returnValueStruct.unClippedValue = returnValueStruct.displayValue;
                       
-                        TimeSpan timeSinceLastSent = dateTimeUTCNow.operator-(dataContainer._lastSentTime);
+          // This is an alternative way to get a Viessmann Api Sensor valu                      
+          /*
+          SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
+          theRead = featureValueSet.SampleValues[1].Value;
+          */
                       
-                        float rate = (copyUnClippedValue - copyLastSendUnClippedValue) / (timeSinceLastSent.totalseconds() / 60);
-                     
-                        returnValueStruct.displayValue = rate;
-                        returnValueStruct.unClippedValue = copyUnClippedValue;
-                      
-                        if (rate > - 0.01 && rate < 0.01)
-                        {
-                          returnValueStruct.displayValue = MAGIC_NUMBER_INVALID;
-                        }
-                      }                     
-                    }
-                    break;
-                  case 3:
-                    {
-                      // in the forth graph show Viessmann Vorlauftemperatur
-                      SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
-                      returnValueStruct.displayValue = featureValueSet.SampleValues[1].Value;
-                      returnValueStruct.unClippedValue = returnValueStruct.displayValue;
-                      
-                      // This is an alternative way to get a Viessmann Api Sensor valu                      
-                      /*
-                      SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
-                      theRead = featureValueSet.SampleValues[1].Value;
-                      */
-                      
-                      //theRead = atoi((char *)sSwiThresholdStr) / 10; // dummy
-                      //Show ascending lines from 0 to 5, so re-boots of the board are indicated                                                
-                        //theRead = ((double)(insertCounterAnalogTable % 50)) / 10;                      
-                    }                   
-                    break;
-                }
-              }                
+          //theRead = atoi((char *)sSwiThresholdStr) / 10; // dummy
+          //Show ascending lines from 0 to 5, so re-boots of the board are indicated                                                
+          //theRead = ((double)(insertCounterAnalogTable % 50)) / 10;                      
+          }                   
+          break;
+        }
+      }                           
     return returnValueStruct;
   }
   
@@ -2755,7 +2734,7 @@ float ReadAnalogSensor_01(int pSensorIndex)
               //RoSchmi: Next line was deleted
               //static float unclippedBaseValue_01 = 0.0;
               double theRead = MAGIC_NUMBER_INVALID;           
-              if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow))
+              if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
               {                              
                 switch (pSensorIndex)
                 {
@@ -2875,7 +2854,7 @@ float ReadAnalogSensor_01(int pSensorIndex)
                       uint32_t elapsedTime = dateTimeUTCNow.secondstime() - dataContainer._lastSentTime.secondstime();
                       if ((elapsedTime % 5) == 0)  // show only every fifth case
                       {                
-                        Serial.printf("Case 2: ActValue: %.1f LastSentValue: %.1f Elapsed: %d seconds\n", actValue, lastSentValue, elapsedTime);
+                        Serial.printf("ReadAnalogSensor_01 Case 2: ActValue: %.1f LastSentValue: %.1f Elapsed: %d seconds\n", actValue, lastSentValue, elapsedTime);
                       }
                       
                       theRead = (actValue - lastSentValue) * 100 / ((dateTimeUTCNow.secondstime() - dataContainer._lastSentTime.secondstime())/ 60);

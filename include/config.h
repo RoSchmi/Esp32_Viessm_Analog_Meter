@@ -86,7 +86,7 @@
 
 #define ANALOG_SENSOR_READ_INTERVAL_SECONDS 0   // Analog sensors are read with this interval (seconds, limeted to be not below 2)
 
-#define GASMETER_AI_API_READ_INTERVAL_SECONDS 60  //Values from the AiOnTheEdge gasmeter are read with this timeinterval
+#define GASMETER_AI_API_READ_INTERVAL_SECONDS 30  //Values from the AiOnTheEdge gasmeter are read with this timeinterval
 
 #define API_ANALOG_SENSOR_READ_INTERVAL_SECONDS 77  // Analog Sensor values from the Viessmann Api (seconds, can be 0)
 

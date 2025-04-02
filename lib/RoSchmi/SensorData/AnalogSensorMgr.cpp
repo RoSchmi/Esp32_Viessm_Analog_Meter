@@ -14,7 +14,8 @@ void AnalogSensorMgr::SetReadInterval(uint32_t pInterval)
 {
     for (int i = 0; i < SENSOR_COUNT; i++)
     {
-        readValues[i].ReadInterval = pInterval;
+        readValues[i].ReadInterval = TimeSpan(pInterval);
+        
     }
 
 }
@@ -24,14 +25,23 @@ void AnalogSensorMgr::SetReadInterval(int sensorIndex, uint32_t pInterval)
     readValues[sensorIndex].ReadInterval = pInterval;
 }
 
-bool const AnalogSensorMgr::HasToBeRead(int pSensorIndex, DateTime now)
+bool AnalogSensorMgr::HasToBeRead(int pSensorIndex, DateTime now, bool pReset)
 {
     //RoSchmi
     //Serial.println("Question Analog SensorMgr has to be read?");
     
-    if (readValues[pSensorIndex].IsActive && now.operator>=(readValues[pSensorIndex].LastReadTime.operator+(readValues[pSensorIndex].ReadInterval)))
+
+    int32_t remainSeconds = (readValues[pSensorIndex].LastReadTime.secondstime()- now.secondstime()) + readValues[pSensorIndex].ReadInterval.totalseconds();
+    if (pSensorIndex == 2 && remainSeconds < 3)
     {
-        //Serial.println("Ret true");
+        printf("Has to be read? Index: %d, Remaining: %d seconds\n", pSensorIndex, remainSeconds);
+    }
+
+    if (readValues[pSensorIndex].IsActive && now.operator>(readValues[pSensorIndex].LastReadTime.operator+(readValues[pSensorIndex].ReadInterval)))
+    {
+        //printf("Ret true %d\n", pSensorIndex);
+        // Set LastReadTime to actual time
+        readValues[pSensorIndex].LastReadTime = pReset ? now : readValues[pSensorIndex].LastReadTime; 
         return true;
     }
     else
