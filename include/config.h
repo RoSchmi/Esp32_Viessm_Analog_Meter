@@ -34,7 +34,7 @@
 #define SOUNDSWITCHER_UPDATEINTERVAL 400    // Interval in ms for reading sound level
 #define SOUNDSWITCHER_READ_DELAYTIME 4000   // Delay in ms from switch to displayed value
 
-#define SENDINTERVAL_MINUTES_AI   1    // Sendinterval in minutes (5 - 10 is recommended), in this interval                                        
+#define SENDINTERVAL_MINUTES_AI   6    // Sendinterval in minutes (5 - 10 is recommended), in this interval                                        
                                        // data are sent to the Cloud (is limited to be not below 1 second)
 #define SENDINTERVAL_MINUTES_VI   5    // Sendinterval for Viessmann data in minutes (5 - 10 is recommended), in this interval                                        
                                        // data are sent to the Cloud (is limited to be not below 1 second)
@@ -90,7 +90,9 @@
 
 #define API_ANALOG_SENSOR_READ_INTERVAL_SECONDS 77  // Analog Sensor values from the Viessmann Api (seconds, can be 0)
 
-#define VIESSMANN_API_READ_INTERVAL_SECONDS 75  //Values from the Viessmann Api are read with this timeinterval
+#define VIESSMANN_API_READ_INTERVAL_SECONDS 3600  //Values from the Viessmann Cloud Api are read with this timeinterval
+//#define VIESSMANN_API_READ_INTERVAL_SECONDS 75
+
 
 #define ANALOG_SENSORS_USE_AVERAGE 0             // 1 means: The average from multiple Sensor readings are used
                                                  // 0 means: The last Sensor reading is used

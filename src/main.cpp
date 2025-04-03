@@ -2679,16 +2679,50 @@ if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
       break;
       case 2:
       {
-        if (dataContainer._hasToBeSent)
-        {
+        uint32_t sendIntervalSeconds = dataContainer.SendInterval.totalseconds();
+        uint32_t LastSendTimeSeconds = dataContainer._lastSentTime.secondstime();       
+        
+        printf("LastSendTime: %d Actual: %.d Diff: %d Interval: %d Remain %d\n", LastSendTimeSeconds,  
+          dateTimeUTCNow.secondstime(), dateTimeUTCNow.secondstime() - LastSendTimeSeconds, sendIntervalSeconds, 
+        LastSendTimeSeconds + sendIntervalSeconds - dateTimeUTCNow.secondstime());
+
+
+        //if (dataContainer._hasToBeSent)
+        
+        
+        //if (dateTimeUTCNow.secondstime() > (LastSendTimeSeconds + sendIntervalSeconds))
+        //{
           // Calculate rate when sendinterval has elapsed
+          
           float copyLastSendUnClippedValue = dataContainer.SampleValues[0].LastSendUnClippedValue;
           float copyUnClippedValue = dataContainer.SampleValues[0].UnClippedValue;                 
-          TimeSpan timeSinceLastSent = dateTimeUTCNow.operator-(dataContainer._lastSentTime);
-          float rate = (copyUnClippedValue - copyLastSendUnClippedValue) / (timeSinceLastSent.totalseconds() / 60);
-              
+          //TimeSpan timeSinceLastSend = dateTimeUTCNow.operator-(dataContainer._lastSentTime);
+          
+          uint32_t timeSinceLastSendSeconds = dateTimeUTCNow.secondstime() - LastSendTimeSeconds;
+          
+          float rate = 0.0;
+          if (copyUnClippedValue != copyLastSendUnClippedValue)
+          {
+            if (timeSinceLastSendSeconds > 1.0)
+            {
+              rate = (copyUnClippedValue - copyLastSendUnClippedValue) / (timeSinceLastSendSeconds / 15); // 15 results in reasonable size        
+            }
+          }
+
+          //float rate = (copyUnClippedValue - copyLastSendUnClippedValue) /  (timeSinceLastSendSeconds / 60);
+          printf("LastSendValue: %.1f Actual: %.1f Diff: %.1f Seconds: %d\n", copyLastSendUnClippedValue, 
+            copyUnClippedValue, copyUnClippedValue - copyLastSendUnClippedValue, timeSinceLastSendSeconds);  
+          
+          printf("\n Flow is: %.1f per minute\n", rate);
+          
           returnValueStruct.displayValue = rate;
           returnValueStruct.unClippedValue = copyUnClippedValue;
+        //}
+        //else
+        //{
+        //    printf("\nNot sent\n");
+        //}
+
           /*           
           if (rate > -0.1 && rate < 0.1)
           {
@@ -2697,16 +2731,18 @@ if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
           */
           // RoSchmi
           //returnValueStruct.displayValue = 20.0;
-        }                     
-        }
-        break;
-        case 3:
-        {
+        //}                     
+      }
+      break;
+      case 3:
+      {
+
           // in the forth graph show Viessmann Vorlauftemperatur
+          /*
           SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
           returnValueStruct.displayValue = featureValueSet.SampleValues[1].Value;
           returnValueStruct.unClippedValue = returnValueStruct.displayValue;
-                      
+          */           
           // This is an alternative way to get a Viessmann Api Sensor valu                      
           /*
           SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
@@ -2715,13 +2751,15 @@ if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
                       
           //theRead = atoi((char *)sSwiThresholdStr) / 10; // dummy
           //Show ascending lines from 0 to 5, so re-boots of the board are indicated                                                
-          //theRead = ((double)(insertCounterAnalogTable % 50)) / 10;                      
-          }                   
-          break;
-        }
-      }                           
+          //theRead = ((double)(insertCounterAnalogTable % 50)) / 10;
+          returnValueStruct.displayValue = ((float)(insertCounterAnalogTable % 50)) / 10;
+          returnValueStruct.unClippedValue = 0.0;                      
+      }                   
+      break;
+    }
+  }                           
     return returnValueStruct;
-  }
+}
   
 
 float ReadAnalogSensor_01(int pSensorIndex)

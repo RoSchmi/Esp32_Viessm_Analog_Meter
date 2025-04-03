@@ -134,23 +134,23 @@ void DataContainerWio::SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime,
 
             SampleValues[pIndex].LastSendTime = pActDateTime;
             //SampleValues[pIndex].LastLastSendValue = SampleValues[pIndex].LastSendUnClippedValue; 
-            SampleValues[pIndex].LastSendUnClippedValue = 0.0;
-        
+            //SampleValues[pIndex].LastSendUnClippedValue = 0.0;
+            SampleValues[pIndex].LastSendUnClippedValue = SampleValues[pIndex].UnClippedValue;
             Serial.println(F("Set new value in first transmission"));  
         }
         else
-        {
+        {                  // SendInterval elapsed
             if (_lastSentTime.operator<=(pActDateTime.operator-(SendInterval)))
             {
             Serial.println(F("AiOnTheEdge Sent Flag set ************"));
             
             // RoSchmi: next line deleted, is already done in getCheckedSampleValues
-            //_lastSentTime = pActDateTime;
+              _lastSentTime = pActDateTime;
 
             //SampleValues[pIndex].LastSendTime = pActDateTime;
             
             // RoSchmi: Think about deleting the next two lines
-            //SampleValues[pIndex].LastLastSendValue = SampleValues[pIndex].LastSendUnClippedValue;
+            SampleValues[pIndex].LastLastSendUnClippedValue = SampleValues[pIndex].LastSendUnClippedValue;
             SampleValues[pIndex].LastSendUnClippedValue = SampleValues[pIndex].UnClippedValue;
             _hasToBeSent = true;
             }       
