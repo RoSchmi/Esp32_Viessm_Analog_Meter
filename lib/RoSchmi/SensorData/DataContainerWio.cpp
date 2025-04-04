@@ -24,27 +24,24 @@ DataContainerWio::DataContainerWio(TimeSpan pSendInterval, TimeSpan pInvalidateI
 }
 
 void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float pSampleValue, bool pIsConsumption)
-{
-    //Serial.printf("I am in SetNewValue (1). Index: %d Arriving value: %.2f\n", pIndex, pSampleValue); 
+{   
     // Ignore invalid readings with value 999.9 (MagicNumberInvalid)
     if (pSampleValue > (MagicNumberInvalid + 0.11) || pSampleValue < (MagicNumberInvalid - 0.11))
-    {
-        if (pIndex == 2)
-        { 
-            Serial.printf("I am in SetNewValue (2). Index: %d Arriving value: %.2f\n", pIndex, pSampleValue); 
-        }
+    {     
         if (!pIsConsumption)
         {
             SampleValues[pIndex].feedCount++;
             SampleValues[pIndex].SummedValues += pSampleValue;
             SampleValues[pIndex].AverageValue = SampleValues[pIndex].SummedValues / SampleValues[pIndex].feedCount;
         }
-
-        //if (_isFirstTransmission || (pIsConsumption && (SampleValues[pIndex].LastSendTime.day() != pActDateTime.day())))
-        if (_isFirstTransmission)
+        
+        extern TimeSpan timeDiffUtcToLocal;
+        bool isNewDay = pActDateTime.operator+(timeDiffUtcToLocal).day() != SampleValues[pIndex].LastUpdateValueTime.operator+(timeDiffUtcToLocal).day(); 
+        
+        if (_isFirstTransmission || isNewDay)
         {
-            Serial.printf("Setting BaseValue pSampleValue: %.2f\n", pSampleValue);
-           // SampleValues[pIndex].BaseValue = pSampleValue;
+            //Serial.printf("Setting BaseValue pSampleValue: %.2f\n", pSampleValue);
+           SampleValues[pIndex].BaseValue = pSampleValue;
         }
 
         SampleValues[pIndex].LastValue = SampleValues[pIndex].Value;
@@ -52,7 +49,10 @@ void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float
         SampleValues[pIndex].UnClippedValue = pSampleValue;
         SampleValues[pIndex].Value = pSampleValue;
         
+        // RoSchmi evaluate if next line is correct
          SampleValues[pIndex].LastSendTime = pActDateTime;
+        // RoSchmi new 04.04.25
+        SampleValues[pIndex].LastUpdateValueTime = pActDateTime;
         _SampleValuesSet.LastUpdateTime = pActDateTime;
     
     
@@ -64,9 +64,10 @@ void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float
 
             SampleValues[pIndex].LastSendTime = pActDateTime;
             //SampleValues[pIndex].LastLastSendValue = SampleValues[pIndex].LastSendUnClippedValue; 
-            SampleValues[pIndex].LastSendUnClippedValue = 0.0;
+            SampleValues[pIndex].LastSendUnClippedValue = SampleValues[pIndex].UnClippedValue;
         
-            Serial.println(F("Set new value in first transmission"));  
+            Serial.println(F("Set new value in first transmission"));
+            
         }
         else
         {
@@ -75,7 +76,7 @@ void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float
                 Serial.println(F("AiOnTheEdge Sent Flag set ************"));
             
                 // RoSchmi: next line deleted, is already done in getCheckedSampleValues
-                //_lastSentTime = pActDateTime;
+                 _lastSentTime = pActDateTime;
 
                 //SampleValues[pIndex].LastSendTime = pActDateTime;
             
