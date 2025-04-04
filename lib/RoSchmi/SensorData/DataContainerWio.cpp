@@ -109,7 +109,9 @@ void DataContainerWio::SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime,
         //if (_isFirstTransmission || (pIsConsumption && (SampleValues[pIndex].LastSendTime.day() != pActDateTime.day())))
         extern TimeSpan timeDiffUtcToLocal;
         
-        bool isNewDay = pActDateTime.operator+(timeDiffUtcToLocal).day() != _lastSentTime.operator+(timeDiffUtcToLocal).day();
+        //bool isNewDay = pActDateTime.operator+(timeDiffUtcToLocal).day() != _lastSentTime.operator+(timeDiffUtcToLocal).day();
+        
+        bool isNewDay = pActDateTime.operator+(timeDiffUtcToLocal).day() != SampleValues[pIndex].LastUpdateValueTime.operator+(timeDiffUtcToLocal).day(); 
         
         if (_isFirstTransmission || isNewDay)
         {
@@ -122,7 +124,10 @@ void DataContainerWio::SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime,
         SampleValues[pIndex].UnClippedValue = pValueStruct.unClippedValue;
         SampleValues[pIndex].Value = pValueStruct.displayValue;
         
-         SampleValues[pIndex].LastSendTime = pActDateTime;
+        // RoSchmi evaluate if next line is correct
+        SampleValues[pIndex].LastSendTime = pActDateTime;
+        // RoSchmi new 04.04.25
+        SampleValues[pIndex].LastUpdateValueTime = pActDateTime;
         _SampleValuesSet.LastUpdateTime = pActDateTime;
     
     
@@ -150,7 +155,7 @@ void DataContainerWio::SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime,
             //SampleValues[pIndex].LastSendTime = pActDateTime;
             
             // RoSchmi: Think about deleting the next two lines
-            SampleValues[pIndex].LastLastSendUnClippedValue = SampleValues[pIndex].LastSendUnClippedValue;
+            //SampleValues[pIndex].LastLastSendUnClippedValue = SampleValues[pIndex].LastSendUnClippedValue;
             SampleValues[pIndex].LastSendUnClippedValue = SampleValues[pIndex].UnClippedValue;
             _hasToBeSent = true;
             }       
