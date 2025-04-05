@@ -159,9 +159,9 @@
 // --> configure stack size dynamically from code to 16384
 // https://community.platformio.org/t/esp32-stack-configuration-reloaded/20994/4
 
-//SET_LOOP_TASK_STACK_SIZE ( 16*1024 ); // 16KB
+SET_LOOP_TASK_STACK_SIZE ( 16*1024 ); // 16KB
 
-SET_LOOP_TASK_STACK_SIZE ( 32*1024 ); // 32KB
+//SET_LOOP_TASK_STACK_SIZE ( 32*1024 ); // 32KB  used this
 
 // Allocate memory space in memory segment .dram0.bss, ptr to this memory space is later
 // passed to TableClient (is used there as the place for some buffers to preserve stack )
@@ -1875,10 +1875,10 @@ void loop()
       // Get readings from 4 different analog sensors stored in the Viessmann Cloud    
       // and store the values in a container
        
-      dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_95_heating_temperature_outside")).value), false); // Aussen
-      dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_3_temperature_main")).value), false); // Vorlauf                
-      dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"_90_heating_dhw_cylinder_temperature")).value), false); // Boiler
-      dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(3, (const char *)"_7_burner_modulation")).value), false);  // Modulation
+      dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_95_heating_temperature_outside")).value)); // Aussen
+      dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_3_temperature_main")).value)); // Vorlauf                
+      dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"_90_heating_dhw_cylinder_temperature")).value)); // Boiler
+      dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(3, (const char *)"_7_burner_modulation")).value));  // Modulation
       
       ledState = !ledState;
       digitalWrite(LED_BUILTIN, ledState);    // toggle LED to signal that App is running
@@ -2546,8 +2546,6 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
   
   if ((pAiOnTheEdgeApiSelectionPtr ->lastReadTime.operator+(pAiOnTheEdgeApiSelectionPtr -> readInterval)).operator<(dateTimeUTCNow))
   {
-    printf("\nGoing to perform read json fromRestApi\n");
-    //gasmeterApiAccount.UriEndPointJson.c_str();
     char myUriEndpoint[50] = {0}; 
     strncpy(myUriEndpoint, "http://gasmeter/json", sizeof(myUriEndpoint) - 1);
     
@@ -2567,7 +2565,7 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
    
   if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
   {
-    printf("\nAnalogSensorMgr: Value is used %d\n", pSensorIndex);
+    //printf("\nAnalogSensorMgr: Value is used %d\n", pSensorIndex);
     for (int i = 0; i < AI_FEATURES_COUNT; i++)
     {       
       if (strcmp((const char *)ai_features[i].name, pSensorName) == 0)
@@ -2611,7 +2609,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   
   if (analogSensorMgr_Api_01.HasToBeRead(pSensorIndex, dateTimeUTCNow))
   {
-    printf("\nAnalogSensorMgr_Api_01: Value is used %d\n", pSensorIndex); 
+    //printf("\nAnalogSensorMgr_Api_01: Value is used %d\n", pSensorIndex); 
       
     for (int i = 0; i < VI_FEATURES_COUNT; i++)
     {       
@@ -2654,12 +2652,18 @@ if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
         }
         sprintf(consumption, "%.1f", tempNumber * 10);
         returnValueStruct.unClippedValue = atof((const char *)consumption);
+        
         while (strlen(consumption) > 4)
         {
             memmove(consumption, consumption + 1, strlen(consumption));
         }
-        returnValueStruct.displayValue = atof((const char *)consumption); 
-
+        returnValueStruct.displayValue = atof((const char *)consumption);
+        
+        selectedFeature = ReadAiOnTheEdgeApi_Analog_01(1, (const char *)"pre", aiOnTheEdgeApiSelectionPtr);
+        strncpy(consumption, selectedFeature.value, sizeof(consumption));                                          
+        tempNumber = (atof((const char *)consumption));
+        sprintf(consumption, "%.1f", tempNumber * 10);
+        
         //#if SERIAL_PRINT == 1
             printf("\nDisplayValue: %.1f  UnClippedValue: %.1f\n", returnValueStruct.displayValue, returnValueStruct.unClippedValue);
         //#endif                                                                                                                        
@@ -2705,7 +2709,8 @@ if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
           {
             if (timeSinceLastSendSeconds > 1.0)
             {
-              rate = (copyUnClippedValue - copyLastSendUnClippedValue) / (timeSinceLastSendSeconds / 15); // 15 results in reasonable size        
+              printf("Calculating rate. Seconds: %d\n", timeSinceLastSendSeconds);
+              rate = (copyUnClippedValue - copyLastSendUnClippedValue) * 50.0f / ((float)timeSinceLastSendSeconds / 60.0f); // * 100 gives reasonable size         
             }
           }
 

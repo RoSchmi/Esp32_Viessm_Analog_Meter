@@ -23,6 +23,16 @@ DataContainerWio::DataContainerWio(TimeSpan pSendInterval, TimeSpan pInvalidateI
     MagicNumberInvalid = pMagicNumberInvalid;
 }
 
+void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float pSampleValue)
+{
+    ValueStruct transferValueStruct = {
+        .displayValue = pSampleValue,
+        .unClippedValue = pSampleValue};
+    SetNewValueStruct(pIndex, pActDateTime, transferValueStruct, false);
+}
+
+
+/*
 void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float pSampleValue, bool pIsConsumption)
 {   
     // Ignore invalid readings with value 999.9 (MagicNumberInvalid)
@@ -89,6 +99,7 @@ void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float
         }
     }     
 }
+*/
 
 void DataContainerWio::SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime, ValueStruct pValueStruct, bool pIsConsumption)
 {   

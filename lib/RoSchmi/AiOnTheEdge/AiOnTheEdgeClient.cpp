@@ -66,7 +66,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
       
     //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient/
                                       // Is needed to load the long features JSON string
-    Serial.printf("AI-WiFiClient Address: %d\n", &_aiOnTheEdgeWifiClient);
+    printf("AI-WiFiClient Address: %d\n", &_aiOnTheEdgeWifiClient);
 
     _aiOnTheEdgeHttpPtr ->begin(_aiOnTheEdgeWifiClient, url);
 
@@ -86,7 +86,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
             #endif
             */
            String payload = _aiOnTheEdgeHttpPtr ->getString();          
-           printf(payload.c_str());
+           printf("%s\n",payload.c_str());
           
            int charsToCopy = payload.length() < reponseBufferLength ? payload.length() : reponseBufferLength;
            for (int i = 0; i < charsToCopy; i++)
@@ -182,5 +182,6 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
     
     return httpResponseCode;
 }
+
 AiOnTheEdgeClient::~AiOnTheEdgeClient()
 {};

@@ -32,9 +32,9 @@ bool AnalogSensorMgr::HasToBeRead(int pSensorIndex, DateTime now, bool pReset)
     
 
     int32_t remainSeconds = (readValues[pSensorIndex].LastReadTime.secondstime()- now.secondstime()) + readValues[pSensorIndex].ReadInterval.totalseconds();
-    if (pSensorIndex == 2 && remainSeconds < 3)
+    if (pSensorIndex == 2 && remainSeconds < 1)
     {
-        printf("Has to be read? Index: %d, Remaining: %d seconds\n", pSensorIndex, remainSeconds);
+        printf("\nHas to be read? Index: %d, Remaining: %d seconds\n", pSensorIndex, remainSeconds);
     }
 
     if (readValues[pSensorIndex].IsActive && now.operator>(readValues[pSensorIndex].LastReadTime.operator+(readValues[pSensorIndex].ReadInterval)))

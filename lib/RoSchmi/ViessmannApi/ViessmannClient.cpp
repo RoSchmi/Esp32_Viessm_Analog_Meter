@@ -70,7 +70,9 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     _viessmannHttpPtr ->useHTTP10(true);   // Must be reset to false for Azure requests
                                            // Is needed to load the long features JSON string
 
-    //Serial.println(F("Set httpClient to true"));   
+    //Serial.println(F("Set httpClient to true"));
+    printf("Free heapsize: %d Minimum: %d\n", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
+
     _viessmannHttpPtr ->begin(Url);
     
     _viessmannHttpPtr ->addHeader("Authorization", authorizationHeader); 
@@ -94,6 +96,9 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             ;
             deserializeJson(doc, _viessmannHttpPtr ->getStream(),DeserializationOption::Filter(filter));
             
+            _viessmannHttpPtr ->useHTTP10(false);
+            _viessmannHttpPtr->end();
+
             #if SERIAL_PRINT == 1
             Serial.println(F("JsonDoc is deserialized"));
             #endif
@@ -267,14 +272,17 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             responseBuffer += chunkSize;
             //Serial.printf("\r\n%d\r\n", bytesRead);
             }
+            _viessmannHttpPtr ->useHTTP10(false);
+            _viessmannHttpPtr->end();
         }                      
     } 
     else 
     {
+        _viessmannHttpPtr ->useHTTP10(false);
+        _viessmannHttpPtr->end();
         Serial.printf("Vi-Features: Error performing the request, HTTP-Code: %d\n", httpResponseCode);
     }
-    _viessmannHttpPtr ->useHTTP10(false);
-    _viessmannHttpPtr->end();
+    
     //Serial.println(F("Returning"));
     return httpResponseCode;
 }

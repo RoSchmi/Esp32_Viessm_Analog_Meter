@@ -47,7 +47,7 @@ public:
     String floToStr(float value);   
     SampleValue checkedSampleValue(SampleValue inSampleValue, float lowLimit, float upperLimit, float invalidSubstitute,  DateTime actDateTime, TimeSpan);
     
-    void SetNewValue(uint32_t pIndex, DateTime pActDateTime, float pSampleValue, bool pIsConsumption);
+    void SetNewValue(uint32_t pIndex, DateTime pActDateTime, float pSampleValue);
     
     void SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime, ValueStruct pValueSet, bool pIsConsumption);
     
