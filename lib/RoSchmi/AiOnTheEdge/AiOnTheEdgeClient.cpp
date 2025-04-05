@@ -67,6 +67,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
     //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient/
                                       // Is needed to load the long features JSON string
     printf("AI-WiFiClient Address: %d\n", &_aiOnTheEdgeWifiClient);
+    printf("Free heapsize: %d Minimum: %d\n\n", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
 
     _aiOnTheEdgeHttpPtr ->begin(_aiOnTheEdgeWifiClient, url);
 
@@ -142,10 +143,9 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
                 strncpy(apiSelectionPtr -> _5_timestamp.name, "timestamp", nameLen - 1);
                 strncpy(apiSelectionPtr-> _5_timestamp.timestamp, doc["main"]["timestamp"], stampLen - 1);
                 strncpy(apiSelectionPtr-> _5_timestamp.value, doc["main"]["timestamp"], nameLen - 1);
-               
-                Serial.printf("Index: %d\n", apiSelectionPtr -> _0_value.idx);
-                Serial.printf("Value: %s\n", apiSelectionPtr -> _0_value.value);
-                Serial.printf("Timestamp: %s\n", apiSelectionPtr -> _0_value.timestamp);                
+                
+                printf("Value: %s\n", apiSelectionPtr -> _0_value.value);
+                printf("Timestamp: %s\n", apiSelectionPtr -> _0_value.timestamp);                
             }
             else
             {

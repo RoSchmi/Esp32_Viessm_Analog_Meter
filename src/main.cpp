@@ -1750,12 +1750,10 @@ void setup()
   // Is limited to be not below 2 seconds
   analogSensorMgr.SetReadInterval(ANALOG_SENSOR_READ_INTERVAL_SECONDS < 2 ? 2 : ANALOG_SENSOR_READ_INTERVAL_SECONDS);
   // Set Read Interval for special sensor
-  //analogSensorMgr.SetReadInterval(0, GASMETER_AI_API_READ_INTERVAL_SECONDS);
+  analogSensorMgr.SetReadInterval(0, GASMETER_AI_API_READ_INTERVAL_SECONDS);
   analogSensorMgr.SetReadInterval(1, GASMETER_AI_API_READ_INTERVAL_SECONDS);
   analogSensorMgr.SetReadInterval(2, GASMETER_AI_API_READ_INTERVAL_SECONDS);
   
-
-
   analogSensorMgr_Api_01.SetReadInterval(API_ANALOG_SENSOR_READ_INTERVAL_SECONDS);
   
   httpCode = refreshAccessTokenFromApi(myX509Certificate, myViessmannApiAccountPtr, viessmannRefreshToken);
@@ -2597,7 +2595,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
     if (httpCode == t_http_codes::HTTP_CODE_OK)
     {
       viessmannApiSelection.lastReadTime = dateTimeUTCNow;
-      Serial.println(F("Succeeded to read Features from Viessmann Cloud"));
+      Serial.println(F("Succeeded to read Features from Viessmann Cloud\n"));
     }
     else
     {
@@ -2708,17 +2706,15 @@ if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
           if (copyUnClippedValue != copyLastSendUnClippedValue)
           {
             if (timeSinceLastSendSeconds > 1.0)
-            {
-              printf("Calculating rate. Seconds: %d\n", timeSinceLastSendSeconds);
+            {             
               rate = (copyUnClippedValue - copyLastSendUnClippedValue) * 50.0f / ((float)timeSinceLastSendSeconds / 60.0f); // * 100 gives reasonable size         
             }
           }
 
-          //float rate = (copyUnClippedValue - copyLastSendUnClippedValue) /  (timeSinceLastSendSeconds / 60);
           printf("LastSendValue: %.1f Actual: %.1f Diff: %.1f Seconds: %d\n", copyLastSendUnClippedValue, 
             copyUnClippedValue, copyUnClippedValue - copyLastSendUnClippedValue, timeSinceLastSendSeconds);  
           
-          printf("\n Flow is: %.1f per minute\n", rate);
+          printf("\n Flow is: %.1f per minute. Read after: %d seconds\n\n", rate, timeSinceLastSendSeconds);
           
           returnValueStruct.displayValue = rate;
           returnValueStruct.unClippedValue = copyUnClippedValue;

@@ -27,20 +27,19 @@ void AnalogSensorMgr::SetReadInterval(int sensorIndex, uint32_t pInterval)
 
 bool AnalogSensorMgr::HasToBeRead(int pSensorIndex, DateTime now, bool pReset)
 {
-    //RoSchmi
-    //Serial.println("Question Analog SensorMgr has to be read?");
-    
+    // For each sensor (index 0 - 3) of this group a dedicated Timespan
+    // is set. Only when this timespan has expired, the value is tranferred to DataContainerWio
 
     int32_t remainSeconds = (readValues[pSensorIndex].LastReadTime.secondstime()- now.secondstime()) + readValues[pSensorIndex].ReadInterval.totalseconds();
-    if (pSensorIndex == 2 && remainSeconds < 1)
-    {
-        printf("\nHas to be read? Index: %d, Remaining: %d seconds\n", pSensorIndex, remainSeconds);
-    }
-
+    
     if (readValues[pSensorIndex].IsActive && now.operator>(readValues[pSensorIndex].LastReadTime.operator+(readValues[pSensorIndex].ReadInterval)))
-    {
-        //printf("Ret true %d\n", pSensorIndex);
-        // Set LastReadTime to actual time
+    {  
+        #if SERIAL_PRINT == 1
+        printf("Transf value of AI (VI)-Sensor to DataCont. Interval: %d Id: %d after %d secs\n",readValues[pSensorIndex].ReadInterval.totalseconds(),
+           pSensorIndex, now.secondstime() - readValues[pSensorIndex].LastReadTime.secondstime()); 
+        #endif
+        
+        // Set LastReadTime to actual time if wanted
         readValues[pSensorIndex].LastReadTime = pReset ? now : readValues[pSensorIndex].LastReadTime; 
         return true;
     }

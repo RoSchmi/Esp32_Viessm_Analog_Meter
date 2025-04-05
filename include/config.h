@@ -41,7 +41,7 @@
 
 
 
-                                    #define SERIAL_PRINT 0                    // 1 = yes, 0 = no. Select if Serial.print messages are printed
+#define SERIAL_PRINT 0                    // 1 = yes, 0 = no. Select if Serial.print messages are printed
 
 #define _ESPASYNC_WIFIMGR_LOGLEVEL_  0     // ( 0 - 4) Define EspAsync_WiFiManager Loglevel (Debug Messages)
 
@@ -90,7 +90,7 @@
 
 #define API_ANALOG_SENSOR_READ_INTERVAL_SECONDS 77  // Analog Sensor values from the Viessmann Api (seconds, can be 0)
 
-#define VIESSMANN_API_READ_INTERVAL_SECONDS 3600  //Values from the Viessmann Cloud Api are read with this timeinterval
+#define VIESSMANN_API_READ_INTERVAL_SECONDS 75  //Values from the Viessmann Cloud Api are read with this timeinterval
 //#define VIESSMANN_API_READ_INTERVAL_SECONDS 3600  75
 
 

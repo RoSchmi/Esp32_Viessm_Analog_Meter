@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Datetime.h>
+#include "config.h"
 
 #ifndef _ANALOGSENSORMGR_H_
 #define _ANALOGSENSORMGR_H_
