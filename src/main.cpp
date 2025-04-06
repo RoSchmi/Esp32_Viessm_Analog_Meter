@@ -2688,7 +2688,7 @@ if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
         uint32_t sendIntervalSeconds = dataContainer.SendInterval.totalseconds();
         uint32_t LastSendTimeSeconds = dataContainer._lastSentTime.secondstime();       
         
-        printf("LastSendTime: %d Actual: %.d Diff: %d Interval: %d Remain %d\n", LastSendTimeSeconds,  
+        Serial.printf("LastSendTime: %d Actual: %.d Diff: %d Interval: %d Remain %d\n", LastSendTimeSeconds,  
           dateTimeUTCNow.secondstime(), dateTimeUTCNow.secondstime() - LastSendTimeSeconds, sendIntervalSeconds, 
         LastSendTimeSeconds + sendIntervalSeconds - dateTimeUTCNow.secondstime());
 

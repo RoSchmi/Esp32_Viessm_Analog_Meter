@@ -268,9 +268,12 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             bytesRead += stream ->readBytes(chunkBuffer, chunkSize);
             chunkBuffer[chunkSize] = '\0'; 
             //Serial.println(chunkBuffer);
-            strcat((char *)responseBuffer, chunkBuffer);
-            responseBuffer += chunkSize;
-            //Serial.printf("\r\n%d\r\n", bytesRead);
+            if ((strlen((char*)responseBuffer) + strlen(chunkBuffer)) < reponseBufferLength)
+            {
+                strcat((char *)responseBuffer, chunkBuffer);
+                responseBuffer += chunkSize;
+                //Serial.printf("\r\n%d\r\n", bytesRead);
+            }
             }
             _viessmannHttpPtr ->useHTTP10(false);
             _viessmannHttpPtr->end();
