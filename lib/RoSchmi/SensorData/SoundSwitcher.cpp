@@ -90,7 +90,7 @@ SoundSwitcher::SoundSwitcher(i2s_pin_config_t config, MicType micType)
     //install and start i2s driver
     if (ESP_OK != i2s_driver_install(i2s_num, &i2s_config_SPH0645LM4H, 0, NULL)) 
           {
-            Serial.println("SPH0645LM4H_i2s_driver_install: error");
+            Serial.println(F("SPH0645LM4H_i2s_driver_install: error"));
           }
     REG_SET_BIT(  I2S_TIMING_REG(i2s_num),BIT(9));   /*  #include "soc/i2s_reg.h"   I2S_NUM -> 0 or 1*/
     REG_SET_BIT( I2S_CONF_REG(i2s_num), I2S_RX_MSB_SHIFT);   
@@ -103,7 +103,7 @@ SoundSwitcher::SoundSwitcher(i2s_pin_config_t config, MicType micType)
           //install and start i2s driver
          if (ESP_OK != i2s_driver_install(i2s_num, &i2s_config_INMP441, 0, NULL)) 
           {
-            Serial.println("INMP441_i2s_driver_install: error");
+            Serial.println(F("INMP441_i2s_driver_install: error"));
           }          
       }
       else

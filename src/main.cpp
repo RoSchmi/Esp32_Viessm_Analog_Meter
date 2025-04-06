@@ -1150,9 +1150,9 @@ void setup()
   Serial.print(F("Free Heap: "));
   Serial.println(freeHeapSize);
   Serial.printf("Last Reset Reason: CPU_0 = %u, CPU_1 = %u\r\n", resetReason_0, resetReason_1);
-  Serial.println("Reason CPU_0: ");
+  Serial.println(F("Reason CPU_0: "));
   print_reset_reason(resetReason_0);
-  Serial.println("Reason CPU_1: ");
+  Serial.println(F("Reason CPU_1: "));
   print_reset_reason(resetReason_1);
 
   if(watchDogCommandSuccessful)
@@ -1678,7 +1678,7 @@ void setup()
     myTimezone.setRules(stdStart, stdStart);
     while (true)
     {
-      Serial.println("Invalid DST Timezonesettings");
+      Serial.println(F("Invalid DST Timezonesettings"));
       delay(5000);
     }
   }
@@ -1836,8 +1836,9 @@ void loop()
         timeNtpUpdateCounter++;
 
         #if SERIAL_PRINT == 1
-          // Indicate that NTP time was updated         
-          char buffer[] = "NTP-Utc: YYYY-MM-DD hh:mm:ss";           
+          // Indicate that NTP time was updated
+          char buffer[35] = {0};     
+          strcpy(buffer, "NTP-Utc: YYYY-MM-DD hh:mm:ss");           
           dateTimeUTCNow.toString(buffer);
           Serial.println(buffer);
         #endif
@@ -1862,7 +1863,7 @@ void loop()
           }
           else
           {
-            Serial.println("Token Refresh failed\n");            
+            Serial.println(F("Token Refresh failed\n"));            
             AccessTokenRefreshTime = dateTimeUTCNow.operator-(TimeSpan(300));
           }
       }
@@ -2053,7 +2054,8 @@ void loop()
         
         if (dataContainer.hasToBeSent())   // have to send analog values read by Device (e.g. noise)?
         {
-          printf("\n###### AiOnTheEdge dataContainer has to be sent\n");         
+          //printf("\n###### AiOnTheEdge dataContainer has to be sent\n");
+          Serial.println(F("\n###### AiOnTheEdge dataContainer has to be sent to Cloud\n"));        
           // Retrieve edited sample values from container
           SampleValueSet sampleValueSet = dataContainer.getCheckedSampleValues(dateTimeUTCNow, true);
           
@@ -2204,7 +2206,7 @@ void loop()
               }
 
               //RoSchmi
-              Serial.printf("\nDidn't need to create Tabele");
+              Serial.println(F("\nDidn't need to create Tabele\n"));
 
               
               
@@ -2631,7 +2633,9 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
   char consumption[12] = {0};
     
 if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
-{                                          
+{
+  
+  
   switch (pSensorIndex)
   {
       case 0:
@@ -2724,14 +2728,13 @@ if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
         //    printf("\nNot sent\n");
         //}
 
-          /*           
-          if (rate > -0.1 && rate < 0.1)
-          {
-            returnValueStruct.displayValue = (float)MAGIC_NUMBER_INVALID;        
-          }
-          */
-          // RoSchmi
-          //returnValueStruct.displayValue = 20.0;
+                     
+         // if (rate > -0.1 && rate < 0.1)
+         // {
+         //   returnValueStruct.displayValue = (float)MAGIC_NUMBER_INVALID;        
+         // }
+          
+          
         //}                     
       }
       break;
@@ -2739,16 +2742,16 @@ if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
       {
 
           // in the forth graph show Viessmann Vorlauftemperatur
-          /*
-          SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
-          returnValueStruct.displayValue = featureValueSet.SampleValues[1].Value;
-          returnValueStruct.unClippedValue = returnValueStruct.displayValue;
-          */           
+          
+          //SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
+          //returnValueStruct.displayValue = featureValueSet.SampleValues[1].Value;
+          //returnValueStruct.unClippedValue = returnValueStruct.displayValue;
+                     
           // This is an alternative way to get a Viessmann Api Sensor valu                      
-          /*
-          SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
-          theRead = featureValueSet.SampleValues[1].Value;
-          */
+          
+          //SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
+          //theRead = featureValueSet.SampleValues[1].Value;
+          
                       
           //theRead = atoi((char *)sSwiThresholdStr) / 10; // dummy
           //Show ascending lines from 0 to 5, so re-boots of the board are indicated                                                
@@ -2758,7 +2761,8 @@ if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
       }                   
       break;
     }
-  }                           
+  }
+
     return returnValueStruct;
 }
   
@@ -3121,6 +3125,7 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int p
    Serial.printf("readJsonFromRestApi: %s\n", (const char *)url);
 
   t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures((const char *)url, bufferStorePtr, bufferStoreLength, apiSelectionPtr);
+  loadGasMeterJsonCount++;
   if (responseCode == t_http_codes::HTTP_CODE_OK)
   {
     // Populate features array and replace the name read from Api
@@ -3159,7 +3164,8 @@ t_httpCode readViessmannFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAcc
                                         localTime.month() , localTime.day(),
                                         localTime.hour() , localTime.minute());
   t_httpCode responseCode = viessmannClient.GetFeatures(bufferStorePtr, bufferStoreLength, data_0_id, Gateways_0_Serial, Gateways_0_Devices_0_Id, apiSelectionPtr);
-  Serial.printf("(%u) Viessmann Features: httpResponseCode is: %d\r\n", loadFeaturesCount++, responseCode);
+  loadFeaturesCount++;
+  Serial.printf("(%u) Viessmann Features: httpResponseCode is: %d\r\n", loadFeaturesCount, responseCode);
   if (responseCode == t_http_codes::HTTP_CODE_OK)
   {
     // Populate features array and replace the name read from Api
@@ -3485,18 +3491,19 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr,  X509Cer
   if ((statusCode == AZ_HTTP_STATUS_CODE_NO_CONTENT) || (statusCode == AZ_HTTP_STATUS_CODE_CREATED))
   {
       char codeString[35] {0};
-      sprintf(codeString, "%s %i", "Entity inserted: ", statusCode);
+      sprintf(codeString, "Entity inserted: %i", statusCode);
       #if SERIAL_PRINT == 1
         Serial.println((char *)codeString);
       #endif
 
-      Serial.printf("\r\n%s %s %i\r\n", pTableName, "Entity inserted: ", az_http_status_code(statusCode));
+      Serial.printf("\r\n%s Entity inserted: %i\r\n", pTableName, az_http_status_code(statusCode));
     
     #if UPDATE_TIME_FROM_AZURE_RESPONSE == 1    // System time shall be updated from the DateTime value of the response ?
     
     dateTimeUTCNow = responseHeaderDateTime;
     
-    char buffer[] = "Azure-Utc: YYYY-MM-DD hh:mm:ss";
+    char buffer[35] = {0};
+    strcpy(buffer, "Azure-Utc: YYYY-MM-DD hh:mm:ss");
     dateTimeUTCNow.toString(buffer);
     #if SERIAL_PRINT == 1
       Serial.println((char *)buffer);

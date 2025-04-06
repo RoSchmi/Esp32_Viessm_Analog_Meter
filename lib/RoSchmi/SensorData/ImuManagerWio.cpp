@@ -64,7 +64,7 @@ float ImuManagerWio::floatingAverage(ImuSampleValueSet sampleSet, int arrayEleme
                 {
                     while (true)
                     {
-                        Serial.println("Error in ImuManagerWio");
+                        Serial.println(F("Error in ImuManagerWio"));
                         delay(1000);
                     }                                   
             }

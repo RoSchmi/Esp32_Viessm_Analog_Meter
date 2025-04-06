@@ -83,7 +83,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
         {
             /*
             #if SERIAL_PRINT == 1
-              Serial.println("Received ResponseCode > 0");
+              Serial.println(F("Received ResponseCode > 0"));
             #endif
             */
            String payload = _aiOnTheEdgeHttpPtr ->getString();          

@@ -60,7 +60,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     String addendum = "features/installations/" + (String)InstallationId + "/gateways/" + (String(gateways_0_serial) + "/devices/" + String(gateways_0_devices_0_id) + "/features"); 
     String Url = _viessmannAccountPtr -> UriEndPointIot + addendum;
     String authorizationHeader = "Bearer " + _viessmannAccountPtr ->AccessToken;
-    Serial.println(F("Loading Viessmann features"));
+    Serial.println(F("Loading Viessmann features from Cloud"));
     Serial.printf("VI-WiFiClient Address: %d\n", &_viessmannWifiClient);
     Serial.println("");
     //Serial.println(Url);
@@ -83,11 +83,11 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     { 
         if (httpResponseCode == HTTP_CODE_OK)
         {
-            /*
+            
             #if SERIAL_PRINT == 1
-              Serial.println("Received ResponseCode > 0");
+              Serial.println(F("Viessmann Received ResponseCode > 0"));
             #endif
-            */ 
+             
             JsonDocument doc;
             StaticJsonDocument<64> filter;
             filter["data"][0]["feature"] = true,
@@ -339,7 +339,7 @@ t_httpCode ViessmannClient::RefreshAccessToken(uint8_t* responseBuffer, const ui
             Serial.printf("Refresh token: Error performing the request, HTTP-Code: %d\n", httpResponseCode);
             if (httpResponseCode == HTTPC_ERROR_CONNECTION_REFUSED)
             {
-                Serial.println("Viessmann Server: Connection refused");
+                Serial.println(F("Viessmann Server: Connection refused"));
                 delay(500);          
             }
         }

@@ -321,10 +321,10 @@ az_http_client_send_request(az_http_request const* request, az_http_response* re
   else
   {
 
-    Serial.println("Before GET routine");
+    Serial.println(F("Before GET routine"));
     while (true)
     {
-      Serial.println("Halted in Loop");
+      Serial.println(F("Halted in Loop"));
       delay(5000);
     }   
 

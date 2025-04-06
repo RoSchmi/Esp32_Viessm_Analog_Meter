@@ -35,7 +35,7 @@ class AiOnTheEdgeClient
    //HTTPClient * _aiOnTheEdgeHttpPtr;
    //RestApiAccount _restApiAccount;
    //RestApiAccount * _restApiAccountPtr;
-   char _url[40] {0};
+   char _url[40] {0}; 
    char * _aiOnTheEdgeCaCert;
 
    char initName[FEATURENAMELENGTH] {0};
