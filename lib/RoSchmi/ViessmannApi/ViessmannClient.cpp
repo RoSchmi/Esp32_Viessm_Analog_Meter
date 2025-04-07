@@ -71,7 +71,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                                            // Is needed to load the long features JSON string
 
     //Serial.println(F("Set httpClient to true"));
-    printf("Free heapsize: %d Minimum: %d\n", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
+    Serial.printf("Free heapsize: %d Minimum: %d\n", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
 
     _viessmannHttpPtr ->begin(Url);
     
@@ -81,11 +81,14 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                 
     if (httpResponseCode > 0) 
     { 
+        #if SERIAL_PRINT == 1
+            Serial.println(F("Viessmann Received ResponseCode > 0"));
+        #endif
+
         if (httpResponseCode == HTTP_CODE_OK)
-        {
-            
+        {     
             #if SERIAL_PRINT == 1
-              Serial.println(F("Viessmann Received ResponseCode > 0"));
+              Serial.println(F("Viessmann Received ResponseCode OK"));
             #endif
              
             JsonDocument doc;
@@ -96,12 +99,12 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             ;
             deserializeJson(doc, _viessmannHttpPtr ->getStream(),DeserializationOption::Filter(filter));
             
-            _viessmannHttpPtr ->useHTTP10(false);
-            _viessmannHttpPtr->end();
-
             #if SERIAL_PRINT == 1
             Serial.println(F("JsonDoc is deserialized"));
             #endif
+
+            //_viessmannHttpPtr ->useHTTP10(false);
+            //_viessmannHttpPtr->end();
             
             int nameLen = apiSelectionPtr ->nameLenght;
             int stampLen = apiSelectionPtr -> stampLength;
@@ -255,37 +258,51 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
         }
         else
         {
-            // If request doesn't return with ok, we printout the begin of the response string
-            WiFiClient *stream = _viessmannHttpPtr ->getStreamPtr();        
+            // If request doesn't return with ok, we give back 
+            // the begin of the response string in responseBuffer        
+            Serial.printf("Viessmann Received ResponseCode %d\n",httpResponseCode);
+            WiFiClient *stream = _viessmannHttpPtr ->getStreamPtr();                  
             uint32_t bytesRead = 0;
-            uint32_t chunkSize = 1000;       
-            uint16_t maxRounds = 10;
-            uint16_t rounds = 0;
+            uint32_t totalBytesRead = 0;
+            uint32_t chunkSize = 1000;                  
             char chunkBuffer[chunkSize +1] = {0};
-
-            while(rounds < maxRounds)
+            
+            while (stream->connected() || stream->available()) 
             {
-            bytesRead += stream ->readBytes(chunkBuffer, chunkSize);
-            chunkBuffer[chunkSize] = '\0'; 
-            //Serial.println(chunkBuffer);
-            if ((strlen((char*)responseBuffer) + strlen(chunkBuffer)) < reponseBufferLength)
-            {
-                strcat((char *)responseBuffer, chunkBuffer);
-                responseBuffer += chunkSize;
-                //Serial.printf("\r\n%d\r\n", bytesRead);
-            }
-            }
-            _viessmannHttpPtr ->useHTTP10(false);
-            _viessmannHttpPtr->end();
+                if (stream->available()) 
+                {
+                  // Read data in chunks
+                  size_t bytesRead = stream->readBytes(chunkBuffer, chunkSize);
+                  
+                  // Write data to buffer
+                  for (size_t i = 0; i < bytesRead; i++) 
+                  {
+                    if (totalBytesRead < reponseBufferLength) 
+                    {
+                      responseBuffer[totalBytesRead++] = chunkBuffer[i];
+                    } 
+                    else 
+                    {
+                      Serial.println("responseBuffer is full!");
+                      break;
+                    }
+                  }
+                  #if SERIAL_PRINT == 1                                 
+                  Serial.write(chunkBuffer, bytesRead);
+                  Serial.println();
+                  #endif
+                }
+              }
+              responseBuffer[reponseBufferLength -1] = '\0';                        
         }                      
     } 
     else 
-    {
-        _viessmannHttpPtr ->useHTTP10(false);
-        _viessmannHttpPtr->end();
+    {    
         Serial.printf("Vi-Features: Error performing the request, HTTP-Code: %d\n", httpResponseCode);
     }
     
+    _viessmannHttpPtr ->useHTTP10(false);
+    _viessmannHttpPtr->end();
     //Serial.println(F("Returning"));
     return httpResponseCode;
 }

@@ -167,7 +167,8 @@ SET_LOOP_TASK_STACK_SIZE ( 16*1024 ); // 16KB
 // passed to TableClient (is used there as the place for some buffers to preserve stack )
 
 //const uint16_t bufferStoreLength = 4000;
-const uint16_t bufferStoreLength = 20000;
+//const uint16_t bufferStoreLength = 20000;
+const uint16_t bufferStoreLength = 10000; // Test 06.04.2025)
 
 uint8_t bufferStore[bufferStoreLength] {0};
 uint8_t * bufferStorePtr = &bufferStore[0];
@@ -340,7 +341,10 @@ uint32_t tryUploadCounter = 0;
 uint32_t failedUploadCounter = 0;
 uint32_t timeNtpUpdateCounter = 0;
 
-uint32_t loadFeaturesCount = 0;
+uint32_t loadViFeaturesCount = 0;
+uint32_t loadViFeaturesResp400Count = 0;
+uint32_t loadViFeaturesRespOtherCount = 0;
+
 uint32_t loadGasMeterJsonCount = 0;
 uint32_t loadRefreshTokenCount = 0;
 
@@ -2055,7 +2059,7 @@ void loop()
         if (dataContainer.hasToBeSent())   // have to send analog values read by Device (e.g. noise)?
         {
           //printf("\n###### AiOnTheEdge dataContainer has to be sent\n");
-          Serial.println(F("\n###### AiOnTheEdge dataContainer has to be sent to Cloud\n"));        
+          Serial.println(F("\n###### AiOnTheEdge dataContainer has to be sent to Azure\n"));        
           // Retrieve edited sample values from container
           SampleValueSet sampleValueSet = dataContainer.getCheckedSampleValues(dateTimeUTCNow, true);
           
@@ -2603,13 +2607,13 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
     {
       viessmannApiSelection.lastReadTime = dateTimeUTCNow;
       Serial.println(F("Failed to read Features from Viessmann Cloud")); 
-      Serial.println((char*)bufferStorePtr);
+      //Serial.println((char*)bufferStorePtr);
     }
   }
   
   if (analogSensorMgr_Api_01.HasToBeRead(pSensorIndex, dateTimeUTCNow))
   {
-    //printf("\nAnalogSensorMgr_Api_01: Value is used %d\n", pSensorIndex); 
+    //Serial.printf("\nAnalogSensorMgr_Api_01: Value is used %d\n", pSensorIndex); 
       
     for (int i = 0; i < VI_FEATURES_COUNT; i++)
     {       
@@ -2631,12 +2635,21 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
       .unClippedValue = (float)MAGIC_NUMBER_INVALID};
 
   char consumption[12] = {0};
+
+  if (pSensorIndex == 1)
+  {
+    //Serial.println("In ReadAnalogSensorStruct_01 pSensorIndex == 1");
+  }
     
-if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
-{
-  
-  
-  switch (pSensorIndex)
+//if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
+//{
+
+  if (pSensorIndex == 1)
+  {
+    //Serial.println("Nach has to be Read pSensorIndex == 1 noch vorhanden");
+  }
+
+  switch(pSensorIndex)
   {
       case 0:
       { 
@@ -2676,11 +2689,11 @@ if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
         // Calculate Day-Consumption from BaseValue and UnClippedValue 
         float copyBaseValue = dataContainer.SampleValues[0].BaseValue;
         float copyUnClippedValue = dataContainer.SampleValues[0].UnClippedValue;
-        printf("\n Case 1: BaseValue: %.1f UnclippedValue: %.1f\n", copyBaseValue, copyUnClippedValue);
+        Serial.printf("\n Case 1: BaseValue: %.1f UnclippedValue: %.1f\n", copyBaseValue, copyUnClippedValue);
         //returnValueStruct.displayValue = (copyUnClippedValue - copyBaseValue) * 10;
         returnValueStruct.displayValue = (copyUnClippedValue - copyBaseValue);  
         returnValueStruct.unClippedValue = copyUnClippedValue;                      
-        printf("\nDay-Consumption: %.1f\n", returnValueStruct.displayValue);                      
+        Serial.printf("\nDay-Consumption: %.1f\n", returnValueStruct.displayValue);                      
       }
       break;
       case 2:
@@ -2761,7 +2774,7 @@ if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
       }                   
       break;
     }
-  }
+  //}
 
     return returnValueStruct;
 }
@@ -3159,15 +3172,20 @@ t_httpCode readViessmannFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAcc
 
   memset(bufferStorePtr, '\0', bufferStoreLength);
   ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, &wifi_client, bufferStorePtr);
-  Serial.printf("\r\n(%u) ",loadFeaturesCount);
+  Serial.printf("\r\n(%u) ",loadViFeaturesCount);
   Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
                                         localTime.month() , localTime.day(),
                                         localTime.hour() , localTime.minute());
   t_httpCode responseCode = viessmannClient.GetFeatures(bufferStorePtr, bufferStoreLength, data_0_id, Gateways_0_Serial, Gateways_0_Devices_0_Id, apiSelectionPtr);
-  loadFeaturesCount++;
-  Serial.printf("(%u) Viessmann Features: httpResponseCode is: %d\r\n", loadFeaturesCount, responseCode);
+  
+  Serial.printf("(%u) Viessmann Features: httpResponseCode is: %d\r\n", loadViFeaturesCount, responseCode);
   if (responseCode == t_http_codes::HTTP_CODE_OK)
   {
+    loadViFeaturesCount++;
+    // After each successful request error counters are reset
+    loadViFeaturesResp400Count = 0;
+    loadViFeaturesRespOtherCount = 0;
+
     // Populate features array and replace the name read from Api
     // with the name used in this Application
     features[0] = apiSelectionPtr ->_3_temperature_main;
@@ -3212,6 +3230,27 @@ t_httpCode readViessmannFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAcc
   }
   else
   {
+    
+    if (responseCode == 400)
+    {
+      loadViFeaturesResp400Count++;
+    }
+    else
+    {
+      loadViFeaturesRespOtherCount++;
+    }
+    Serial.printf("Bad httpResponses, Code 400: %d, Others: %d\n", loadViFeaturesCount, loadViFeaturesRespOtherCount);
+  
+    if (loadViFeaturesResp400Count > 5 || loadViFeaturesRespOtherCount > 5)
+    {
+      Serial.printf("Rebooting, failed Vi-Requests. 400: %d, others: %d\n", loadViFeaturesResp400Count, loadViFeaturesRespOtherCount);
+      ESP.restart();
+      while(true)
+      {
+        delay(500); //Wait for ever
+      }
+    }
+
     bufferStorePtr[bufferStoreLength - 1] = '\0';
     Serial.println((char *)bufferStorePtr);
   }

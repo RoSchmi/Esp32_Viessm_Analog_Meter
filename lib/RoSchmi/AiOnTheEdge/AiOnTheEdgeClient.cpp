@@ -73,8 +73,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
 
     _aiOnTheEdgeHttpPtr -> setReuse(false);
     _aiOnTheEdgeHttpPtr ->useHTTP10(false);   // Must be reset to false for Azure requests
-    
-               
+                
     t_httpCode httpResponseCode = _aiOnTheEdgeHttpPtr ->GET();
               
     if (httpResponseCode > 0) 
@@ -86,8 +85,10 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
               Serial.println(F("Received ResponseCode > 0"));
             #endif
             */
-           String payload = _aiOnTheEdgeHttpPtr ->getString();          
+           String payload = _aiOnTheEdgeHttpPtr ->getString();
+           #if SERIAL_PRINT == 1         
            printf("%s\n",payload.c_str());
+           #endif
           
            int charsToCopy = payload.length() < reponseBufferLength ? payload.length() : reponseBufferLength;
            for (int i = 0; i < charsToCopy; i++)

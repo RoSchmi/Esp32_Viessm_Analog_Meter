@@ -22,7 +22,7 @@ void AnalogSensorMgr::SetReadInterval(uint32_t pInterval)
 
 void AnalogSensorMgr::SetReadInterval(int sensorIndex, uint32_t pInterval)
 {
-    readValues[sensorIndex].ReadInterval = pInterval;
+    readValues[sensorIndex].ReadInterval = TimeSpan(pInterval);
 }
 
 bool AnalogSensorMgr::HasToBeRead(int pSensorIndex, DateTime now, bool pReset)
@@ -35,7 +35,7 @@ bool AnalogSensorMgr::HasToBeRead(int pSensorIndex, DateTime now, bool pReset)
     if (readValues[pSensorIndex].IsActive && now.operator>(readValues[pSensorIndex].LastReadTime.operator+(readValues[pSensorIndex].ReadInterval)))
     {  
         #if SERIAL_PRINT == 1
-        printf("Transf value of AI (VI)-Sensor to DataCont. Interval: %d Id: %d after %d secs\n",readValues[pSensorIndex].ReadInterval.totalseconds(),
+        Serial.printf("Transf value of AI (VI)-Sensor to DataCont. Interval: %d Id: %d after %d secs\n",readValues[pSensorIndex].ReadInterval.totalseconds(),
            pSensorIndex, now.secondstime() - readValues[pSensorIndex].LastReadTime.secondstime()); 
         #endif
         
