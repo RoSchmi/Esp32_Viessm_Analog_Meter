@@ -109,7 +109,7 @@ void DataContainerWio::SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime,
    
 
     if (pValueStruct.displayValue > (MagicNumberInvalid + 0.11) || pValueStruct.displayValue < (MagicNumberInvalid - 0.11))
-      { 
+    { 
         //printf("\nValid value added to DataContainer. Index = %d\n", pIndex);     
         if (!pIsConsumption)
         {

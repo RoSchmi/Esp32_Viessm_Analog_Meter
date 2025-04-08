@@ -2724,16 +2724,17 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
           {
             if (timeSinceLastSendSeconds > 1.0)
             {             
-              rate = (copyUnClippedValue - copyLastSendUnClippedValue) * 50.0f / ((float)timeSinceLastSendSeconds / 60.0f); // * 100 gives reasonable size         
+              rate = (copyUnClippedValue - copyLastSendUnClippedValue) * 50.0f / ((float)timeSinceLastSendSeconds / 60.0f); // * 50 gives reasonable size         
             }
           }
 
-          printf("LastSendValue: %.1f Actual: %.1f Diff: %.1f Seconds: %d\n", copyLastSendUnClippedValue, 
+          Serial.printf("LastSendValue: %.1f Actual: %.1f Diff: %.1f Seconds: %d\n", copyLastSendUnClippedValue, 
             copyUnClippedValue, copyUnClippedValue - copyLastSendUnClippedValue, timeSinceLastSendSeconds);  
           
           printf("\n Flow is: %.1f per minute. Read after: %d seconds\n\n", rate, timeSinceLastSendSeconds);
           
-          returnValueStruct.displayValue = rate;
+          // Neglect (set to MAGIC_NUMBER_INVALID when timeSinceLastSendSeconds < 5 sec)
+          returnValueStruct.displayValue = timeSinceLastSendSeconds > 5 ? rate : (float)MAGIC_NUMBER_INVALID;
           returnValueStruct.unClippedValue = copyUnClippedValue;
         //}
         //else
