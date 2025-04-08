@@ -424,7 +424,7 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int p
 void print_reset_reason(RESET_REASON reason);
 void scan_WIFI();
 String floToStr(float value);
-float ReadAnalogSensor_01(int pSensorIndex);
+//float ReadAnalogSensor_01(int pSensorIndex);
 ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex);
 void createSampleTime(DateTime dateTimeUTCNow, int timeZoneOffsetUTC, char * sampleTime);
 az_http_status_code  createTable(CloudStorageAccount * myCloudStorageAccountPtr, X509Certificate pCaCert, const char * tableName);
@@ -2790,7 +2790,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
     return returnValueStruct;
 }
   
-
+/*
 float ReadAnalogSensor_01(int pSensorIndex)
 {
 #ifndef USE_SIMULATED_SENSORVALUES
@@ -2847,10 +2847,10 @@ float ReadAnalogSensor_01(int pSensorIndex)
                       //theRead = atof((char *)featureValue.value);
 
                       // This is an alternative way to get a Viessmann Api Sensor valu                      
-                      /*
-                      SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
-                      theRead = featureValueSet.SampleValues[1].Value;
-                      */
+                      
+                      //SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
+                      //theRead = featureValueSet.SampleValues[1].Value;
+                      
                      
                       #if SERIAL_PRINT == 1
                         //Serial.printf("\r\nApi-Sensor: %.1f\r\n", theRead);
@@ -2858,12 +2858,12 @@ float ReadAnalogSensor_01(int pSensorIndex)
 
                       // Take theRead (nearly) 0.0 as invalid
                       // (if no sensor is connected the function returns 0)
-                      /*                       
-                      if (theRead > - 0.00001 && theRead < 0.00001)
-                      {
-                        theRead = MAGIC_NUMBER_INVALID;
-                      }
-                      */                                                                                                    
+                                             
+                      //if (theRead > - 0.00001 && theRead < 0.00001)
+                      //{
+                      //  theRead = MAGIC_NUMBER_INVALID;
+                      //}
+                                                                                                                          
                     }
                     break;                   
                   case 1:
@@ -2927,25 +2927,7 @@ float ReadAnalogSensor_01(int pSensorIndex)
                       theRead = (actValue - lastSentValue) * 100 / ((dateTimeUTCNow.secondstime() - dataContainer._lastSentTime.secondstime())/ 60);
 
 
-                      /*
-                      if (dataContainer.hasToBeSent())
-                      {
-                        SampleValueSet sampleValueSet = dataContainer.getSampleValues(dateTimeUTCNow, false);
-                               
-                        uint32_t lastSendTime = sampleValueSet.LastSendTime.secondstime();
-                        Serial.printf("LastSendtime: %d\n", lastSendTime);
-                        uint32_t actTime = dateTimeUTCNow.secondstime();
-                        Serial.printf("ActTime: %d\n", actTime);
-                        float actConsumptionValue = sampleValueSet.SampleValues[1].Value;
-                        Serial.printf("Act. Consumption: %.2f\n", actConsumptionValue);
-                        float lastSendConsumptionValue = sampleValueSet.SampleValues[1].LastLastSendValue;
-                        Serial.printf("Last Consumption: %.2f\n", lastSendConsumptionValue);
-                        float rate = (actConsumptionValue - lastSendConsumptionValue) /  ((dateTimeUTCNow.secondstime() - lastSendTime) / 60);
-                        theRead = rate;
-                        //theRead = theRead + 1.0;
-                        //return theRead;
-                      }
-                      */
+                      
                       
                     }
                     break;
@@ -3048,6 +3030,8 @@ float ReadAnalogSensor_01(int pSensorIndex)
             }
   #endif
 }
+*/
+
 void createSampleTime(DateTime dateTimeUTCNow, int timeZoneOffsetUTC, char * sampleTime)
 {
   int hoursOffset = timeZoneOffsetUTC / 60;
