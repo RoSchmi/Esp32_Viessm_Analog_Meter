@@ -61,8 +61,11 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     String Url = _viessmannAccountPtr -> UriEndPointIot + addendum;
     String authorizationHeader = "Bearer " + _viessmannAccountPtr ->AccessToken;
     Serial.println(F("Loading Viessmann features from Cloud"));
-    Serial.printf("VI-WiFiClient Address: %d\n", &_viessmannWifiClient);
-    Serial.println("");
+    
+    #if SERIAL_PRINT == 1
+    Serial.printf("VI-WiFiClient Address: %d\n\n", &_viessmannWifiClient);
+    #endif
+    
     //Serial.println(Url);
 
     //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient/

@@ -64,11 +64,15 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
 {
     char InstallationId[20] = {0};  
       
-    //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient/
-                                      // Is needed to load the long features JSON string
+    //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient
+    // useHTTP10(false)
+    // is needed to load the long features JSON string
+    
+    #if SERIAL_PRINT == 1                    
     printf("AI-WiFiClient Address: %d\n", &_aiOnTheEdgeWifiClient);
     printf("Free heapsize: %d Minimum: %d\n\n", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
-
+    #endif
+    
     _aiOnTheEdgeHttpPtr ->begin(_aiOnTheEdgeWifiClient, url);
 
     _aiOnTheEdgeHttpPtr -> setReuse(false);

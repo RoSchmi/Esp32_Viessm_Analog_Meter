@@ -2569,7 +2569,7 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
    
   if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
   {
-    //printf("\nAnalogSensorMgr: Value is used %d\n", pSensorIndex);
+    Serial.printf("\nAnalogSensorMgr: Value is used %d\n", pSensorIndex);
     for (int i = 0; i < AI_FEATURES_COUNT; i++)
     {       
       if (strcmp((const char *)ai_features[i].name, pSensorName) == 0)
@@ -2656,7 +2656,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         // Total Consumption, DisplayValue and UnClippedValue 
         AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;                      
         // select Feature by its name (pSensorName value, raw, pre, error, rate, timestamp)
-        AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(1, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
+        AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
         strncpy(consumption, selectedFeature.value, sizeof(consumption));                                          
         float tempNumber = (atof((const char *)consumption));
         tempNumber = (tempNumber > 999.89 && tempNumber < 999.91) ? 999.9 : tempNumber;
@@ -2674,7 +2674,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         }
         returnValueStruct.displayValue = atof((const char *)consumption);
         
-        selectedFeature = ReadAiOnTheEdgeApi_Analog_01(1, (const char *)"pre", aiOnTheEdgeApiSelectionPtr);
+        selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, (const char *)"pre", aiOnTheEdgeApiSelectionPtr);
         strncpy(consumption, selectedFeature.value, sizeof(consumption));                                          
         tempNumber = (atof((const char *)consumption));
         sprintf(consumption, "%.1f", tempNumber * 10);
@@ -2701,10 +2701,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         uint32_t sendIntervalSeconds = dataContainer.SendInterval.totalseconds();
         uint32_t LastSendTimeSeconds = dataContainer._lastSentTime.secondstime();       
         
-        Serial.printf("LastSendTime: %d Actual: %.d Diff: %d Interval: %d Remain %d\n", LastSendTimeSeconds,  
-          dateTimeUTCNow.secondstime(), dateTimeUTCNow.secondstime() - LastSendTimeSeconds, sendIntervalSeconds, 
-        LastSendTimeSeconds + sendIntervalSeconds - dateTimeUTCNow.secondstime());
-
+        
 
         //if (dataContainer._hasToBeSent)
         
@@ -2719,6 +2716,16 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
           
           uint32_t timeSinceLastSendSeconds = dateTimeUTCNow.secondstime() - LastSendTimeSeconds;
           
+          // RoSchmi
+          // Only print the last messages
+          if (timeSinceLastSendSeconds > dataContainer.SendInterval.totalseconds() -5)
+          {
+        Serial.printf("LastSendTime: %d Actual: %.d Diff: %d Interval: %d Remain %d\n", LastSendTimeSeconds,  
+          dateTimeUTCNow.secondstime(), dateTimeUTCNow.secondstime() - LastSendTimeSeconds, sendIntervalSeconds, 
+        LastSendTimeSeconds + sendIntervalSeconds - dateTimeUTCNow.secondstime());
+        }
+
+
           float rate = 0.0;
           if (copyUnClippedValue != copyLastSendUnClippedValue)
           {
@@ -2727,12 +2734,15 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
               rate = (copyUnClippedValue - copyLastSendUnClippedValue) * 50.0f / ((float)timeSinceLastSendSeconds / 60.0f); // * 50 gives reasonable size         
             }
           }
-
-          Serial.printf("LastSendValue: %.1f Actual: %.1f Diff: %.1f Seconds: %d\n", copyLastSendUnClippedValue, 
+          // RoSchmi
+          // Only print the last messages
+          if (timeSinceLastSendSeconds > dataContainer.SendInterval.totalseconds() -5)
+          {
+            Serial.printf("LastSendValue: %.1f Actual: %.1f Diff: %.1f Seconds: %d\n", copyLastSendUnClippedValue, 
             copyUnClippedValue, copyUnClippedValue - copyLastSendUnClippedValue, timeSinceLastSendSeconds);  
           
-          printf("\n Flow is: %.1f per minute. Read after: %d seconds\n\n", rate, timeSinceLastSendSeconds);
-          
+            Serial.printf("\n Flow is: %.1f per minute. Read after: %d seconds\n\n", rate, timeSinceLastSendSeconds);
+          }
           // Neglect (set to MAGIC_NUMBER_INVALID when timeSinceLastSendSeconds < 5 sec)
           returnValueStruct.displayValue = timeSinceLastSendSeconds > 5 ? rate : (float)MAGIC_NUMBER_INVALID;
           returnValueStruct.unClippedValue = copyUnClippedValue;
@@ -2801,7 +2811,7 @@ float ReadAnalogSensor_01(int pSensorIndex)
                       AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;
                       
                       // select Feature by its name (pSensorName value, raw, pre, error, rate, timestamp)
-                      AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(1, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
+                      AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
                       strncpy(consumption, selectedFeature.value, sizeof(consumption));                        
                         
                       // Formatiere zu: Eine Nachkommastelle und nicht mehr als 4 Vorkommastellen
@@ -2862,7 +2872,7 @@ float ReadAnalogSensor_01(int pSensorIndex)
                       AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;
                       
                       // select Feature by its name (pSensorName: value, raw, pre, error, rate or timestamp)
-                      AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(1, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
+                      AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
                       
                       strncpy(consumption, selectedFeature.value, sizeof(consumption));                        
                       
@@ -2892,7 +2902,7 @@ float ReadAnalogSensor_01(int pSensorIndex)
                       AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;
                       
                       // select Feature by its name (pSensorName value, raw, pre, error, rate, timestamp)
-                      AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(1, (const char *)"value", aiOnTheEdgeApiSelectionPtr);                      
+                      AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, (const char *)"value", aiOnTheEdgeApiSelectionPtr);                      
                       strncpy(consumption, selectedFeature.value, sizeof(consumption));                        
                                          
                       // Formatiere zu: Eine Nachkommastelle und nicht mehr als 3 Vorkommastellen
