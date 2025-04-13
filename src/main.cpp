@@ -216,6 +216,8 @@ ViessmannApiSelection::Feature features[VI_FEATURES_COUNT];
 #define AI_FEATURES_COUNT 6
 AiOnTheEdgeApiSelection::Feature ai_features[AI_FEATURES_COUNT];
 
+bool isFirstGasmeterRead = true;
+
 #define IS_ACTIVE true
 OnOffSensor OnOffBurnerStatus(IS_ACTIVE, false, true, true, DateTime());
 OnOffSensor OnOffCirculationPumpStatus(IS_ACTIVE, false, true, true, DateTime());
@@ -421,9 +423,12 @@ t_httpCode readViessmannFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAcc
 t_httpCode readEquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id);
 t_httpCode readUserFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr);
 t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int pMaxUrlLength, AiOnTheEdgeApiSelection * apiSelectionPtr);
+t_httpCode setAiPreValueViaRestApi(X509Certificate pCaCert, const char * pUrl, int pUrlMaxlength, const char * pPreValue);
+
 void print_reset_reason(RESET_REASON reason);
 void scan_WIFI();
 String floToStr(float value);
+bool isValidFloat(const char* str);
 //float ReadAnalogSensor_01(int pSensorIndex);
 ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex);
 void createSampleTime(DateTime dateTimeUTCNow, int timeZoneOffsetUTC, char * sampleTime);
@@ -2569,17 +2574,19 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
    
   if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
   {
-    Serial.printf("\nAnalogSensorMgr: Value is used %d\n", pSensorIndex);
     for (int i = 0; i < AI_FEATURES_COUNT; i++)
     {       
       if (strcmp((const char *)ai_features[i].name, pSensorName) == 0)
       {       
         returnFeature = ai_features[i];
+
+        Serial.printf("\nAnalogSensorMgr: Value is used. Index: %d Value: %s\n", pSensorIndex, returnFeature.value);
+        
         analogSensorMgr.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, atof(returnFeature.value), 0.0f, MAGIC_NUMBER_INVALID);                         
         break;
       }     
     } 
-  }
+  } 
   return returnFeature;
 }
 
@@ -2636,19 +2643,6 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
 
   char consumption[12] = {0};
 
-  if (pSensorIndex == 1)
-  {
-    //Serial.println("In ReadAnalogSensorStruct_01 pSensorIndex == 1");
-  }
-    
-//if (analogSensorMgr.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
-//{
-
-  if (pSensorIndex == 1)
-  {
-    //Serial.println("Nach has to be Read pSensorIndex == 1 noch vorhanden");
-  }
-
   switch(pSensorIndex)
   {
       case 0:
@@ -2656,110 +2650,196 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         // Total Consumption, DisplayValue and UnClippedValue 
         AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;                      
         // select Feature by its name (pSensorName value, raw, pre, error, rate, timestamp)
-        AiOnTheEdgeApiSelection::Feature selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
+        
+        AiOnTheEdgeApiSelection::Feature selectedFeature;
+        if (isFirstGasmeterRead)
+        {
+          // Read raw instead of value
+          selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, (const char *)"raw", aiOnTheEdgeApiSelectionPtr);
+          isFirstGasmeterRead = false;
+          char gasMeterUrl[] = "http://gasmeter";
+           
+          char preValue[12] = {0};
+          
+          strncpy(preValue, (const char *)selectedFeature.value, sizeof(preValue));
+          preValue[sizeof(preValue) -1] = '\0';
+          /*
+          if (isValidFloat(preValue))
+          {
+            float tempNumber = atof(preValue); 
+            snprintf(preValue, sizeof(preValue), "%.2f", tempNumber); 
+          }
+          else
+          {
+            Serial.printf("Raw Value cannot be parsed: %s\n", preValue);
+          }
+          */
+          setAiPreValueViaRestApi(myX509Certificate, gasMeterUrl, strlen(gasMeterUrl), (const char *)preValue);
+        }
+        else
+        {
+          selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
+
+        }
+
         strncpy(consumption, selectedFeature.value, sizeof(consumption));                                          
-        float tempNumber = (atof((const char *)consumption));
-        tempNumber = (tempNumber > 999.89 && tempNumber < 999.91) ? 999.9 : tempNumber;
+     
+        float tempNumber = (float)MAGIC_NUMBER_INVALID;
+        
+        Serial.printf("writing consumption: %s Length: %d\n", (const char *)consumption, strlen(consumption));
+         
+        if (isValidFloat(consumption))
+        {
+          tempNumber = atof(consumption);
+        }
+        else
+        {
+          Serial.printf("String could not be parsed to float: %s\n", consumption);
+          // RoSchmi
+          while (true)
+          {
+            delay(500);
+          }
+        }
+        
+        /*
+        try
+        {
+          std::string str = consumption;
+          //RoSchmi
+          //str[3] = 'a';
+          double doubleNumber = std::stod(str);
+          
+          tempNumber = (float)doubleNumber;
+        }
+        catch(const std::exception& e)
+        {
+          Serial.println(e.what());
+          Serial.printf("Exception: String could not be parsed: %s\n", consumption);
+          // RoSchmi for the first halt program if it ever happens, must be deleted later
+          while (true)
+          {
+            delay(500);
+          }
+        }
+        */
+        // convert values near MAGIC_NUMBER_INVALID to MAGIC_NUMBER_INVALID  
+        tempNumber = (tempNumber > (float)MAGIC_NUMBER_INVALID - 0.01 && tempNumber < (float)MAGIC_NUMBER_INVALID + 0.01) ? (float)MAGIC_NUMBER_INVALID: tempNumber;
+        
         if (tempNumber > (MAGIC_NUMBER_INVALID - 0.01) && tempNumber < (MAGIC_NUMBER_INVALID + 0.01))
         {
-          //return both with MAGIC_NUMBER_INVALID
+          // if tempNumber = MAGIC_NUMBER_INVALID return both with MAGIC_NUMBER_INVALID
+          // was preset at the beginning
+          // this means, that the values are ignored in further process
           return returnValueStruct;
         }
+        // multply by 10, so that there remains 1 significant digit after decimal point
         sprintf(consumption, "%.1f", tempNumber * 10);
         returnValueStruct.unClippedValue = atof((const char *)consumption);
         
+        // remove leading digits, so that there are maximal 2 digits 
+        // before decimal point for .displayValue
         while (strlen(consumption) > 4)
         {
             memmove(consumption, consumption + 1, strlen(consumption));
         }
         returnValueStruct.displayValue = atof((const char *)consumption);
         
+        /*
         selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, (const char *)"pre", aiOnTheEdgeApiSelectionPtr);
         strncpy(consumption, selectedFeature.value, sizeof(consumption));                                          
         tempNumber = (atof((const char *)consumption));
         sprintf(consumption, "%.1f", tempNumber * 10);
-        
+        */
+
+
         //#if SERIAL_PRINT == 1
-            printf("\nDisplayValue: %.1f  UnClippedValue: %.1f\n", returnValueStruct.displayValue, returnValueStruct.unClippedValue);
+            Serial.printf("\nDisplayValue: %.1f  UnClippedValue: %.1f\n", returnValueStruct.displayValue, returnValueStruct.unClippedValue);
         //#endif                                                                                                                        
       }
       break;                   
-      case 1:
+      case 1:    // Consumption this day
       {
         // Calculate Day-Consumption from BaseValue and UnClippedValue 
         float copyBaseValue = dataContainer.SampleValues[0].BaseValue;
         float copyUnClippedValue = dataContainer.SampleValues[0].UnClippedValue;
-        Serial.printf("\n Case 1: BaseValue: %.1f UnclippedValue: %.1f\n", copyBaseValue, copyUnClippedValue);
-        //returnValueStruct.displayValue = (copyUnClippedValue - copyBaseValue) * 10;
-        returnValueStruct.displayValue = (copyUnClippedValue - copyBaseValue);  
-        returnValueStruct.unClippedValue = copyUnClippedValue;                      
-        Serial.printf("\nDay-Consumption: %.1f\n", returnValueStruct.displayValue);                      
+        uint32_t LastSendTimeSeconds = dataContainer._lastSentTime.secondstime();
+        uint32_t timeSinceLastSendSeconds = dateTimeUTCNow.secondstime() - LastSendTimeSeconds;
+          
+
+        //Serial.printf("\n Case 1: BaseValue: %.1f UnclippedValue: %.1f\n", copyBaseValue, copyUnClippedValue);
+        
+        if (copyBaseValue <= copyUnClippedValue)
+        {
+          returnValueStruct.displayValue = (copyUnClippedValue - copyBaseValue); 
+        }
+        else
+        {
+          // Overflow of copyUnClippedValue has occured
+          int preDecimalPoint = (int)copyBaseValue;
+          int oneMoreDigit =  pow(10,(int)log10(preDecimalPoint) + 1);
+          returnValueStruct.displayValue = copyUnClippedValue + (oneMoreDigit - copyBaseValue);
+        }    
+        returnValueStruct.unClippedValue = copyUnClippedValue;
+        if (timeSinceLastSendSeconds > dataContainer.SendInterval.totalseconds() -3)
+        {                      
+          Serial.printf("\nCase 1: Day-Consumption: %.1f\n", returnValueStruct.displayValue);
+        }                      
       }
       break;
-      case 2:
+      case 2:   // rate
       {
         uint32_t sendIntervalSeconds = dataContainer.SendInterval.totalseconds();
         uint32_t LastSendTimeSeconds = dataContainer._lastSentTime.secondstime();       
         
-        
-
-        //if (dataContainer._hasToBeSent)
-        
-        
-        //if (dateTimeUTCNow.secondstime() > (LastSendTimeSeconds + sendIntervalSeconds))
-        //{
-          // Calculate rate when sendinterval has elapsed
-          
-          float copyLastSendUnClippedValue = dataContainer.SampleValues[0].LastSendUnClippedValue;
-          float copyUnClippedValue = dataContainer.SampleValues[0].UnClippedValue;                 
-          //TimeSpan timeSinceLastSend = dateTimeUTCNow.operator-(dataContainer._lastSentTime);
-          
-          uint32_t timeSinceLastSendSeconds = dateTimeUTCNow.secondstime() - LastSendTimeSeconds;
-          
-          // RoSchmi
+        float copyLastSendUnClippedValue = dataContainer.SampleValues[0].LastSendUnClippedValue;
+        float copyUnClippedValue = dataContainer.SampleValues[0].UnClippedValue;                    
+        uint32_t timeSinceLastSendSeconds = dateTimeUTCNow.secondstime() - LastSendTimeSeconds;
+             
           // Only print the last messages
-          if (timeSinceLastSendSeconds > dataContainer.SendInterval.totalseconds() -5)
+          if (timeSinceLastSendSeconds > dataContainer.SendInterval.totalseconds() -3)
           {
-        Serial.printf("LastSendTime: %d Actual: %.d Diff: %d Interval: %d Remain %d\n", LastSendTimeSeconds,  
-          dateTimeUTCNow.secondstime(), dateTimeUTCNow.secondstime() - LastSendTimeSeconds, sendIntervalSeconds, 
-        LastSendTimeSeconds + sendIntervalSeconds - dateTimeUTCNow.secondstime());
+            Serial.printf("LastSendTime: %d Actual: %.d Diff: %d Interval: %d Remain %d\n", LastSendTimeSeconds,  
+            dateTimeUTCNow.secondstime(), dateTimeUTCNow.secondstime() - LastSendTimeSeconds, sendIntervalSeconds, 
+            LastSendTimeSeconds + sendIntervalSeconds - dateTimeUTCNow.secondstime());
+          }
+   
+        float valueDiffOverflowCorrected = 0;
+
+        if (copyLastSendUnClippedValue <= copyUnClippedValue)
+        {
+          valueDiffOverflowCorrected = (copyUnClippedValue - copyLastSendUnClippedValue);
+          //returnValueStruct.displayValue = (copyUnClippedValue - copyLastSendUnClippedValue); 
         }
+        else
+        {
+          // Overflow of copyUnClippedValue has occured
+          int preDecimalPoint = (int)copyLastSendUnClippedValue;
+          int oneMoreDigit =  pow(10,(int)log10(preDecimalPoint) + 1);  
+          valueDiffOverflowCorrected = copyUnClippedValue + (oneMoreDigit - copyLastSendUnClippedValue);
+        }  
+        
+        float rate = 0.0;
 
-
-          float rate = 0.0;
-          if (copyUnClippedValue != copyLastSendUnClippedValue)
-          {
+        if (valueDiffOverflowCorrected != 0.0f)
+        {
             if (timeSinceLastSendSeconds > 1.0)
             {             
-              rate = (copyUnClippedValue - copyLastSendUnClippedValue) * 50.0f / ((float)timeSinceLastSendSeconds / 60.0f); // * 50 gives reasonable size         
+              rate = valueDiffOverflowCorrected * 50.0f / ((float)timeSinceLastSendSeconds / 60.0f); // *50 gives reasonable size in         
             }
-          }
+        }
           // RoSchmi
           // Only print the last messages
-          if (timeSinceLastSendSeconds > dataContainer.SendInterval.totalseconds() -5)
+          if (timeSinceLastSendSeconds > dataContainer.SendInterval.totalseconds() -3)
           {
             Serial.printf("LastSendValue: %.1f Actual: %.1f Diff: %.1f Seconds: %d\n", copyLastSendUnClippedValue, 
             copyUnClippedValue, copyUnClippedValue - copyLastSendUnClippedValue, timeSinceLastSendSeconds);  
           
-            Serial.printf("\n Flow is: %.1f per minute. Read after: %d seconds\n\n", rate, timeSinceLastSendSeconds);
+            Serial.printf("\nCase 2: Flow is: %.1f per minute. Read after: %d seconds\n\n", rate, timeSinceLastSendSeconds);
           }
           // Neglect (set to MAGIC_NUMBER_INVALID when timeSinceLastSendSeconds < 5 sec)
           returnValueStruct.displayValue = timeSinceLastSendSeconds > 5 ? rate : (float)MAGIC_NUMBER_INVALID;
-          returnValueStruct.unClippedValue = copyUnClippedValue;
-        //}
-        //else
-        //{
-        //    printf("\nNot sent\n");
-        //}
-
-                     
-         // if (rate > -0.1 && rate < 0.1)
-         // {
-         //   returnValueStruct.displayValue = (float)MAGIC_NUMBER_INVALID;        
-         // }
-          
-          
-        //}                     
+          returnValueStruct.unClippedValue = copyUnClippedValue;                              
       }
       break;
       case 3:
@@ -3074,6 +3154,19 @@ void makePartitionKey(const char * partitionKeyprefix, bool augmentWithYear, Dat
   }    
 }
 
+bool isValidFloat(const char* str) 
+{
+  char* endptr;
+  // Versuch, den String in float umzuwandeln
+  float value = strtof(str, &endptr);
+
+  // Wenn endptr zum Ende des Strings zeigt, war die Konvertierung erfolgreich
+  if (*endptr == '\0' && endptr != str) {
+      return true; // Ist eine gültige float-Zahl
+  }
+  return false; // Ungültig
+}
+
 bool extractSubString (const char * source, const String startTag, const String endTag, char * result, const int maxResultLength)
 {
   char * start = strstr(source, startTag.c_str());
@@ -3101,6 +3194,32 @@ bool extractSubString (const char * source, const String startTag, const String 
   }
 }
 
+t_httpCode setAiPreValueViaRestApi(X509Certificate pCaCert, const char * pUrl, int pUrlMaxlength, const char * pPreValue)
+{
+  #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1
+  static WiFiClientSecure wifi_client;
+  #else  
+  static WiFiClient wifi_client;
+  #endif
+
+  #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1 
+  wifi_client.setCACert(myX509Certificate);
+  #endif
+  
+  //aiOnTheEdgeClient(pCaCert, httpPtr, wifi_client);
+  
+  AiOnTheEdgeClient aiOnTheEdgeClient(pCaCert, httpPtr, wifi_client);
+
+t_httpCode responseCode = aiOnTheEdgeClient.SetPreValue((const char *)pUrl, pPreValue,  bufferStorePtr, bufferStoreLength);
+
+if (responseCode == t_http_codes::HTTP_CODE_OK)
+  {
+    Serial.printf("\nPrevalue successfully set: %s\n", pPreValue);
+  }
+
+return responseCode;
+}  
+
 t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int pUrlMaxlength, AiOnTheEdgeApiSelection * apiSelectionPtr)
 {  
   #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1
@@ -3109,7 +3228,6 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int p
     static WiFiClient wifi_client;
   #endif
   
-
   #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1 
     wifi_client.setCACert(myX509Certificate);
   #endif
@@ -3145,6 +3263,18 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int p
     ai_features[3] = apiSelectionPtr ->_3_error;
     ai_features[4] = apiSelectionPtr ->_4_rate;
     ai_features[5] = apiSelectionPtr ->_5_timestamp;      
+  }
+  else
+  {
+    
+    ai_features[0] = apiSelectionPtr ->_0_value;
+    ai_features[1] = apiSelectionPtr ->_1_raw;
+    ai_features[2] = apiSelectionPtr ->_2_pre;
+    ai_features[3] = apiSelectionPtr ->_3_error;
+    ai_features[4] = apiSelectionPtr ->_4_rate;
+    ai_features[5] = apiSelectionPtr ->_5_timestamp;
+    
+    Serial.printf("Request from REST-Api failed: Code: %d Substitution: %s \n", responseCode, ai_features[0].value);
   }
   return responseCode;
 } 
@@ -3234,9 +3364,9 @@ t_httpCode readViessmannFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAcc
     {
       loadViFeaturesRespOtherCount++;
     }
-    Serial.printf("Bad httpResponses, Code 400: %d, Others: %d\n", loadViFeaturesCount, loadViFeaturesRespOtherCount);
+    Serial.printf("Bad httpResponses, Code 400: %d, Others: %d\n", loadViFeaturesResp400Count, loadViFeaturesRespOtherCount);
   
-    if (loadViFeaturesResp400Count > 5 || loadViFeaturesRespOtherCount > 5)
+    if (loadViFeaturesResp400Count > 50 || loadViFeaturesRespOtherCount > 50)
     {
       Serial.printf("Rebooting, failed Vi-Requests. 400: %d, others: %d\n", loadViFeaturesResp400Count, loadViFeaturesRespOtherCount);
       ESP.restart();

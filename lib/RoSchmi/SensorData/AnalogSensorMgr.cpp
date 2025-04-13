@@ -3,7 +3,8 @@
  
  //AnalogSensor readValues[SENSOR_COUNT];
  float MagicNumberInvalid = 999.9;
-
+ //float MagicNumberInvalid = (float)MAGIC_NUMBER_INVALID;
+ 
  AnalogSensorMgr::AnalogSensorMgr(float pMagicNumberInvalid)
  {
      MagicNumberInvalid = pMagicNumberInvalid;
@@ -29,6 +30,7 @@ bool AnalogSensorMgr::HasToBeRead(int pSensorIndex, DateTime now, bool pReset)
 {
     // For each sensor (index 0 - 3) of this group a dedicated Timespan
     // is set. Only when this timespan has expired, the value is tranferred to DataContainerWio
+    // Only in rate conditions it is needed to set these timespans to longer values
 
     int32_t remainSeconds = (readValues[pSensorIndex].LastReadTime.secondstime()- now.secondstime()) + readValues[pSensorIndex].ReadInterval.totalseconds();
     

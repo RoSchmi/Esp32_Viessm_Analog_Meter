@@ -23,21 +23,12 @@ AiOnTheEdgeClient::AiOnTheEdgeClient(const char * caCert, HTTPClient * httpClien
     //_restApiAccount = restApiAccount;  
     _aiOnTheEdgeCaCert = (char *)caCert;
     _aiOnTheEdgeHttpPtr = httpClient;
-    // RoSchmi
+    
     _aiOnTheEdgeHttpPtr -> setReuse(false);
+    _aiOnTheEdgeHttpPtr ->useHTTP10(false);
   
     _aiOnTheEdgeWifiClient = pWifiClient;
-    
-   // _aiOnTheEdgeHttpPtr = httpClient;
-
-
-    //_aiOnTheEdgeHttpPtr->begin("http://gasmeter/json");
-
-    
-    // RoSchmi
-    //_aiOnTheEdgeHttpPtr -> setReuse(false);
-
-    
+     
 
     // Some buffers located in memory segment .dram0.bss are injected to achieve lesser stack consumption
     
@@ -59,10 +50,40 @@ AiOnTheEdgeClient::AiOnTheEdgeClient(const char * caCert, HTTPClient * httpClien
        memset(&(responseString[0]), 0, RESPONSE_BUFFER_LENGTH);
     */
 }
+t_httpCode AiOnTheEdgeClient::SetPreValue(const char * url, const char * preValue, uint8_t* responseBuffer, const uint16_t reponseBufferLength)
+{  
+    char extUrl[70] = {0}; 
+    snprintf(extUrl, sizeof(extUrl), "%s/setPreValue?value=%s&numbers=main", (const char *)url, (const char *)preValue);
+    
+    //Serial.printf("Will use Request: %s\n", extUrl);
+    _aiOnTheEdgeHttpPtr ->begin(_aiOnTheEdgeWifiClient, extUrl);
+       
+    t_httpCode httpResponseCode = _aiOnTheEdgeHttpPtr ->GET();
+    if (httpResponseCode > 0) 
+    { 
+        if (httpResponseCode == HTTP_CODE_OK)
+        {
+            //Serial.println("Request returned ok\n");
+        }
+        else
+        {
+            //Serial.printf("Request returned:%d\n", httpResponseCode);
+        }
+    }
+    else
+    {
+        //Serial.printf("Request returned:%d\n", httpResponseCode);
+    } 
+    _aiOnTheEdgeHttpPtr->end();
+    
+    return httpResponseCode;
+}
+
+
 
 t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuffer, const uint16_t reponseBufferLength, AiOnTheEdgeApiSelection * apiSelectionPtr)
 {
-    char InstallationId[20] = {0};  
+      
       
     //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient
     // useHTTP10(false)
@@ -74,10 +95,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
     #endif
     
     _aiOnTheEdgeHttpPtr ->begin(_aiOnTheEdgeWifiClient, url);
-
-    _aiOnTheEdgeHttpPtr -> setReuse(false);
-    _aiOnTheEdgeHttpPtr ->useHTTP10(false);   // Must be reset to false for Azure requests
-                
+         
     t_httpCode httpResponseCode = _aiOnTheEdgeHttpPtr ->GET();
               
     if (httpResponseCode > 0) 
@@ -90,9 +108,9 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
             #endif
             */
            String payload = _aiOnTheEdgeHttpPtr ->getString();
-           #if SERIAL_PRINT == 1         
-           printf("%s\n",payload.c_str());
-           #endif
+           //#if SERIAL_PRINT == 1         
+           Serial.printf("%s\n",payload.c_str());
+           //#endif
           
            int charsToCopy = payload.length() < reponseBufferLength ? payload.length() : reponseBufferLength;
            for (int i = 0; i < charsToCopy; i++)
@@ -149,8 +167,8 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
                 strncpy(apiSelectionPtr-> _5_timestamp.timestamp, doc["main"]["timestamp"], stampLen - 1);
                 strncpy(apiSelectionPtr-> _5_timestamp.value, doc["main"]["timestamp"], nameLen - 1);
                 
-                printf("Value: %s\n", apiSelectionPtr -> _0_value.value);
-                printf("Timestamp: %s\n", apiSelectionPtr -> _0_value.timestamp);                
+                //printf("Value: %s\n", apiSelectionPtr -> _0_value.value);
+                //printf("Timestamp: %s\n", apiSelectionPtr -> _0_value.timestamp);                
             }
             else
             {
@@ -182,7 +200,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
     {
         Serial.printf("Ai-Features: Error performing the request, HTTP-Code: %d\n", httpResponseCode);
     }
-    _aiOnTheEdgeHttpPtr ->useHTTP10(false);
+    
     _aiOnTheEdgeHttpPtr->end();
     
     return httpResponseCode;

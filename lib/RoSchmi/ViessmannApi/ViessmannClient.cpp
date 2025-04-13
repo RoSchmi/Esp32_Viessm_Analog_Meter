@@ -74,8 +74,9 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                                            // Is needed to load the long features JSON string
 
     //Serial.println(F("Set httpClient to true"));
+    #if SERIAL_PRINT == 1
     Serial.printf("Free heapsize: %d Minimum: %d\n", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
-
+    #endif
     _viessmannHttpPtr ->begin(Url);
     
     _viessmannHttpPtr ->addHeader("Authorization", authorizationHeader); 

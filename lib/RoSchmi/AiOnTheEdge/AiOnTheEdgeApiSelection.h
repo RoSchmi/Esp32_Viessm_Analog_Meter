@@ -14,7 +14,8 @@ class AiOnTheEdgeApiSelection
     int valueLength = FEATUREVALUELENGTH;
     int nameLenght = FEATURENAMELENGTH;
     int stampLength = FEATURESTAMPLENGTH;
-
+    
+    
     DateTime  lastReadTime;
     TimeSpan readInterval;
     

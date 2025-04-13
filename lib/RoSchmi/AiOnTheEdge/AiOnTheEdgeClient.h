@@ -23,6 +23,8 @@ class AiOnTheEdgeClient
     
     //int GetFeatures(uint8_t * reponsePtr, const uint16_t reponseBufferLength);
     int GetFeatures(const char * url, uint8_t * reponsePtr, const uint16_t reponseBufferLength, AiOnTheEdgeApiSelection * apiSelectionPtr);
+    int SetPreValue(const char * url, const char * preValue, uint8_t * reponsePtr, const uint16_t reponseBufferLength);
+    
     /*
     int GetUser(uint8_t * reponsePtr, const uint16_t reponseBufferLength);
     int GetEquipment(uint8_t* responseBuffer, const uint16_t reponseBufferLength);
