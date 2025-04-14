@@ -27,7 +27,15 @@ ViessmannClient::ViessmannClient(ViessmannApiAccount * account, const char * caC
     // RoSchmi
     _viessmannHttpPtr -> setReuse(false);
 
-    _viessmannWifiClient = wifiClient;
+
+
+    //_viessmannWifiClient->setTimeout(17000);
+
+    //_viessmannWifiClient->setHandshakeTimeout(50);
+    
+    //uint64_t connectTimout = _viessmannWifiClient->getTimeout();
+    
+    //Serial.printf("\nTimeout is: %u\n");
 
     // Some buffers located in memory segment .dram0.bss are injected to achieve lesser stack consumption
     

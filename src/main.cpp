@@ -280,7 +280,7 @@ X509Certificate myX509Certificate = digicert_globalroot_g2_ca;
 // Init the Secure client object
 
 #if TRANSPORT_PROTOCOL == 1
-    static WiFiClientSecure wifi_client;
+    static WiFiClientSecure wifi_client;     
   #else
     static WiFiClient wifi_client;
   #endif
@@ -2603,18 +2603,24 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   // Only read features from the cloud when readInterval has expired
   
   if ((viessmannApiSelection.lastReadTime.operator+(viessmannApiSelection.readInterval)).operator<(dateTimeUTCNow))
-  { 
-    httpCode = readViessmannFeaturesFromApi(myX509Certificate, myViessmannApiAccountPtr, Data_0_Id, Gateways_0_Serial, Gateways_0_Devices_0_Id, viessmannApiSelectionPtr);
-    if (httpCode == t_http_codes::HTTP_CODE_OK)
+  {
+    uint32_t tryCounter = 1;
+    httpCode = -1;
+    while (tryCounter > 0 && httpCode != t_http_codes::HTTP_CODE_OK)
     {
-      viessmannApiSelection.lastReadTime = dateTimeUTCNow;
-      Serial.println(F("Succeeded to read Features from Viessmann Cloud\n"));
-    }
-    else
-    {
-      viessmannApiSelection.lastReadTime = dateTimeUTCNow;
-      Serial.println(F("Failed to read Features from Viessmann Cloud")); 
-      //Serial.println((char*)bufferStorePtr);
+      httpCode = readViessmannFeaturesFromApi(myX509Certificate, myViessmannApiAccountPtr, Data_0_Id, Gateways_0_Serial, Gateways_0_Devices_0_Id, viessmannApiSelectionPtr);
+      if (httpCode == t_http_codes::HTTP_CODE_OK)
+      {
+        viessmannApiSelection.lastReadTime = dateTimeUTCNow;
+        Serial.println(F("Succeeded to read Features from Viessmann Cloud\n"));
+      }
+      else
+      {
+        viessmannApiSelection.lastReadTime = dateTimeUTCNow;
+        Serial.println(F("Failed to read Features from Viessmann Cloud")); 
+        //Serial.println((char*)bufferStorePtr);
+      }
+      tryCounter--;
     }
   }
   
@@ -2663,66 +2669,41 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
           
           strncpy(preValue, (const char *)selectedFeature.value, sizeof(preValue));
           preValue[sizeof(preValue) -1] = '\0';
-          /*
-          if (isValidFloat(preValue))
-          {
-            float tempNumber = atof(preValue); 
-            snprintf(preValue, sizeof(preValue), "%.2f", tempNumber); 
-          }
-          else
-          {
-            Serial.printf("Raw Value cannot be parsed: %s\n", preValue);
-          }
-          */
+          // Write the last raw Value to preValue
           setAiPreValueViaRestApi(myX509Certificate, gasMeterUrl, strlen(gasMeterUrl), (const char *)preValue);
         }
         else
         {
           selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
-
+          
         }
 
         strncpy(consumption, selectedFeature.value, sizeof(consumption));                                          
      
         float tempNumber = (float)MAGIC_NUMBER_INVALID;
         
-        Serial.printf("writing consumption: %s Length: %d\n", (const char *)consumption, strlen(consumption));
+        //Serial.printf("writing consumption: %s Length: %d\n", (const char *)consumption, strlen(consumption));
          
-        if (isValidFloat(consumption))
+        if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
         {
           tempNumber = atof(consumption);
+          #if SERIAL_PRINT == 1
+            Serial.printf("\nString could be parsed to float: %s StringLength: %d\n", consumption, strlen(consumption));
+          #endif
         }
         else
         {
-          Serial.printf("String could not be parsed to float: %s\n", consumption);
+          Serial.printf("Value invalid (0.00) or could not be parsed to float: %s\n", consumption);
+          tempNumber = (float)MAGIC_NUMBER_INVALID;
           // RoSchmi
+          /*
           while (true)
           {
             delay(500);
           }
+          */
         }
         
-        /*
-        try
-        {
-          std::string str = consumption;
-          //RoSchmi
-          //str[3] = 'a';
-          double doubleNumber = std::stod(str);
-          
-          tempNumber = (float)doubleNumber;
-        }
-        catch(const std::exception& e)
-        {
-          Serial.println(e.what());
-          Serial.printf("Exception: String could not be parsed: %s\n", consumption);
-          // RoSchmi for the first halt program if it ever happens, must be deleted later
-          while (true)
-          {
-            delay(500);
-          }
-        }
-        */
         // convert values near MAGIC_NUMBER_INVALID to MAGIC_NUMBER_INVALID  
         tempNumber = (tempNumber > (float)MAGIC_NUMBER_INVALID - 0.01 && tempNumber < (float)MAGIC_NUMBER_INVALID + 0.01) ? (float)MAGIC_NUMBER_INVALID: tempNumber;
         
@@ -2745,14 +2726,6 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         }
         returnValueStruct.displayValue = atof((const char *)consumption);
         
-        /*
-        selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, (const char *)"pre", aiOnTheEdgeApiSelectionPtr);
-        strncpy(consumption, selectedFeature.value, sizeof(consumption));                                          
-        tempNumber = (atof((const char *)consumption));
-        sprintf(consumption, "%.1f", tempNumber * 10);
-        */
-
-
         //#if SERIAL_PRINT == 1
             Serial.printf("\nDisplayValue: %.1f  UnClippedValue: %.1f\n", returnValueStruct.displayValue, returnValueStruct.unClippedValue);
         //#endif                                                                                                                        
@@ -2765,10 +2738,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         float copyUnClippedValue = dataContainer.SampleValues[0].UnClippedValue;
         uint32_t LastSendTimeSeconds = dataContainer._lastSentTime.secondstime();
         uint32_t timeSinceLastSendSeconds = dateTimeUTCNow.secondstime() - LastSendTimeSeconds;
-          
-
-        //Serial.printf("\n Case 1: BaseValue: %.1f UnclippedValue: %.1f\n", copyBaseValue, copyUnClippedValue);
-        
+                 
         if (copyBaseValue <= copyUnClippedValue)
         {
           returnValueStruct.displayValue = (copyUnClippedValue - copyBaseValue); 
@@ -2779,7 +2749,8 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
           int preDecimalPoint = (int)copyBaseValue;
           int oneMoreDigit =  pow(10,(int)log10(preDecimalPoint) + 1);
           returnValueStruct.displayValue = copyUnClippedValue + (oneMoreDigit - copyBaseValue);
-        }    
+        }
+              
         returnValueStruct.unClippedValue = copyUnClippedValue;
         if (timeSinceLastSendSeconds > dataContainer.SendInterval.totalseconds() -3)
         {                      
