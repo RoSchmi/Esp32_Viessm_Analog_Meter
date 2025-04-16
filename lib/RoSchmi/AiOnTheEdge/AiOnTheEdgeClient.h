@@ -16,7 +16,7 @@ class AiOnTheEdgeClient
 {
     public:
     //AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient *httpClient, WiFiClient * wifiClient, uint8_t * bufferStore);
-    AiOnTheEdgeClient(const char * caCert, HTTPClient * httpClient, WiFiClient pWifiClient);
+    AiOnTheEdgeClient(const char * caCert, HTTPClient * httpClient, WiFiClient * pWifiClient);
     
     
     ~AiOnTheEdgeClient();

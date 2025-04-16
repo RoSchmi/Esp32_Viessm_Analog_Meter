@@ -1,7 +1,7 @@
 #include "AiOnTheEdgeClient.h"
 #include "config.h"
 
-WiFiClient _aiOnTheEdgeWifiClient;
+WiFiClient * _aiOnTheEdgeWifiClient;
 
 //RestApiAccount  * _restApiAccountPtr;
 HTTPClient * _aiOnTheEdgeHttpPtr;
@@ -18,7 +18,7 @@ char initValue[FEATUREVALUELENGTH] {0};
 
 // Constructor
 
-AiOnTheEdgeClient::AiOnTheEdgeClient(const char * caCert, HTTPClient * httpClient, WiFiClient pWifiClient)
+AiOnTheEdgeClient::AiOnTheEdgeClient(const char * caCert, HTTPClient * httpClient, WiFiClient * pWifiClient)
 {   
     //_restApiAccount = restApiAccount;  
     _aiOnTheEdgeCaCert = (char *)caCert;
@@ -56,7 +56,7 @@ t_httpCode AiOnTheEdgeClient::SetPreValue(const char * url, const char * preValu
     snprintf(extUrl, sizeof(extUrl), "%s/setPreValue?value=%s&numbers=main", (const char *)url, (const char *)preValue);
     
     //Serial.printf("Will use Request: %s\n", extUrl);
-    _aiOnTheEdgeHttpPtr ->begin(_aiOnTheEdgeWifiClient, extUrl);
+    _aiOnTheEdgeHttpPtr ->begin(*_aiOnTheEdgeWifiClient, extUrl);
        
     t_httpCode httpResponseCode = _aiOnTheEdgeHttpPtr ->GET();
     if (httpResponseCode > 0) 
@@ -94,7 +94,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
     printf("Free heapsize: %d Minimum: %d\n\n", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
     #endif
     
-    _aiOnTheEdgeHttpPtr ->begin(_aiOnTheEdgeWifiClient, url);
+    _aiOnTheEdgeHttpPtr ->begin(*_aiOnTheEdgeWifiClient, url);
          
     t_httpCode httpResponseCode = _aiOnTheEdgeHttpPtr ->GET();
               

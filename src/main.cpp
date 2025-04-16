@@ -177,6 +177,7 @@ char viessmannClientId[50] = VIESSMANN_CLIENT_ID;
 char viessmannAccessToken[1120] = VIESSMANN_ACCESS_TOKEN;
 char viessmannRefreshToken[60] = VIESSMANN_REFRESH_TOKEN;
 char viessmannUserBaseUri[60] = VIESSMANN_USER_BASE_URI;
+// RoSchmi delete next 2 lines ?
 char viessmannIotBaseUri[60] = VIESSMANN_IOT_BASE_URI;
 char viessmannTokenBaseUri[60] = VIESSMANN_TOKEN_BASE_URI;
 
@@ -3169,19 +3170,11 @@ bool extractSubString (const char * source, const String startTag, const String 
 
 t_httpCode setAiPreValueViaRestApi(X509Certificate pCaCert, const char * pUrl, int pUrlMaxlength, const char * pPreValue)
 {
-  #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1
-  static WiFiClientSecure wifi_client;
-  #else  
-  static WiFiClient wifi_client;
-  #endif
-
-  #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1 
-  wifi_client.setCACert(myX509Certificate);
-  #endif
+  
   
   //aiOnTheEdgeClient(pCaCert, httpPtr, wifi_client);
   
-  AiOnTheEdgeClient aiOnTheEdgeClient(pCaCert, httpPtr, wifi_client);
+  AiOnTheEdgeClient aiOnTheEdgeClient(pCaCert, httpPtr, &plain_wifi_client);
 
 t_httpCode responseCode = aiOnTheEdgeClient.SetPreValue((const char *)pUrl, pPreValue,  bufferStorePtr, bufferStoreLength);
 
@@ -3195,7 +3188,7 @@ return responseCode;
 
 t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int pUrlMaxlength, AiOnTheEdgeApiSelection * apiSelectionPtr)
 {
-  
+  /*
   #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1
     static WiFiClientSecure wifi_client;
   #else  
@@ -3205,7 +3198,7 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int p
   #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1 
     wifi_client.setCACert(myX509Certificate);
   #endif
-  
+  */
 
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
@@ -3213,7 +3206,7 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int p
   
   memset(bufferStorePtr, '\0', bufferStoreLength);
   
-  AiOnTheEdgeClient aiOnTheEdgeClient(pCaCert, httpPtr, wifi_client);
+  AiOnTheEdgeClient aiOnTheEdgeClient(pCaCert, httpPtr, &plain_wifi_client);
   
   Serial.printf("\r\n(%u) ", loadGasMeterJsonCount);
   Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
