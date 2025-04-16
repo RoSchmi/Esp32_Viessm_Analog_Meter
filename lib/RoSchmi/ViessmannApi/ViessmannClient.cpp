@@ -1,11 +1,12 @@
 #include "ViessmannClient.h"
 #include "config.h"
 
+//WiFiClientSecure * _viessmannWifiClient;
+
 WiFiClient * _viessmannWifiClient;
 
-//WiFiClient  _viessmannWifiClient;
-
 ViessmannApiAccount  * _viessmannAccountPtr;
+
 HTTPClient * _viessmannHttpPtr;
 
 const char * _viessmannCaCert;
@@ -23,7 +24,10 @@ ViessmannClient::ViessmannClient(ViessmannApiAccount * account, const char * caC
 {  
     _viessmannAccountPtr = account;
     _viessmannCaCert = caCert;
+    _viessmannWifiClient = wifiClient;
+    //_viessmannWifiClient ->setInsecure();
     _viessmannHttpPtr = httpClient;
+    
     // RoSchmi
     _viessmannHttpPtr -> setReuse(false);
 
@@ -85,7 +89,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     #if SERIAL_PRINT == 1
     Serial.printf("Free heapsize: %d Minimum: %d\n", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
     #endif
-    _viessmannHttpPtr ->begin(Url);
+    _viessmannHttpPtr ->begin(*_viessmannWifiClient, Url);
     
     _viessmannHttpPtr ->addHeader("Authorization", authorizationHeader); 
                
@@ -342,7 +346,7 @@ t_httpCode ViessmannClient::RefreshAccessToken(uint8_t* responseBuffer, const ui
             Serial.println(body);
         #endif
 
-        _viessmannHttpPtr ->begin(Url);
+        _viessmannHttpPtr ->begin(*_viessmannWifiClient, Url);
 
         _viessmannHttpPtr ->addHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
     
@@ -386,7 +390,7 @@ t_httpCode ViessmannClient::GetEquipment(uint8_t* responseBuffer, const uint16_t
     String Url = _viessmannAccountPtr -> UriEndPointIot + "equipment/installations" + "?includeGateways=true"; 
     String authorizationHeader = "Bearer " + _viessmannAccountPtr ->AccessToken;
     Serial.println(Url);
-    _viessmannHttpPtr ->begin(Url);
+    _viessmannHttpPtr ->begin(*_viessmannWifiClient, Url);
     _viessmannHttpPtr ->addHeader("Authorization", authorizationHeader);
     t_httpCode httpResponseCode = _viessmannHttpPtr ->GET();   
     if (httpResponseCode > 0) 
@@ -413,7 +417,7 @@ t_httpCode ViessmannClient::GetUser(uint8_t* responseBuffer, const uint16_t repo
     String authorizationHeader = "Bearer " + _viessmannAccountPtr ->AccessToken;
     Serial.println(Url);
 
-    _viessmannHttpPtr ->begin(Url);
+    _viessmannHttpPtr ->begin(*_viessmannWifiClient,Url);
     _viessmannHttpPtr ->addHeader("Authorization", authorizationHeader);
     t_httpCode httpResponseCode = _viessmannHttpPtr ->GET();   
     if (httpResponseCode > 0) 

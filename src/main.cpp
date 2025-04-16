@@ -183,9 +183,7 @@ char viessmannTokenBaseUri[60] = VIESSMANN_TOKEN_BASE_URI;
 DateTime AccessTokenRefreshTime = DateTime();
 TimeSpan AccessTokenRefreshInterval = TimeSpan(VIESSMANN_TOKEN_REFRESH_INTERVAL_SECONDS);
 
-static bool ViessmannUseHttps_State = VIESSMANN_TRANSPORT_PROTOCOL == 0 ? false : true;
-
-ViessmannApiAccount myViessmannApiAccount(viessmannClientId, viessmannAccessToken, viessmannIotBaseUri, viessmannUserBaseUri, viessmannTokenBaseUri, ViessmannUseHttps_State); 
+ViessmannApiAccount myViessmannApiAccount(viessmannClientId, viessmannAccessToken, viessmannIotBaseUri, viessmannUserBaseUri, viessmannTokenBaseUri, true); 
 ViessmannApiAccount * myViessmannApiAccountPtr = &myViessmannApiAccount;
 
 ViessmannApiSelection viessmannApiSelection(DateTime(), TimeSpan(VIESSMANN_API_READ_INTERVAL_SECONDS));
@@ -281,9 +279,13 @@ X509Certificate myX509Certificate = digicert_globalroot_g2_ca;
 
 #if TRANSPORT_PROTOCOL == 1
     static WiFiClientSecure wifi_client;     
-  #else
+#else
     static WiFiClient wifi_client;
-  #endif
+#endif
+
+static WiFiClientSecure secure_wifi_client;
+static WiFiClient plain_wifi_client;
+
 
   // A UDP instance to let us send and receive packets over UDP
   WiFiUDP ntpUDP;
@@ -3192,7 +3194,8 @@ return responseCode;
 }  
 
 t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int pUrlMaxlength, AiOnTheEdgeApiSelection * apiSelectionPtr)
-{  
+{
+  
   #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1
     static WiFiClientSecure wifi_client;
   #else  
@@ -3202,6 +3205,7 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int p
   #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1 
     wifi_client.setCACert(myX509Certificate);
   #endif
+  
 
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
@@ -3251,23 +3255,15 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int p
 } 
 
 t_httpCode readViessmannFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const uint32_t data_0_id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr)
-{  
-  #if VIESSMANN_TRANSPORT_PROTOCOL == 1
-    static WiFiClientSecure wifi_client;
-  #else
-    static WiFiClient wifi_client;
-  #endif
-
-  #if VIESSMANN_TRANSPORT_PROTOCOL == 1 
-    wifi_client.setCACert(myX509Certificate);
-  #endif
+{
+  secure_wifi_client.setInsecure();
 
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
   #endif
 
   memset(bufferStorePtr, '\0', bufferStoreLength);
-  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, &wifi_client, bufferStorePtr);
+  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, &secure_wifi_client, bufferStorePtr);
   Serial.printf("\r\n(%u) ",loadViFeaturesCount);
   Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
                                         localTime.month() , localTime.day(),
@@ -3355,21 +3351,13 @@ t_httpCode readViessmannFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAcc
 
 t_httpCode readUserFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr)
 {
-  #if VIESSMANN_TRANSPORT_PROTOCOL == 1
-    static WiFiClientSecure wifi_client;
-  #else
-    static WiFiClient wifi_client;
-  #endif
-
-    #if VIESSMANN_TRANSPORT_PROTOCOL == 1
-    wifi_client.setCACert(myX509Certificate);
-  #endif
+  secure_wifi_client.setInsecure();
 
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
   #endif
 
-  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, &wifi_client, bufferStorePtr);
+  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, &secure_wifi_client, bufferStorePtr);
    #if SERIAL_PRINT == 1
         // Serial.println(myViessmannApiAccount.ClientId);
       #endif
@@ -3388,21 +3376,12 @@ return responseCode;
 
 t_httpCode readEquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id)
 {
-  #if VIESSMANN_TRANSPORT_PROTOCOL == 1
-    static WiFiClientSecure wifi_client;
-  #else
-    static WiFiClient wifi_client;
-  #endif
-
-    #if VIESSMANN_TRANSPORT_PROTOCOL == 1
-    
-    wifi_client.setCACert(myX509Certificate);
-  #endif
+  secure_wifi_client.setInsecure();
 
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
   #endif
-  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, &wifi_client, bufferStorePtr);
+  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, &secure_wifi_client, bufferStorePtr);
    #if SERIAL_PRINT == 1
         //Serial.println(myViessmannApiAccount.ClientId);
       #endif
@@ -3448,15 +3427,7 @@ t_httpCode readEquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * m
 
 t_httpCode refreshAccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const char * refreshToken)
 {
-  #if VIESSMANN_TRANSPORT_PROTOCOL == 1
-    static WiFiClientSecure wifi_client;
-  #else
-    static WiFiClient wifi_client;
-  #endif
-
-    #if VIESSMANN_TRANSPORT_PROTOCOL == 1
-    wifi_client.setCACert(myX509Certificate);
-  #endif
+  secure_wifi_client.setInsecure();
 
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
@@ -3465,8 +3436,9 @@ t_httpCode refreshAccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccoun
   const char * accessTokenLabel = "access_token";
   const char * refreshTokenLabel = "refresh_token";
   const char * tokenTypeLabel = "token_type";
-
-  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, &wifi_client, bufferStorePtr); 
+  
+  
+  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, &secure_wifi_client, bufferStorePtr); 
       memset(bufferStorePtr,'\0', bufferStoreLength);
       t_httpCode responseCode = viessmannClient.RefreshAccessToken(bufferStorePtr, bufferStoreLength, refreshToken);
       

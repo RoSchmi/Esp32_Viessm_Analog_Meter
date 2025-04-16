@@ -126,7 +126,7 @@
        
                                           // For Viessmann Api both must be https !!
 #define TRANSPORT_PROTOCOL 1              // 0 = http, 1 = https
-#define VIESSMANN_TRANSPORT_PROTOCOL 1    // 0 = http, 1 = https
+
 #define AIONTHEEDGE_TRANSPORT_PROTOCOL 0  // 0 = http, 1 = https
                                  
 
