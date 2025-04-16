@@ -184,7 +184,7 @@ char viessmannTokenBaseUri[60] = VIESSMANN_TOKEN_BASE_URI;
 DateTime AccessTokenRefreshTime = DateTime();
 TimeSpan AccessTokenRefreshInterval = TimeSpan(VIESSMANN_TOKEN_REFRESH_INTERVAL_SECONDS);
 
-ViessmannApiAccount myViessmannApiAccount(viessmannClientId, viessmannAccessToken, viessmannIotBaseUri, viessmannUserBaseUri, viessmannTokenBaseUri, true); 
+ViessmannApiAccount myViessmannApiAccount(viessmannClientId, viessmannAccessToken, viessmannIotBaseUri, viessmannUserBaseUri, viessmannTokenBaseUri, (bool)true); 
 ViessmannApiAccount * myViessmannApiAccountPtr = &myViessmannApiAccount;
 
 ViessmannApiSelection viessmannApiSelection(DateTime(), TimeSpan(VIESSMANN_API_READ_INTERVAL_SECONDS));
@@ -429,6 +429,7 @@ t_httpCode read_Vi_EquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount
 
 t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int pMaxUrlLength, AiOnTheEdgeApiSelection * apiSelectionPtr);
 t_httpCode setAiPreValueViaRestApi(X509Certificate pCaCert, const char * pUrl, int pUrlMaxlength, const char * pPreValue);
+
 t_httpCode read_Vi_UserFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr);
 void print_reset_reason(RESET_REASON reason);
 void scan_WIFI();
@@ -1803,6 +1804,7 @@ void setup()
       delay(500);
     }
   }
+
   
   httpCode = read_Vi_EquipmentFromApi(myX509Certificate, myViessmannApiAccountPtr, &Data_0_Id, equipBufLen, Data_0_Description, Data_0_Address_Street, Data_0_Address_HouseNumber, Gateways_0_Serial, Gateways_0_Devices_0_Id);
   if (httpCode == t_http_codes::HTTP_CODE_OK)
@@ -3332,7 +3334,7 @@ t_httpCode readViessmannFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAcc
   return responseCode;
 }
 
-t_httpCode readUserFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr)
+t_httpCode read_Vi_UserFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr)
 {
   secure_wifi_client.setInsecure();
 
@@ -3408,7 +3410,7 @@ t_httpCode read_Vi_EquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount
 }
 
 
-t_httpCode refreshAccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const char * refreshToken)
+t_httpCode refresh_Vi_AccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const char * refreshToken)
 {
   secure_wifi_client.setInsecure();
 
