@@ -421,13 +421,15 @@ void GPIOPinISR()
 void trimLeadingSpaces(char * workstr);
 ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char * pSensorName);
 AiOnTheEdgeApiSelection:: Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, const char * pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr);
-t_httpCode refreshAccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const char * refreshToken); 
+
+t_httpCode refresh_Vi_AccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const char * refreshToken); 
+
 t_httpCode readViessmannFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t Data_0_Id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr);
-t_httpCode readEquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id);
-t_httpCode readUserFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr);
+t_httpCode read_Vi_EquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id);
+
 t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int pMaxUrlLength, AiOnTheEdgeApiSelection * apiSelectionPtr);
 t_httpCode setAiPreValueViaRestApi(X509Certificate pCaCert, const char * pUrl, int pUrlMaxlength, const char * pPreValue);
-
+t_httpCode read_Vi_UserFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr);
 void print_reset_reason(RESET_REASON reason);
 void scan_WIFI();
 String floToStr(float value);
@@ -1768,7 +1770,7 @@ void setup()
   
   analogSensorMgr_Api_01.SetReadInterval(API_ANALOG_SENSOR_READ_INTERVAL_SECONDS);
   
-  httpCode = refreshAccessTokenFromApi(myX509Certificate, myViessmannApiAccountPtr, viessmannRefreshToken);
+  httpCode = refresh_Vi_AccessTokenFromApi(myX509Certificate, myViessmannApiAccountPtr, viessmannRefreshToken);
   if (httpCode == t_http_codes::HTTP_CODE_OK)
   {   
     AccessTokenRefreshTime = dateTimeUTCNow;
@@ -1784,7 +1786,7 @@ void setup()
     }
   }
   
-  httpCode = readUserFromApi(myX509Certificate, myViessmannApiAccountPtr);
+  httpCode = read_Vi_UserFromApi(myX509Certificate, myViessmannApiAccountPtr);
   if (httpCode == t_http_codes::HTTP_CODE_OK)
   {
     Serial.println(F("UserId successfully read from Viessmann Cloud"));
@@ -1802,7 +1804,7 @@ void setup()
     }
   }
   
-  httpCode = readEquipmentFromApi(myX509Certificate, myViessmannApiAccountPtr, &Data_0_Id, equipBufLen, Data_0_Description, Data_0_Address_Street, Data_0_Address_HouseNumber, Gateways_0_Serial, Gateways_0_Devices_0_Id);
+  httpCode = read_Vi_EquipmentFromApi(myX509Certificate, myViessmannApiAccountPtr, &Data_0_Id, equipBufLen, Data_0_Description, Data_0_Address_Street, Data_0_Address_HouseNumber, Gateways_0_Serial, Gateways_0_Devices_0_Id);
   if (httpCode == t_http_codes::HTTP_CODE_OK)
   {
     Serial.println(F("Equipment successfully read from Viessmann Cloud"));
@@ -1867,7 +1869,7 @@ void loop()
       // refresh access token if refresh interval has expired 
       if ((AccessTokenRefreshTime.operator+(AccessTokenRefreshInterval)).operator<(dateTimeUTCNow))
       {
-          httpCode = refreshAccessTokenFromApi(myX509Certificate, myViessmannApiAccountPtr, viessmannRefreshToken);
+          httpCode = refresh_Vi_AccessTokenFromApi(myX509Certificate, myViessmannApiAccountPtr, viessmannRefreshToken);
           
           if (httpCode == t_http_codes::HTTP_CODE_OK)
           {           
@@ -3188,18 +3190,6 @@ return responseCode;
 
 t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int pUrlMaxlength, AiOnTheEdgeApiSelection * apiSelectionPtr)
 {
-  /*
-  #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1
-    static WiFiClientSecure wifi_client;
-  #else  
-    static WiFiClient wifi_client;
-  #endif
-  
-  #if AIONTHEEDGE_TRANSPORT_PROTOCOL == 1 
-    wifi_client.setCACert(myX509Certificate);
-  #endif
-  */
-
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
   #endif
@@ -3367,7 +3357,7 @@ t_httpCode readUserFromApi(X509Certificate pCaCert, ViessmannApiAccount * myVies
 return responseCode;
 }
 
-t_httpCode readEquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id)
+t_httpCode read_Vi_EquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id)
 {
   secure_wifi_client.setInsecure();
 
