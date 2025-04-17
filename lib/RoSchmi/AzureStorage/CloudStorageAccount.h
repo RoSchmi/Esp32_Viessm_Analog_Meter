@@ -11,10 +11,10 @@ class CloudStorageAccount
 {
 public:
     CloudStorageAccount();
-    CloudStorageAccount(String accountName, String accountKey, bool useHttps);
+    CloudStorageAccount(const String accountName, const String accountKey, const bool useHttps, const bool useCaCert);
     ~CloudStorageAccount();
 
-    void ChangeAccountParams(String accountName, String accountKey, bool useHttps);
+    void ChangeAccountParams(const String accountName, const String accountKey, const bool useHttps, const bool useCaCert);
     
     String AccountName;
     String AccountKey;
@@ -24,6 +24,9 @@ public:
     //String HostNameBlob;
     //String HostNameQueue;
     String HostNameTable;
+
+    bool UseHttps;
+    bool UseCaCert;
 };
 
 

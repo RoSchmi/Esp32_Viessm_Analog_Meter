@@ -3,7 +3,7 @@
 /**
  * constructor
  */
-CloudStorageAccount::CloudStorageAccount(String accountName, String accountKey, bool useHttps )
+CloudStorageAccount::CloudStorageAccount(const String accountName, const String accountKey, const bool useHttps, const bool useCaCert )
 {
     AccountName = (accountName.length() <= MAX_ACCOUNTNAME_LENGTH) ? accountName : accountName.substring(0, MAX_ACCOUNTNAME_LENGTH);
     AccountKey = accountKey;
@@ -25,7 +25,7 @@ CloudStorageAccount::CloudStorageAccount(String accountName, String accountKey, 
     //HostNameQueue = String(strData);
 }
 
-void CloudStorageAccount::ChangeAccountParams(String accountName, String accountKey, bool useHttps)
+void CloudStorageAccount::ChangeAccountParams(const String accountName, const String accountKey, const bool useHttps, const bool useCaCert)
 {
     AccountName = (accountName.length() <= MAX_ACCOUNTNAME_LENGTH) ? accountName : accountName.substring(0, MAX_ACCOUNTNAME_LENGTH);
     AccountKey = accountKey;

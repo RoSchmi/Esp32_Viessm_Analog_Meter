@@ -12,12 +12,12 @@ class ViessmannApiAccount
 {
 public:
     ViessmannApiAccount();
-    ViessmannApiAccount(String clientId, String accessToken, String apiIot, String apiUser, String apiToken, bool useHttps);
+    ViessmannApiAccount(String clientId, String accessToken, String apiIot, String apiUser, String apiToken, const bool useHttps, const bool useCaCert);
     ~ViessmannApiAccount();
 
-    void ChangeAccountParams(String clientId, String accessToken, String apiIot, String apiUser, String apiToken, bool useHttps);
+    void ChangeAccountParams(String clientId, String accessToken, String apiIot, String apiUser, String apiToken, const bool useHttps, const bool useCaCert);
     
-    void RenewAccessToken(String accessToken);
+    void RenewAccessToken(const String accessToken);
 
     String ClientId;
     String AccessToken;
@@ -28,12 +28,9 @@ public:
     String UriEndPointUser;
     String UriEndPointToken;
 
-    /*
-    String AccountName;
-    String AccountKey;
-    String UriEndPointTable;
-    String HostNameTable;
-    */
+    bool UseHttps;
+    bool UseCaCert;
+  
 };
 
 #endif  // _VIESSMANNAPIACCOUNT_H_

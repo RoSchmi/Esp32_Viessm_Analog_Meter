@@ -184,7 +184,7 @@ char viessmannTokenBaseUri[60] = VIESSMANN_TOKEN_BASE_URI;
 DateTime AccessTokenRefreshTime = DateTime();
 TimeSpan AccessTokenRefreshInterval = TimeSpan(VIESSMANN_TOKEN_REFRESH_INTERVAL_SECONDS);
 
-ViessmannApiAccount myViessmannApiAccount(viessmannClientId, viessmannAccessToken, viessmannIotBaseUri, viessmannUserBaseUri, viessmannTokenBaseUri, (bool)true); 
+ViessmannApiAccount myViessmannApiAccount(viessmannClientId, viessmannAccessToken, viessmannIotBaseUri, viessmannUserBaseUri, viessmannTokenBaseUri, true, false); 
 ViessmannApiAccount * myViessmannApiAccountPtr = &myViessmannApiAccount;
 
 ViessmannApiSelection viessmannApiSelection(DateTime(), TimeSpan(VIESSMANN_API_READ_INTERVAL_SECONDS));
@@ -374,9 +374,9 @@ int32_t sysTimeNtpDelta = 0;
 
   Timezone myTimezone;
 
-// Set transport protocol as defined in config.h
+// Set Azure transport protocol as defined in config.h
 static bool UseHttps_State = AZURE_TRANSPORT_PROTOKOL == 0 ? false : true;
-
+static bool UseCaCert_State = AZURE_TRANSPORT_PROTOKOL == 0 ? false : true;
 
 const char * CONFIG_FILE = "/ConfigSW.json";    // Configuration for Azure and threshold
                                                 // 'CONFIG_FILENAME' is used for Router Credentials
@@ -410,11 +410,11 @@ bool loadApplConfigData();
 bool saveApplConfigData();
 
 // Note: AzureAccountName and azureccountKey will be changed later in setup
-CloudStorageAccount myCloudStorageAccount(azureAccountName, azureAccountKey, UseHttps_State);
+CloudStorageAccount myCloudStorageAccount(azureAccountName, azureAccountKey, UseHttps_State, UseCaCert_State);
 CloudStorageAccount * myCloudStorageAccountPtr = &myCloudStorageAccount;
 
 RestApiAccount gasMeterAccount(GasMeterAccountName, "", GasMeterHostName, false);
-//RestApiAccount * gasMeterAccountPtr = &gasMeterAccount; 
+ 
 
 
 void GPIOPinISR()
@@ -427,15 +427,12 @@ void trimLeadingSpaces(char * workstr);
 ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char * pSensorName);
 AiOnTheEdgeApiSelection:: Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, const char * pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr);
 
-t_httpCode refresh_Vi_AccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const char * refreshToken); 
-
-t_httpCode readViessmannFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t Data_0_Id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr);
-t_httpCode read_Vi_EquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id);
-
+t_httpCode refresh_Vi_AccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, const char * refreshToken);
+t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, uint32_t Data_0_Id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr);
+t_httpCode read_Vi_EquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id);
 t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int pMaxUrlLength, AiOnTheEdgeApiSelection * apiSelectionPtr);
 t_httpCode setAiPreValueViaRestApi(X509Certificate pCaCert, const char * pUrl, int pUrlMaxlength, const char * pPreValue);
-
-t_httpCode read_Vi_UserFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr);
+t_httpCode read_Vi_UserFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr);
 void print_reset_reason(RESET_REASON reason);
 void scan_WIFI();
 String floToStr(float value);
@@ -1579,7 +1576,7 @@ void setup()
 
 
   // Azure Acount must be updated here with eventually changed values from WiFi-Manager
-  myCloudStorageAccount.ChangeAccountParams((char *)azureAccountName, (char *)azureAccountKey, UseHttps_State);
+  myCloudStorageAccount.ChangeAccountParams((char *)azureAccountName, (char *)azureAccountKey, UseHttps_State, UseCaCert_State);
   
   #if WORK_WITH_WATCHDOG == 1
     // Start watchdog with 20 seconds
@@ -1776,7 +1773,7 @@ void setup()
   
   analogSensorMgr_Api_01.SetReadInterval(API_ANALOG_SENSOR_READ_INTERVAL_SECONDS);
   
-  httpCode = refresh_Vi_AccessTokenFromApi(myX509Certificate, myViessmannApiAccountPtr, viessmannRefreshToken);
+  httpCode = refresh_Vi_AccessTokenFromApi((const char*)"dummyCert", myViessmannApiAccountPtr, viessmannRefreshToken);
   if (httpCode == t_http_codes::HTTP_CODE_OK)
   {   
     AccessTokenRefreshTime = dateTimeUTCNow;
@@ -1792,7 +1789,7 @@ void setup()
     }
   }
   
-  httpCode = read_Vi_UserFromApi(myX509Certificate, myViessmannApiAccountPtr);
+  httpCode = read_Vi_UserFromApi((const char*)"dummyCert", myViessmannApiAccountPtr);
   if (httpCode == t_http_codes::HTTP_CODE_OK)
   {
     Serial.println(F("UserId successfully read from Viessmann Cloud"));
@@ -1811,7 +1808,7 @@ void setup()
   }
 
   
-  httpCode = read_Vi_EquipmentFromApi(myX509Certificate, myViessmannApiAccountPtr, &Data_0_Id, equipBufLen, Data_0_Description, Data_0_Address_Street, Data_0_Address_HouseNumber, Gateways_0_Serial, Gateways_0_Devices_0_Id);
+  httpCode = read_Vi_EquipmentFromApi((const char*)"dummyCert", myViessmannApiAccountPtr, &Data_0_Id, equipBufLen, Data_0_Description, Data_0_Address_Street, Data_0_Address_HouseNumber, Gateways_0_Serial, Gateways_0_Devices_0_Id);
   if (httpCode == t_http_codes::HTTP_CODE_OK)
   {
     Serial.println(F("Equipment successfully read from Viessmann Cloud"));
@@ -1876,7 +1873,7 @@ void loop()
       // refresh access token if refresh interval has expired 
       if ((AccessTokenRefreshTime.operator+(AccessTokenRefreshInterval)).operator<(dateTimeUTCNow))
       {
-          httpCode = refresh_Vi_AccessTokenFromApi(myX509Certificate, myViessmannApiAccountPtr, viessmannRefreshToken);
+          httpCode = refresh_Vi_AccessTokenFromApi((const char*)"dummyCert", myViessmannApiAccountPtr, viessmannRefreshToken);
           
           if (httpCode == t_http_codes::HTTP_CODE_OK)
           {           
@@ -2620,7 +2617,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
     httpCode = -1;
     while (tryCounter > 0 && httpCode != t_http_codes::HTTP_CODE_OK)
     {
-      httpCode = readViessmannFeaturesFromApi(myX509Certificate, myViessmannApiAccountPtr, Data_0_Id, Gateways_0_Serial, Gateways_0_Devices_0_Id, viessmannApiSelectionPtr);
+      httpCode = read_Vi_FeaturesFromApi((const char*)"dummyCert", myViessmannApiAccountPtr, Data_0_Id, Gateways_0_Serial, Gateways_0_Devices_0_Id, viessmannApiSelectionPtr);
       if (httpCode == t_http_codes::HTTP_CODE_OK)
       {
         viessmannApiSelection.lastReadTime = dateTimeUTCNow;
@@ -3240,16 +3237,21 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int p
   return responseCode;
 } 
 
-t_httpCode readViessmannFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const uint32_t data_0_id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr)
+t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, const uint32_t data_0_id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr)
 {
-  secure_wifi_client.setInsecure();
+  WiFiClient *localClient = viessmannApiAccountPtr -> UseHttps ? &secure_wifi_client : &plain_wifi_client;
+
+  if (!(viessmannApiAccountPtr -> UseCaCert))
+  {
+    secure_wifi_client.setInsecure();
+  }
 
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
   #endif
 
   memset(bufferStorePtr, '\0', bufferStoreLength);
-  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, &secure_wifi_client, bufferStorePtr);
+  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, localClient, bufferStorePtr);
   Serial.printf("\r\n(%u) ",loadViFeaturesCount);
   Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
                                         localTime.month() , localTime.day(),
@@ -3335,15 +3337,20 @@ t_httpCode readViessmannFeaturesFromApi(X509Certificate pCaCert, ViessmannApiAcc
   return responseCode;
 }
 
-t_httpCode read_Vi_UserFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr)
+t_httpCode read_Vi_UserFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr)
 {
-  secure_wifi_client.setInsecure();
+  WiFiClient * localClient = viessmannApiAccountPtr -> UseHttps ? &secure_wifi_client : &plain_wifi_client;
+  if (!(viessmannApiAccountPtr -> UseCaCert))
+  {
+    secure_wifi_client.setInsecure();
+  }
+  
 
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
   #endif
 
-  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, &secure_wifi_client, bufferStorePtr);
+  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, localClient, bufferStorePtr);
    #if SERIAL_PRINT == 1
         // Serial.println(myViessmannApiAccount.ClientId);
       #endif
@@ -3360,14 +3367,20 @@ t_httpCode read_Vi_UserFromApi(X509Certificate pCaCert, ViessmannApiAccount * my
 return responseCode;
 }
 
-t_httpCode read_Vi_EquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id)
+t_httpCode read_Vi_EquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id)
 {
-  secure_wifi_client.setInsecure();
+  WiFiClient * localClient = viessmannApiAccountPtr -> UseHttps ? &secure_wifi_client : &plain_wifi_client;
+
+  if (!(viessmannApiAccountPtr -> UseCaCert))
+  {
+    secure_wifi_client.setInsecure();
+  }
+  
 
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
   #endif
-  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, &secure_wifi_client, bufferStorePtr);
+  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, localClient, bufferStorePtr);
    #if SERIAL_PRINT == 1
         //Serial.println(myViessmannApiAccount.ClientId);
       #endif
@@ -3411,10 +3424,15 @@ t_httpCode read_Vi_EquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount
 }
 
 
-t_httpCode refresh_Vi_AccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * myViessmannApiAccountPtr, const char * refreshToken)
+t_httpCode refresh_Vi_AccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, const char * refreshToken)
 {
-  secure_wifi_client.setInsecure();
-
+  WiFiClient * localClient = viessmannApiAccountPtr -> UseHttps ? &secure_wifi_client : &plain_wifi_client;
+  
+  if (!(viessmannApiAccountPtr -> UseCaCert))
+  {
+    secure_wifi_client.setInsecure();
+  }
+  
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
   #endif
@@ -3423,8 +3441,7 @@ t_httpCode refresh_Vi_AccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAc
   const char * refreshTokenLabel = "refresh_token";
   const char * tokenTypeLabel = "token_type";
   
-  
-  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, &secure_wifi_client, bufferStorePtr); 
+  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, localClient, bufferStorePtr); 
       memset(bufferStorePtr,'\0', bufferStoreLength);
       t_httpCode responseCode = viessmannClient.RefreshAccessToken(bufferStorePtr, bufferStoreLength, refreshToken);
       

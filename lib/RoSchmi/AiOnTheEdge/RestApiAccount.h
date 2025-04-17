@@ -16,12 +16,8 @@ public:
     void ChangeAccountParams(String accountName, String accountKey, String hostName, bool useHttps);
     
     String AccountName;
-    String AccountKey;
-    //String UriEndPointBlob;
-    //String UriEndPointQueue;
-    String UriEndPointJson;
-    //String HostNameBlob;
-    //String HostNameQueue;
+    String AccountKey;   
+    String UriEndPointJson;   
     String HostName;
 };
 
