@@ -278,13 +278,18 @@ X509Certificate myX509Certificate = digicert_globalroot_g2_ca;
 
 // Init the Secure client object
 
-#if TRANSPORT_PROTOCOL == 1
+#if AZURE_TRANSPORT_PROTOKOL == 1
     static WiFiClientSecure wifi_client;     
 #else
     static WiFiClient wifi_client;
 #endif
 
+// secure_wifi_client is used for Viessmann Api https requests
+// the static client is created one time and stays forever
 static WiFiClientSecure secure_wifi_client;
+
+// plain_wifi_client is used for AiOnTheEdge http requests
+// the static client is created one time and stays forever
 static WiFiClient plain_wifi_client;
 
 
@@ -370,7 +375,7 @@ int32_t sysTimeNtpDelta = 0;
   Timezone myTimezone;
 
 // Set transport protocol as defined in config.h
-static bool UseHttps_State = TRANSPORT_PROTOCOL == 0 ? false : true;
+static bool UseHttps_State = AZURE_TRANSPORT_PROTOKOL == 0 ? false : true;
 
 
 const char * CONFIG_FILE = "/ConfigSW.json";    // Configuration for Azure and threshold
@@ -1188,7 +1193,7 @@ void setup()
   }
 
   Serial.printf("Watchdog mode: %s\r\n", WORK_WITH_WATCHDOG == 0 ? "Disabled" : "Enabled");
-  Serial.printf("Transport Protokoll: %s\r\n", TRANSPORT_PROTOCOL == 0 ? "http" : "https");
+  Serial.printf("Transport Protokoll: %s\r\n", AZURE_TRANSPORT_PROTOKOL == 0 ? "http" : "https");
   Serial.printf("Selected Microphone Type = %s\r\n", (usedMicType == MicType::SPH0645LM4H) ? "SPH0645" : "INMP441");
   
   delay(4000);
@@ -3174,10 +3179,6 @@ bool extractSubString (const char * source, const String startTag, const String 
 
 t_httpCode setAiPreValueViaRestApi(X509Certificate pCaCert, const char * pUrl, int pUrlMaxlength, const char * pPreValue)
 {
-  
-  
-  //aiOnTheEdgeClient(pCaCert, httpPtr, wifi_client);
-  
   AiOnTheEdgeClient aiOnTheEdgeClient(pCaCert, httpPtr, &plain_wifi_client);
 
 t_httpCode responseCode = aiOnTheEdgeClient.SetPreValue((const char *)pUrl, pPreValue,  bufferStorePtr, bufferStoreLength);
@@ -3482,13 +3483,13 @@ t_httpCode refresh_Vi_AccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAc
 az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificate pCaCert, const char * pTableName)
 { 
 
-  #if TRANSPORT_PROTOCOL == 1
+  #if AZURE_TRANSPORT_PROTOKOL == 1
     static WiFiClientSecure wifi_client;
   #else
     static WiFiClient wifi_client;
   #endif
 
-    #if TRANSPORT_PROTOCOL == 1
+    #if AZURE_TRANSPORT_PROTOKOL == 1
     wifi_client.setCACert(myX509Certificate);
     //wifi_client.setCACert(baltimore_corrupt_root_ca);
   #endif
@@ -3538,19 +3539,19 @@ return statusCode;
 
 az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr,  X509Certificate pCaCert, const char * pTableName, TableEntity pTableEntity, char * outInsertETag)
 { 
-  #if TRANSPORT_PROTOCOL == 1
+  #if AZURE_TRANSPORT_PROTOKOL == 1
     static WiFiClientSecure wifi_client;
   #else
     static WiFiClient wifi_client;
   #endif
   
-  #if TRANSPORT_PROTOCOL == 1
+  #if AZURE_TRANSPORT_PROTOKOL == 1
     wifi_client.setCACert(myX509Certificate); 
   #endif
   
   /*
   // For tests: Try second upload with corrupted certificate to provoke failure
-  #if TRANSPORT_PROTOCOL == 1
+  #if AZURE_TRANSPORT_PROTOKOL == 1
     wifi_client.setCACert(myX509Certificate);
     if (insertCounterAnalogTable == 2)
     {
@@ -3622,10 +3623,10 @@ az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr,  X509Cer
     
     #if REBOOT_AFTER_FAILED_UPLOAD == 1   // When selected in config.h -> Reboot through SystemReset after failed uoload
 
-        #if TRANSPORT_PROTOCOL == 1         
+        #if AZURE_TRANSPORT_PROTOKOL == 1         
           ESP.restart();        
         #endif
-        #if TRANSPORT_PROTOCOL == 0     // for http requests reboot after the second, not the first, failed request
+        #if AZURE_TRANSPORT_PROTOKOL == 0     // for http requests reboot after the second, not the first, failed request
           if(failedUploadCounter > 1)
           {
             ESP.restart();

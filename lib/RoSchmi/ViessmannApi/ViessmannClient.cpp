@@ -24,19 +24,11 @@ ViessmannClient::ViessmannClient(ViessmannApiAccount * account, const char * caC
 {  
     _viessmannAccountPtr = account;
     _viessmannCaCert = caCert;
-    _viessmannWifiClient = wifiClient;
-    //_viessmannWifiClient ->setInsecure();
+    _viessmannWifiClient = wifiClient;  
     _viessmannHttpPtr = httpClient;
-    
-    // RoSchmi
+       
     _viessmannHttpPtr -> setReuse(false);
-
-
-
-    //_viessmannWifiClient->setTimeout(17000);
-
-    //_viessmannWifiClient->setHandshakeTimeout(50);
-    
+ 
     //uint64_t connectTimout = _viessmannWifiClient->getTimeout();
     
     //Serial.printf("\nTimeout is: %u\n");

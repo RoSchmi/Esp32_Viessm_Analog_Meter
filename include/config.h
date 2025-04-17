@@ -91,13 +91,11 @@
 #define API_ANALOG_SENSOR_READ_INTERVAL_SECONDS 77  // Analog Sensor values from the Viessmann Api (seconds, can be 0)
 
 #define VIESSMANN_API_READ_INTERVAL_SECONDS 75  //Values from the Viessmann Cloud Api are read with this timeinterval
-//#define VIESSMANN_API_READ_INTERVAL_SECONDS 3600  75
-
 
 #define ANALOG_SENSORS_USE_AVERAGE 0             // 1 means: The average from multiple Sensor readings are used
                                                  // 0 means: The last Sensor reading is used
 
-#define VIESSMANN_TOKEN_REFRESH_INTERVAL_SECONDS 60 * 15 // Viessman AccessToken is refreshed using this timeInterval
+#define VIESSMANN_TOKEN_REFRESH_INTERVAL_SECONDS 60 * 29 // Viessman AccessToken is refreshed using this timeInterval
 
 #define WORK_WITH_WATCHDOG 0              // 1 = yes, 0 = no, Watchdog is used (1) or not used (0)
                                            // should be 1 for normal operation and 0 for testing
@@ -123,12 +121,8 @@
 #define  DST_STOP_WEEKDAY           "Sun"    // Sun, Tue, Wed, Thu, Fri, Sat
 #define  DST_STOP_WEEK_OF_MONTH     "Last"   // Last, First, Second, Third, Fourth
 #define  DST_STOP_HOUR               3       // 0 - 23
-       
-                                          // For Viessmann Api both must be https !!
-#define TRANSPORT_PROTOCOL 1              // 0 = http, 1 = https
-
-#define AIONTHEEDGE_TRANSPORT_PROTOCOL 0  // 0 = http, 1 = https
-                                 
+                                                
+#define AZURE_TRANSPORT_PROTOKOL 1        // 0 = http, 1 = https
 
 #define USE_STATIC_IP 0                // 1 = use static IpAddress, 0 = use DHCP
                                         // for static IP: Ip-addresses have to be set in the code
