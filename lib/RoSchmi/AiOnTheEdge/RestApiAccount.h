@@ -10,15 +10,19 @@ class RestApiAccount
 {
 public:
     RestApiAccount();
-    RestApiAccount(String accountName, String accountKey, String hostName, bool useHttps);
+    RestApiAccount(const String accountName, const String accountKey, const String hostName, const bool useHttps, const bool useCaCert);
     ~RestApiAccount();
 
-    void ChangeAccountParams(String accountName, String accountKey, String hostName, bool useHttps);
+    void ChangeAccountParams(const String accountName, const String accountKey, const String hostName, const bool useHttps, const bool useCaCert);
     
     String AccountName;
     String AccountKey;   
-    String UriEndPointJson;   
+    String UriEndPointJson;
+    String BaseUrl;   
     String HostName;
+
+    bool UseHttps;
+    bool UseCaCert;
 };
 
 

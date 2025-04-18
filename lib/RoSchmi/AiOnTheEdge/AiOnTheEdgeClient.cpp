@@ -1,12 +1,8 @@
 #include "AiOnTheEdgeClient.h"
 #include "config.h"
 
-WiFiClient * _aiOnTheEdgeWifiClient;
-
-//RestApiAccount  * _restApiAccountPtr;
-HTTPClient * _aiOnTheEdgeHttpPtr;
-
-//char * _aiOnTheEdgeCaCert;
+//WiFiClient * _aiOnTheEdgeWifiClient;
+//HTTPClient * _aiOnTheEdgeHttpPtr;
 
 typedef int t_httpCode;
 
@@ -18,9 +14,9 @@ char initValue[FEATUREVALUELENGTH] {0};
 
 // Constructor
 
-AiOnTheEdgeClient::AiOnTheEdgeClient(const char * caCert, HTTPClient * httpClient, WiFiClient * pWifiClient)
+AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient * pWifiClient)
 {   
-    //_restApiAccount = restApiAccount;  
+    _restApiAccountPtr = account;  
     _aiOnTheEdgeCaCert = (char *)caCert;
     _aiOnTheEdgeHttpPtr = httpClient;
     
@@ -53,7 +49,7 @@ AiOnTheEdgeClient::AiOnTheEdgeClient(const char * caCert, HTTPClient * httpClien
 t_httpCode AiOnTheEdgeClient::SetPreValue(const char * url, const char * preValue, uint8_t* responseBuffer, const uint16_t reponseBufferLength)
 {  
     char extUrl[70] = {0}; 
-    snprintf(extUrl, sizeof(extUrl), "%s/setPreValue?value=%s&numbers=main", (const char *)url, (const char *)preValue);
+    snprintf(extUrl, sizeof(extUrl) - 1, "%s/setPreValue?value=%s&numbers=main", (const char *)url, (const char *)preValue);
     
     //Serial.printf("Will use Request: %s\n", extUrl);
     _aiOnTheEdgeHttpPtr ->begin(*_aiOnTheEdgeWifiClient, extUrl);

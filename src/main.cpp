@@ -190,7 +190,7 @@ ViessmannApiAccount * myViessmannApiAccountPtr = &myViessmannApiAccount;
 ViessmannApiSelection viessmannApiSelection(DateTime(), TimeSpan(VIESSMANN_API_READ_INTERVAL_SECONDS));
 ViessmannApiSelection * viessmannApiSelectionPtr = &viessmannApiSelection;
 
-RestApiAccount gasmeterApiAccount("gasmeter", "","gasmeter", false);
+//RestApiAccount gasmeterApiAccount("gasmeter", "","gasmeter", false, false);
 //RestApiAccount * gasmeterApiAccountPtr = &gasmeterApiAccount;
 
 AiOnTheEdgeApiSelection gasmeterApiSelection(DateTime(), TimeSpan(GASMETER_AI_API_READ_INTERVAL_SECONDS));
@@ -413,7 +413,7 @@ bool saveApplConfigData();
 CloudStorageAccount myCloudStorageAccount(azureAccountName, azureAccountKey, UseHttps_State, UseCaCert_State);
 CloudStorageAccount * myCloudStorageAccountPtr = &myCloudStorageAccount;
 
-RestApiAccount gasMeterAccount(GasMeterAccountName, "", GasMeterHostName, false);
+RestApiAccount gasmeterApiAccount(GasMeterAccountName, "", GasMeterHostName, false, false);
  
 
 
@@ -425,13 +425,13 @@ void GPIOPinISR()
 // function forward declarations
 void trimLeadingSpaces(char * workstr);
 ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char * pSensorName);
-AiOnTheEdgeApiSelection:: Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, const char * pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr);
+AiOnTheEdgeApiSelection:: Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, RestApiAccount * pRestApiAccount, const char * pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr);
 
 t_httpCode refresh_Vi_AccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, const char * refreshToken);
 t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, uint32_t Data_0_Id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr);
 t_httpCode read_Vi_EquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id);
-t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int pMaxUrlLength, AiOnTheEdgeApiSelection * apiSelectionPtr);
-t_httpCode setAiPreValueViaRestApi(X509Certificate pCaCert, const char * pUrl, int pUrlMaxlength, const char * pPreValue);
+t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestApiAccount, AiOnTheEdgeApiSelection * apiSelectionPtr);
+t_httpCode setAiPreValueViaRestApi(X509Certificate pCaCert, RestApiAccount * pRestApiAccount, const char * pPreValue);
 t_httpCode read_Vi_UserFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr);
 void print_reset_reason(RESET_REASON reason);
 void scan_WIFI();
@@ -1970,6 +1970,7 @@ void loop()
       }
       */           
       // Check if something is to do: send analog data ? send On/Off-Data ? Handle EndOfDay stuff ?
+      
       if (dataContainerAnalogViessmann01.hasToBeSent() || dataContainer.hasToBeSent() || onOffDataContainer.One_hasToBeBeSent(localTime) || isLast15SecondsOfDay)
       {     
         //Create some buffer
@@ -1990,24 +1991,23 @@ void loop()
         
         if (dataContainerAnalogViessmann01.hasToBeSent())   // have to send analog values read from Viessmann ?
         {         
-          // Retrieve edited sample values from container
+          // Retrieve edited sample values from container         
           SampleValueSet sampleValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, true);
-                  
+          Serial.printf("Got checked Sample values\n");      
           createSampleTime(sampleValueSet.LastUpdateTime, timeZoneOffsetUTC, (char *)sampleTime);
-          // Define name of the table (arbitrary name + actual year, like: AnalogTestValues2020)
+          // Define name of the table (arbitrary name + actual year, like: AnalogTestValues2020)         
           String augmentedAnalogTableName = viessmAnalogTableName_01; 
           if (augmentTableNameWithYear)
           {
             // RoSchmi changed 10.07.2024 to resolve issue 1         
             //augmentedAnalogTableName += (dateTimeUTCNow.year());
             augmentedAnalogTableName += (localTime.year()); 
-          }
-
+          }         
           // Create Azure Storage Table if table doesn't exist
           if (localTime.year() != dataContainerAnalogViessmann01.Year)    // if new year
-          {  
+          {           
             az_http_status_code respCode = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str());
-           
+            
             Serial.printf("\r\nCreate Table: Statuscode: %s\n", ((String)respCode).c_str());
 
             if ((respCode == AZ_HTTP_STATUS_CODE_CONFLICT) || (respCode == AZ_HTTP_STATUS_CODE_CREATED))
@@ -2020,8 +2020,8 @@ void loop()
              
              //SCB_AIRCR = 0x05FA0004;             
             }                     
-          }   
-
+          }
+          
           // Create an Array of (here) 5 Properties
           // Each Property consists of the Name, the Value and the Type (here only Edm.String is supported)
 
@@ -2029,7 +2029,7 @@ void loop()
           // (SampleTime and 4 samplevalues)
           size_t analogPropertyCount = 5;
           EntityProperty AnalogPropertiesArray[5];
-
+         
           #if ANALOG_SENSORS_USE_AVERAGE == 1
             AnalogPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) sampleTime, (char *)"Edm.String");
             AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *)floToStr(sampleValueSet.SampleValues[0].AverageValue).c_str(), (char *)"Edm.String");
@@ -2043,16 +2043,16 @@ void loop()
             AnalogPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"T_3", (char *)floToStr(sampleValueSet.SampleValues[2].Value).c_str(), (char *)"Edm.String");
             AnalogPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"T_4", (char *)floToStr(sampleValueSet.SampleValues[3].Value).c_str(), (char *)"Edm.String");
           #endif
-
+         
           // Create the PartitionKey (special format)
           makePartitionKey(analogTablePartPrefix, augmentPartitionKey, localTime, partitionKey, &partitionKeyLength);
           partitionKey = az_span_slice(partitionKey, 0, partitionKeyLength);
-
+         
           // Create the RowKey (special format)        
           makeRowKey(localTime, rowKey, &rowKeyLength);
           
           rowKey = az_span_slice(rowKey, 0, rowKeyLength);
-  
+                    
           // Create TableEntity consisting of PartitionKey, RowKey and the properties named 'SampleTime', 'T_1', 'T_2', 'T_3' and 'T_4'
           AnalogTableEntity analogTableEntity(partitionKey, rowKey, az_span_create_from_str((char *)sampleTime),  AnalogPropertiesArray, analogPropertyCount);
           
@@ -2072,7 +2072,7 @@ void loop()
         
         if (dataContainer.hasToBeSent())   // have to send analog values read by Device (e.g. noise)?
         {
-          //printf("\n###### AiOnTheEdge dataContainer has to be sent\n");
+          //Serial.printf("\n###### AiOnTheEdge dataContainer has to be sent\n");
           Serial.println(F("\n###### AiOnTheEdge dataContainer has to be sent to Azure\n"));        
           // Retrieve edited sample values from container
           SampleValueSet sampleValueSet = dataContainer.getCheckedSampleValues(dateTimeUTCNow, true);
@@ -2549,7 +2549,7 @@ ViessmannApiSelection::Feature ReadViessmannFeatureFromSelection(const char * pS
   return returnFeature;
 }
 
-AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, const char* pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr)
+AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, RestApiAccount * pRestApiAccount, const char* pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr)
 {
   // Use values read from the AiOnTheEge Rest API
   // pSensorIndex determins the position (from 4). pSensorName is the name of the feature (see AiOnTheEdgeSelection.h)
@@ -2564,11 +2564,14 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
   
   if ((pAiOnTheEdgeApiSelectionPtr ->lastReadTime.operator+(pAiOnTheEdgeApiSelectionPtr -> readInterval)).operator<(dateTimeUTCNow))
   {
-    char myUriEndpoint[50] = {0}; 
-    strncpy(myUriEndpoint, "http://gasmeter/json", sizeof(myUriEndpoint) - 1);
+    char myUriEndpoint[50] = {0};
+    strncpy(myUriEndpoint, (const char *)(pRestApiAccount ->UriEndPointJson).c_str(), sizeof(myUriEndpoint) - 1);
+    //strncpy(myUriEndpoint, "http://gasmeter/json", sizeof(myUriEndpoint) - 1);
     
-    httpCode = readJsonFromRestApi(myX509Certificate, (const char *)myUriEndpoint, sizeof(myUriEndpoint), pAiOnTheEdgeApiSelectionPtr);   
+    //httpCode = readJsonFromRestApi(myX509Certificate, (const char *)myUriEndpoint, sizeof(myUriEndpoint), pAiOnTheEdgeApiSelectionPtr);   
+    httpCode = readJsonFromRestApi(myX509Certificate, pRestApiAccount, pAiOnTheEdgeApiSelectionPtr);   
     
+
     if (httpCode == t_http_codes::HTTP_CODE_OK)
     {
       pAiOnTheEdgeApiSelectionPtr -> lastReadTime = dateTimeUTCNow;  
@@ -2670,20 +2673,23 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         if (isFirstGasmeterRead)
         {
           // Read raw instead of value
-          selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, (const char *)"raw", aiOnTheEdgeApiSelectionPtr);
+          selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, &gasmeterApiAccount, (const char *)"raw", aiOnTheEdgeApiSelectionPtr);
           isFirstGasmeterRead = false;
-          char gasMeterUrl[] = "http://gasmeter";
-           
+
+
+          char gasMeterUrl[] = "http://gasmeter";          
           char preValue[12] = {0};
           
           strncpy(preValue, (const char *)selectedFeature.value, sizeof(preValue));
           preValue[sizeof(preValue) -1] = '\0';
           // Write the last raw Value to preValue
-          setAiPreValueViaRestApi(myX509Certificate, gasMeterUrl, strlen(gasMeterUrl), (const char *)preValue);
+          //setAiPreValueViaRestApi(myX509Certificate, gasMeterUrl, strlen(gasMeterUrl), (const char *)preValue);
+          setAiPreValueViaRestApi(myX509Certificate, &gasmeterApiAccount, (const char *)preValue);
+          
         }
         else
         {
-          selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, (const char *)"value", aiOnTheEdgeApiSelectionPtr);
+          selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, &gasmeterApiAccount,(const char *)"value", aiOnTheEdgeApiSelectionPtr);
           
         }
 
@@ -3174,38 +3180,60 @@ bool extractSubString (const char * source, const String startTag, const String 
   }
 }
 
-t_httpCode setAiPreValueViaRestApi(X509Certificate pCaCert, const char * pUrl, int pUrlMaxlength, const char * pPreValue)
+//t_httpCode setAiPreValueViaRestApi(X509Certificate pCaCert, const char * pUrl, int pUrlMaxlength, const char * pPreValue)
+t_httpCode setAiPreValueViaRestApi(X509Certificate pCaCert, RestApiAccount * pRestApiAccount , const char * pPreValue)
 {
-  AiOnTheEdgeClient aiOnTheEdgeClient(pCaCert, httpPtr, &plain_wifi_client);
-
-t_httpCode responseCode = aiOnTheEdgeClient.SetPreValue((const char *)pUrl, pPreValue,  bufferStorePtr, bufferStoreLength);
-
-if (responseCode == t_http_codes::HTTP_CODE_OK)
+  WiFiClient * selectedClient = pRestApiAccount -> UseHttps ? &secure_wifi_client : &plain_wifi_client;
+  if (pRestApiAccount -> UseHttps && !(pRestApiAccount -> UseCaCert))
   {
-    Serial.printf("\nPrevalue successfully set: %s\n", pPreValue);
+    secure_wifi_client.setInsecure();
+  }
+
+  AiOnTheEdgeClient aiOnTheEdgeClient(pRestApiAccount, pCaCert, httpPtr, selectedClient);
+
+  //t_httpCode responseCode = aiOnTheEdgeClient.SetPreValue((const char *)pUrl, pPreValue,  bufferStorePtr, bufferStoreLength);
+  t_httpCode responseCode = aiOnTheEdgeClient.SetPreValue((const char *)(pRestApiAccount ->BaseUrl).c_str(), pPreValue,  bufferStorePtr, bufferStoreLength);
+
+  if (responseCode == t_http_codes::HTTP_CODE_OK)
+  {
+      Serial.printf("\nPrevalue successfully set: %s\n", pPreValue);
   }
 
 return responseCode;
 }  
 
-t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int pUrlMaxlength, AiOnTheEdgeApiSelection * apiSelectionPtr)
+t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestApiAccount , AiOnTheEdgeApiSelection * apiSelectionPtr)
 {
+  WiFiClient * selectedClient = pRestApiAccount ->UseHttps ? &secure_wifi_client : &plain_wifi_client;
+  
+  if (pRestApiAccount -> UseHttps && !(pRestApiAccount -> UseCaCert))
+  {
+    secure_wifi_client.setInsecure();
+  }
+
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
   #endif
-  
+
   memset(bufferStorePtr, '\0', bufferStoreLength);
   
-  AiOnTheEdgeClient aiOnTheEdgeClient(pCaCert, httpPtr, &plain_wifi_client);
+  AiOnTheEdgeClient aiOnTheEdgeClient(pRestApiAccount, pCaCert, httpPtr, selectedClient);
   
   Serial.printf("\r\n(%u) ", loadGasMeterJsonCount);
   Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
                                         localTime.month() , localTime.day(),
                                         localTime.hour() , localTime.minute());
   
-  char url[pUrlMaxlength + 1] = {0};
-  strncpy(url, pUrl, pUrlMaxlength);
-     
+  //char url[pUrlMaxlength + 1] = {0};
+  //strncpy(url, pUrl, pUrlMaxlength);
+  
+  char url[70] = {0};
+  
+  strncpy(url, (const char *)((pRestApiAccount -> UriEndPointJson).c_str()), sizeof(url) - 1);
+  
+
+  //char url[] = "http://gasmeter/json";
+
    Serial.printf("readJsonFromRestApi: %s\n", (const char *)url);
 
   t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures((const char *)url, bufferStorePtr, bufferStoreLength, apiSelectionPtr);
@@ -3237,11 +3265,11 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, const char * pUrl, int p
   return responseCode;
 } 
 
-t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, const uint32_t data_0_id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr)
+t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * pViessmannApiAccountPtr, const uint32_t data_0_id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr)
 {
-  WiFiClient *localClient = viessmannApiAccountPtr -> UseHttps ? &secure_wifi_client : &plain_wifi_client;
+  WiFiClient *selectedClient = pViessmannApiAccountPtr -> UseHttps ? &secure_wifi_client : &plain_wifi_client;
 
-  if (!(viessmannApiAccountPtr -> UseCaCert))
+  if (pViessmannApiAccountPtr -> UseHttps && !(pViessmannApiAccountPtr -> UseCaCert))
   {
     secure_wifi_client.setInsecure();
   }
@@ -3251,7 +3279,7 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
   #endif
 
   memset(bufferStorePtr, '\0', bufferStoreLength);
-  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, localClient, bufferStorePtr);
+  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, selectedClient, bufferStorePtr);
   Serial.printf("\r\n(%u) ",loadViFeaturesCount);
   Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
                                         localTime.month() , localTime.day(),
@@ -3339,8 +3367,9 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
 
 t_httpCode read_Vi_UserFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr)
 {
-  WiFiClient * localClient = viessmannApiAccountPtr -> UseHttps ? &secure_wifi_client : &plain_wifi_client;
-  if (!(viessmannApiAccountPtr -> UseCaCert))
+  WiFiClient * selectedClient = viessmannApiAccountPtr -> UseHttps ? &secure_wifi_client : &plain_wifi_client;
+  
+  if (viessmannApiAccountPtr -> UseHttps && !(viessmannApiAccountPtr -> UseCaCert))
   {
     secure_wifi_client.setInsecure();
   }
@@ -3350,7 +3379,7 @@ t_httpCode read_Vi_UserFromApi(X509Certificate pCaCert, ViessmannApiAccount * vi
       esp_task_wdt_reset();
   #endif
 
-  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, localClient, bufferStorePtr);
+  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, selectedClient, bufferStorePtr);
    #if SERIAL_PRINT == 1
         // Serial.println(myViessmannApiAccount.ClientId);
       #endif
@@ -3369,9 +3398,9 @@ return responseCode;
 
 t_httpCode read_Vi_EquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id)
 {
-  WiFiClient * localClient = viessmannApiAccountPtr -> UseHttps ? &secure_wifi_client : &plain_wifi_client;
+  WiFiClient * selectedClient = viessmannApiAccountPtr -> UseHttps ? &secure_wifi_client : &plain_wifi_client;
 
-  if (!(viessmannApiAccountPtr -> UseCaCert))
+  if (viessmannApiAccountPtr -> UseHttps && !(viessmannApiAccountPtr -> UseCaCert))
   {
     secure_wifi_client.setInsecure();
   }
@@ -3380,7 +3409,7 @@ t_httpCode read_Vi_EquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
   #endif
-  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, localClient, bufferStorePtr);
+  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, selectedClient, bufferStorePtr);
    #if SERIAL_PRINT == 1
         //Serial.println(myViessmannApiAccount.ClientId);
       #endif
@@ -3426,12 +3455,14 @@ t_httpCode read_Vi_EquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount
 
 t_httpCode refresh_Vi_AccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, const char * refreshToken)
 {
-  WiFiClient * localClient = viessmannApiAccountPtr -> UseHttps ? &secure_wifi_client : &plain_wifi_client;
+  WiFiClient * selectedClient = viessmannApiAccountPtr -> UseHttps ? &secure_wifi_client : &plain_wifi_client;
   
-  if (!(viessmannApiAccountPtr -> UseCaCert))
+  if (viessmannApiAccountPtr -> UseHttps && !(viessmannApiAccountPtr -> UseCaCert))
   {
     secure_wifi_client.setInsecure();
   }
+  
+  
   
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
@@ -3441,7 +3472,7 @@ t_httpCode refresh_Vi_AccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAc
   const char * refreshTokenLabel = "refresh_token";
   const char * tokenTypeLabel = "token_type";
   
-  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, localClient, bufferStorePtr); 
+  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, selectedClient, bufferStorePtr); 
       memset(bufferStorePtr,'\0', bufferStoreLength);
       t_httpCode responseCode = viessmannClient.RefreshAccessToken(bufferStorePtr, bufferStoreLength, refreshToken);
       
@@ -3516,11 +3547,12 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
   #endif
   
   // RoSchmi
+  Serial.println("Going to create TableClient\n");
   TableClient table(pAccountPtr, pCaCert,  httpPtr, &wifi_client, bufferStorePtr);
-
+  Serial.println("Going to create Table\n");
   // Create Table
   az_http_status_code statusCode = table.CreateTable(pTableName, dateTimeUTCNow, ContType::contApplicationIatomIxml, AcceptType::acceptApplicationIjson, returnContent, false);
-  
+  Serial.println("Returned from Creating Table\n");
    // RoSchmi for tests: to simulate failed upload
    //az_http_status_code   statusCode = AZ_HTTP_STATUS_CODE_UNAUTHORIZED;
 
@@ -3532,20 +3564,20 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
     #endif
    
       sprintf(codeString, "%s %i", "Table available: ", az_http_status_code(statusCode));
-      #if SERIAL_PRINT == 1
+      //#if SERIAL_PRINT == 1
         Serial.println((char *)codeString);
-      #endif
+      //#endif
   
   }
   else
   {
       sprintf(codeString, "%s %i", "Table Creation failed: ", az_http_status_code(statusCode));
-      #if SERIAL_PRINT == 1   
+      //#if SERIAL_PRINT == 1   
         Serial.println((char *)codeString);
-      #endif
+      //#endif
  
     delay(1000);
-
+    //RoSchmi (temporary commented)
     ESP.restart();
     
   }

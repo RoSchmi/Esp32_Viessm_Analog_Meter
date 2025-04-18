@@ -5,7 +5,6 @@
 #include "DateTime.h"
 #include "RestApiAccount.h"
 #include "AiOnTheEdgeApiSelection.h"
-//#include "ViessmannApiSelection.h"
 #include "ArduinoJson.h"
 
 
@@ -16,7 +15,7 @@ class AiOnTheEdgeClient
 {
     public:
     //AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient *httpClient, WiFiClient * wifiClient, uint8_t * bufferStore);
-    AiOnTheEdgeClient(const char * caCert, HTTPClient * httpClient, WiFiClient * pWifiClient);
+    AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient * pWifiClient);
     
     
     ~AiOnTheEdgeClient();
@@ -33,10 +32,11 @@ class AiOnTheEdgeClient
     */
    private:
 
-   //WiFiClient * _aiOnTheEdgeWifiClient;
-   //HTTPClient * _aiOnTheEdgeHttpPtr;
-   //RestApiAccount _restApiAccount;
-   //RestApiAccount * _restApiAccountPtr;
+   WiFiClient * _aiOnTheEdgeWifiClient;
+   HTTPClient * _aiOnTheEdgeHttpPtr;
+   
+   RestApiAccount * _restApiAccountPtr;
+
    char _url[40] {0}; 
    char * _aiOnTheEdgeCaCert;
 

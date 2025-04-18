@@ -208,7 +208,10 @@ AcceptType pAcceptType, ResponseType pResponseType, bool useSharedKeyLite)
 
   char accountName_and_Tables[MAX_ACCOUNTNAME_LENGTH + 12];
   sprintf(accountName_and_Tables, "/%s/%s", (char *)_accountPtr->AccountName.c_str(), (char *)"Tables()");
-  
+  //RoSchmi
+  Serial.printf("Trying to create: %s", (const char *)accountName_and_Tables);
+
+
   char md5Buffer[32 +1] {0};
 
   //char authorizationHeaderBuffer[100] {0};

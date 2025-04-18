@@ -1,8 +1,6 @@
 #include "ViessmannClient.h"
 #include "config.h"
 
-//WiFiClientSecure * _viessmannWifiClient;
-
 WiFiClient * _viessmannWifiClient;
 
 ViessmannApiAccount  * _viessmannAccountPtr;
@@ -333,10 +331,10 @@ t_httpCode ViessmannClient::RefreshAccessToken(uint8_t* responseBuffer, const ui
 
         //Url = "https://iam.viessmann.com/idp/v3/token";
     
-        #if SERIAL_PRINT == 1
+        //#if SERIAL_PRINT == 1
             Serial.println(Url);
             Serial.println(body);
-        #endif
+        //#endif
 
         _viessmannHttpPtr ->begin(*_viessmannWifiClient, Url);
 
