@@ -1,29 +1,20 @@
 #include "AiOnTheEdgeClient.h"
 #include "config.h"
 
-//WiFiClient * _aiOnTheEdgeWifiClient;
-//HTTPClient * _aiOnTheEdgeHttpPtr;
-
 typedef int t_httpCode;
 
-/*
-char initName[FEATURENAMELENGTH] {0};
-char initTimestamp[FEATURESTAMPLENGTH] {0};
-char initValue[FEATUREVALUELENGTH] {0};
-*/
-
 // Constructor
-
 AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient * pWifiClient)
 {   
     _restApiAccountPtr = account;  
     _aiOnTheEdgeCaCert = (char *)caCert;
+    _aiOnTheEdgeWifiClient = pWifiClient;
     _aiOnTheEdgeHttpPtr = httpClient;
     
     _aiOnTheEdgeHttpPtr -> setReuse(false);
     _aiOnTheEdgeHttpPtr ->useHTTP10(false);
   
-    _aiOnTheEdgeWifiClient = pWifiClient;
+    
      
 
     // Some buffers located in memory segment .dram0.bss are injected to achieve lesser stack consumption
@@ -35,12 +26,7 @@ AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCe
     _responsePtr = bufferStorePtr + REQUEST_BODY_BUFFER_LENGTH + PROPERTIES_BUFFER_LENGTH + AUTH_HEADER_BUFFER_LENGTH;
     */
 
-    /*
-   _accountPtr = account;
-    _caCert = caCert;
-    _httpPtr = httpClient;
-    _wifiClient = wifiClient;
-    */
+    
     /*
        char responseString[RESPONSE_BUFFER_LENGTH];
        memset(&(responseString[0]), 0, RESPONSE_BUFFER_LENGTH);
@@ -75,19 +61,16 @@ t_httpCode AiOnTheEdgeClient::SetPreValue(const char * url, const char * preValu
     return httpResponseCode;
 }
 
-
-
 t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuffer, const uint16_t reponseBufferLength, AiOnTheEdgeApiSelection * apiSelectionPtr)
 {
-      
-      
+         
     //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient
     // useHTTP10(false)
     // is needed to load the long features JSON string
     
     #if SERIAL_PRINT == 1                    
-    printf("AI-WiFiClient Address: %d\n", &_aiOnTheEdgeWifiClient);
-    printf("Free heapsize: %d Minimum: %d\n\n", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
+        printf("AI-WiFiClient Address: %d\n", &_aiOnTheEdgeWifiClient);
+        printf("Free heapsize: %d Minimum: %d\n\n", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
     #endif
     
     _aiOnTheEdgeHttpPtr ->begin(*_aiOnTheEdgeWifiClient, url);
@@ -98,15 +81,15 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
     { 
         if (httpResponseCode == HTTP_CODE_OK)
         {
-            /*
-            #if SERIAL_PRINT == 1
+            
+           #if SERIAL_PRINT == 1
               Serial.println(F("Received ResponseCode > 0"));
-            #endif
-            */
+           #endif
+            
            String payload = _aiOnTheEdgeHttpPtr ->getString();
-           //#if SERIAL_PRINT == 1         
-           Serial.printf("%s\n",payload.c_str());
-           //#endif
+           #if SERIAL_PRINT == 1         
+                Serial.printf("%s\n",payload.c_str());
+           #endif
           
            int charsToCopy = payload.length() < reponseBufferLength ? payload.length() : reponseBufferLength;
            for (int i = 0; i < charsToCopy; i++)
@@ -163,8 +146,8 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
                 strncpy(apiSelectionPtr-> _5_timestamp.timestamp, doc["main"]["timestamp"], stampLen - 1);
                 strncpy(apiSelectionPtr-> _5_timestamp.value, doc["main"]["timestamp"], nameLen - 1);
                 
-                //printf("Value: %s\n", apiSelectionPtr -> _0_value.value);
-                //printf("Timestamp: %s\n", apiSelectionPtr -> _0_value.timestamp);                
+                //Serial.printf("Value: %s\n", apiSelectionPtr -> _0_value.value);
+                //Serial.printf("Timestamp: %s\n", apiSelectionPtr -> _0_value.timestamp);                
             }
             else
             {
@@ -172,25 +155,44 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
             }   
         }
         else
-        {
-            // If request doesn't return with ok, we printout the begin of the response string
-            WiFiClient *stream = _aiOnTheEdgeHttpPtr ->getStreamPtr();        
+        {   
+            // If request doesn't return with ok, we give back 
+            // the begin of the response string in responseBuffer        
+            Serial.printf("Viessmann Received ResponseCode %d\n",httpResponseCode);
+            WiFiClient *stream = _aiOnTheEdgeHttpPtr ->getStreamPtr();                  
             uint32_t bytesRead = 0;
-            uint32_t chunkSize = 1000;       
-            uint16_t maxRounds = 10;
-            uint16_t rounds = 0;
+            uint32_t totalBytesRead = 0;
+            uint32_t chunkSize = 1000;                  
             char chunkBuffer[chunkSize +1] = {0};
-
-            while(rounds < maxRounds)
+            
+            while (stream->connected() || stream->available()) 
             {
-            bytesRead += stream ->readBytes(chunkBuffer, chunkSize);
-            chunkBuffer[chunkSize] = '\0'; 
-            Serial.println(chunkBuffer);
-            strcat((char *)responseBuffer, chunkBuffer);
-            responseBuffer += chunkSize;
-            //Serial.printf("\r\n%d\r\n", bytesRead);
+                if (stream->available()) 
+                {
+                  // Read data in chunks
+                  size_t bytesRead = stream->readBytes(chunkBuffer, chunkSize);
+                  
+                  // Write data to buffer
+                  for (size_t i = 0; i < bytesRead; i++) 
+                  {
+                    if (totalBytesRead < reponseBufferLength) 
+                    {
+                      responseBuffer[totalBytesRead++] = chunkBuffer[i];
+                    } 
+                    else 
+                    {
+                      Serial.println("responseBuffer is full!");
+                      break;
+                    }
+                  }
+                  #if SERIAL_PRINT == 1                                 
+                  Serial.write(chunkBuffer, bytesRead);
+                  Serial.println();
+                  #endif
+                }
             }
-        }                      
+            responseBuffer[reponseBufferLength -1] = '\0';                        
+        }                                     
     } 
     else 
     {

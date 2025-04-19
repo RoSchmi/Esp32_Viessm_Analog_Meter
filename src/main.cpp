@@ -2592,7 +2592,7 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
       {       
         returnFeature = ai_features[i];
 
-        Serial.printf("\nAnalogSensorMgr: Value is used. Index: %d Value: %s\n", pSensorIndex, returnFeature.value);
+        //Serial.printf("\nAnalogSensorMgr: Value is used. Index: %d Value: %s\n", pSensorIndex, returnFeature.value);
         
         analogSensorMgr.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, atof(returnFeature.value), 0.0f, MAGIC_NUMBER_INVALID);                         
         break;
@@ -2613,32 +2613,29 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   strncpy(returnFeature.value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.value) - 1);
   
   // Only read features from the cloud when readInterval has expired
-  
+  Serial.printf("Testing readViessmann Cloud? %d\n", viessmannApiSelection.lastReadTime.secondstime() + viessmannApiSelection.readInterval.totalseconds() - dateTimeUTCNow.secondstime());
+  Serial.printf("LastReadTime: %d dateTimeUTCNow: %d, Interval: %d\n", viessmannApiSelection.lastReadTime.secondstime(), dateTimeUTCNow.secondstime(), viessmannApiSelection.readInterval.totalseconds()); 
   if ((viessmannApiSelection.lastReadTime.operator+(viessmannApiSelection.readInterval)).operator<(dateTimeUTCNow))
   {
-    uint32_t tryCounter = 1;
-    httpCode = -1;
-    while (tryCounter > 0 && httpCode != t_http_codes::HTTP_CODE_OK)
-    {
+      Serial.println(F("##########Have to read Features#########\n"));
       httpCode = read_Vi_FeaturesFromApi((const char*)"dummyCert", myViessmannApiAccountPtr, Data_0_Id, Gateways_0_Serial, Gateways_0_Devices_0_Id, viessmannApiSelectionPtr);
       if (httpCode == t_http_codes::HTTP_CODE_OK)
       {
         viessmannApiSelection.lastReadTime = dateTimeUTCNow;
         Serial.println(F("Succeeded to read Features from Viessmann Cloud\n"));
+        Serial.printf("LastReadTime: %d dateTimeUTCNow: %d, Interval: %d\n", viessmannApiSelection.lastReadTime.secondstime(), dateTimeUTCNow.secondstime(), viessmannApiSelection.readInterval.totalseconds()); 
       }
       else
       {
         viessmannApiSelection.lastReadTime = dateTimeUTCNow;
         Serial.println(F("Failed to read Features from Viessmann Cloud")); 
         //Serial.println((char*)bufferStorePtr);
-      }
-      tryCounter--;
-    }
+      } 
   }
   
   if (analogSensorMgr_Api_01.HasToBeRead(pSensorIndex, dateTimeUTCNow))
   {
-    //Serial.printf("\nAnalogSensorMgr_Api_01: Value is used %d\n", pSensorIndex); 
+    Serial.printf("\nAnalogSensorMgr_Api_01: Value is used %d\n", pSensorIndex); 
       
     for (int i = 0; i < VI_FEATURES_COUNT; i++)
     {       
@@ -3227,11 +3224,11 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestAp
   //char url[pUrlMaxlength + 1] = {0};
   //strncpy(url, pUrl, pUrlMaxlength);
   
-  char url[70] = {0};
+  char url[70] = {'\0'};
   
   strncpy(url, (const char *)((pRestApiAccount -> UriEndPointJson).c_str()), sizeof(url) - 1);
   
-
+  Serial.printf("Accessing: %s\n", (const char *)url); 
   //char url[] = "http://gasmeter/json";
 
    Serial.printf("readJsonFromRestApi: %s\n", (const char *)url);
@@ -3267,11 +3264,12 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestAp
 
 t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * pViessmannApiAccountPtr, const uint32_t data_0_id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr)
 {
-  WiFiClient *selectedClient = pViessmannApiAccountPtr -> UseHttps ? &secure_wifi_client : &plain_wifi_client;
-
-  if (pViessmannApiAccountPtr -> UseHttps && !(pViessmannApiAccountPtr -> UseCaCert))
+  WiFiClient * selectedClient = (pViessmannApiAccountPtr -> UseHttps) ? &secure_wifi_client : &plain_wifi_client;
+  Serial.printf("Have selected Client \n");
+  if ((pViessmannApiAccountPtr -> UseHttps) && !(pViessmannApiAccountPtr -> UseCaCert))
   {
     secure_wifi_client.setInsecure();
+    Serial.println("Setting Viessmann Client insecure\n");
   }
 
   #if WORK_WITH_WATCHDOG == 1
@@ -3284,6 +3282,7 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
   Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
                                         localTime.month() , localTime.day(),
                                         localTime.hour() , localTime.minute());
+  
   t_httpCode responseCode = viessmannClient.GetFeatures(bufferStorePtr, bufferStoreLength, data_0_id, Gateways_0_Serial, Gateways_0_Devices_0_Id, apiSelectionPtr);
   
   Serial.printf("(%u) Viessmann Features: httpResponseCode is: %d\r\n", loadViFeaturesCount, responseCode);
@@ -3546,13 +3545,11 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
       esp_task_wdt_reset();
   #endif
   
-  // RoSchmi
-  Serial.println("Going to create TableClient\n");
   TableClient table(pAccountPtr, pCaCert,  httpPtr, &wifi_client, bufferStorePtr);
-  Serial.println("Going to create Table\n");
+  
   // Create Table
   az_http_status_code statusCode = table.CreateTable(pTableName, dateTimeUTCNow, ContType::contApplicationIatomIxml, AcceptType::acceptApplicationIjson, returnContent, false);
-  Serial.println("Returned from Creating Table\n");
+  
    // RoSchmi for tests: to simulate failed upload
    //az_http_status_code   statusCode = AZ_HTTP_STATUS_CODE_UNAUTHORIZED;
 
@@ -3564,9 +3561,9 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
     #endif
    
       sprintf(codeString, "%s %i", "Table available: ", az_http_status_code(statusCode));
-      //#if SERIAL_PRINT == 1
+      #if SERIAL_PRINT == 1
         Serial.println((char *)codeString);
-      //#endif
+      #endif
   
   }
   else

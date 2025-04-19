@@ -34,10 +34,7 @@ class AiOnTheEdgeClient
 
    WiFiClient * _aiOnTheEdgeWifiClient;
    HTTPClient * _aiOnTheEdgeHttpPtr;
-   
    RestApiAccount * _restApiAccountPtr;
-
-   char _url[40] {0}; 
    char * _aiOnTheEdgeCaCert;
 
    char initName[FEATURENAMELENGTH] {0};

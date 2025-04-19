@@ -26,6 +26,8 @@ ViessmannClient::ViessmannClient(ViessmannApiAccount * account, const char * caC
     _viessmannHttpPtr = httpClient;
        
     _viessmannHttpPtr -> setReuse(false);
+
+    Serial.println("Viessmann Client Constructor\n");
  
     //uint64_t connectTimout = _viessmannWifiClient->getTimeout();
     
@@ -54,6 +56,7 @@ ViessmannClient::ViessmannClient(ViessmannApiAccount * account, const char * caC
 
 t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t reponseBufferLength, const uint32_t data_0_id, const char * gateways_0_serial, const char * gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr)
 {
+    Serial.println("Viessmann Client start getting features\n");
     char InstallationId[20] = {0};
     sprintf(InstallationId, "%d", data_0_id);
 
