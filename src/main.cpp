@@ -187,8 +187,11 @@ TimeSpan AccessTokenRefreshInterval = TimeSpan(VIESSMANN_TOKEN_REFRESH_INTERVAL_
 ViessmannApiAccount myViessmannApiAccount(viessmannClientId, viessmannAccessToken, viessmannIotBaseUri, viessmannUserBaseUri, viessmannTokenBaseUri, true, false); 
 ViessmannApiAccount * myViessmannApiAccountPtr = &myViessmannApiAccount;
 
-ViessmannApiSelection viessmannApiSelection(DateTime(), TimeSpan(VIESSMANN_API_READ_INTERVAL_SECONDS));
-ViessmannApiSelection * viessmannApiSelectionPtr = &viessmannApiSelection;
+ViessmannApiSelection viessmannApiSelection_01( 0, VIESSMANN_API_READ_INTERVAL_SECONDS);
+ViessmannApiSelection * viessmannApiSelectionPtr_01 = &viessmannApiSelection_01;
+
+
+
 
 //RestApiAccount gasmeterApiAccount("gasmeter", "","gasmeter", false, false);
 //RestApiAccount * gasmeterApiAccountPtr = &gasmeterApiAccount;
@@ -424,7 +427,7 @@ void GPIOPinISR()
 
 // function forward declarations
 void trimLeadingSpaces(char * workstr);
-ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char * pSensorName);
+ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char * pSensorName, ViessmannApiSelection * pViessmannApiSelectionPtr);
 AiOnTheEdgeApiSelection:: Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, RestApiAccount * pRestApiAccount, const char * pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr);
 
 t_httpCode refresh_Vi_AccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, const char * refreshToken);
@@ -1892,10 +1895,10 @@ void loop()
       // Get readings from 4 different analog sensors stored in the Viessmann Cloud    
       // and store the values in a container
        
-      dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_95_heating_temperature_outside")).value)); // Aussen
-      dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_3_temperature_main")).value)); // Vorlauf                
-      dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"_90_heating_dhw_cylinder_temperature")).value)); // Boiler
-      dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(3, (const char *)"_7_burner_modulation")).value));  // Modulation
+      dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_94_heating_temperature_outside", viessmannApiSelectionPtr_01)).value)); // Aussen
+      dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_2_temperature_main", viessmannApiSelectionPtr_01)).value)); // Vorlauf                
+      dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"_89_heating_dhw_cylinder_temperature",viessmannApiSelectionPtr_01)).value)); // Boiler
+      dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(3, (const char *)"_7_burner_modulation",viessmannApiSelectionPtr_01)).value));  // Modulation
       
       ledState = !ledState;
       digitalWrite(LED_BUILTIN, ledState);    // toggle LED to signal that App is running
@@ -1970,7 +1973,7 @@ void loop()
       }
       */           
       // Check if something is to do: send analog data ? send On/Off-Data ? Handle EndOfDay stuff ?
-      
+      //if (false)
       if (dataContainerAnalogViessmann01.hasToBeSent() || dataContainer.hasToBeSent() || onOffDataContainer.One_hasToBeBeSent(localTime) || isLast15SecondsOfDay)
       {     
         //Create some buffer
@@ -2602,7 +2605,7 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
   return returnFeature;
 }
 
-ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char* pSensorName)
+ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char* pSensorName, ViessmannApiSelection * pViessmannApiSelectionPtr)
 {
   
   // Use values read from the Viessmann API
@@ -2613,22 +2616,33 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   strncpy(returnFeature.value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.value) - 1);
   
   // Only read features from the cloud when readInterval has expired
-  Serial.printf("Testing readViessmann Cloud? %d\n", viessmannApiSelection.lastReadTime.secondstime() + viessmannApiSelection.readInterval.totalseconds() - dateTimeUTCNow.secondstime());
-  Serial.printf("LastReadTime: %d dateTimeUTCNow: %d, Interval: %d\n", viessmannApiSelection.lastReadTime.secondstime(), dateTimeUTCNow.secondstime(), viessmannApiSelection.readInterval.totalseconds()); 
-  if ((viessmannApiSelection.lastReadTime.operator+(viessmannApiSelection.readInterval)).operator<(dateTimeUTCNow))
-  {
+  Serial.printf("Vi-LastReadTimeSeconds: %u dateTimeUTCNow: %u ReadInterval: %u\n", (uint32_t)viessmannApiSelection_01.lastReadTimeSeconds, dateTimeUTCNow.secondstime(), viessmannApiSelection_01.readIntervalSeconds);
+  Serial.printf("Remaining seconds: %d\n", viessmannApiSelection_01.lastReadTimeSeconds + viessmannApiSelection_01.readIntervalSeconds - dateTimeUTCNow.secondstime());
+  
+  if ((viessmannApiSelection_01.lastReadTimeSeconds + viessmannApiSelection_01.readIntervalSeconds) < dateTimeUTCNow.secondstime())
+  { 
       Serial.println(F("##########Have to read Features#########\n"));
-      httpCode = read_Vi_FeaturesFromApi((const char*)"dummyCert", myViessmannApiAccountPtr, Data_0_Id, Gateways_0_Serial, Gateways_0_Devices_0_Id, viessmannApiSelectionPtr);
+      
+      t_httpCode httpCode = read_Vi_FeaturesFromApi(myX509Certificate, myViessmannApiAccountPtr, Data_0_Id, Gateways_0_Serial, Gateways_0_Devices_0_Id, viessmannApiSelectionPtr_01);
+      
+      //int httpCode = t_http_codes::HTTP_CODE_OK;
       if (httpCode == t_http_codes::HTTP_CODE_OK)
       {
-        viessmannApiSelection.lastReadTime = dateTimeUTCNow;
+        pViessmannApiSelectionPtr ->lastReadTimeSeconds = dateTimeUTCNow.secondstime();
+        //viessmannApiSelection_01.lastReadTimeSeconds = dateTimeUTCNow.secondstime();
+        
         Serial.println(F("Succeeded to read Features from Viessmann Cloud\n"));
-        Serial.printf("LastReadTime: %d dateTimeUTCNow: %d, Interval: %d\n", viessmannApiSelection.lastReadTime.secondstime(), dateTimeUTCNow.secondstime(), viessmannApiSelection.readInterval.totalseconds()); 
+        
+        Serial.printf("OK-LastReadTime: %u dateTimeUTCNow: %u, Interval: %u\n", (uint32_t)viessmannApiSelection_01.lastReadTimeSeconds, dateTimeUTCNow.secondstime(), viessmannApiSelection_01.readIntervalSeconds); 
       }
       else
       {
-        viessmannApiSelection.lastReadTime = dateTimeUTCNow;
-        Serial.println(F("Failed to read Features from Viessmann Cloud")); 
+        pViessmannApiSelectionPtr ->lastReadTimeSeconds = dateTimeUTCNow.secondstime();
+        //viessmannApiSelection_01.lastReadTimeSeconds = dateTimeUTCNow.secondstime();
+        
+        //viessmannApiSelection_01.lastReadTime = dateTimeUTCNow;
+        Serial.println(F("Failed to read Features from Viessmann Cloud"));
+        Serial.printf("Else-LastReadTime: %u dateTimeUTCNow: %u, Interval: %u\n", (uint32_t)viessmannApiSelection_01.lastReadTimeSeconds, dateTimeUTCNow.secondstime(), (uint32_t)viessmannApiSelection_01.readIntervalSeconds); 
         //Serial.println((char*)bufferStorePtr);
       } 
   }
@@ -3277,7 +3291,9 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
   #endif
 
   memset(bufferStorePtr, '\0', bufferStoreLength);
+  
   ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, selectedClient, bufferStorePtr);
+  
   Serial.printf("\r\n(%u) ",loadViFeaturesCount);
   Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
                                         localTime.month() , localTime.day(),
@@ -3295,8 +3311,8 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
 
     // Populate features array and replace the name read from Api
     // with the name used in this Application
-    features[0] = apiSelectionPtr ->_3_temperature_main;
-    strcpy(features[0].name, (const char *)"_3_temperature_main");
+    features[0] = apiSelectionPtr ->_2_temperature_main;
+    strcpy(features[0].name, (const char *)"_2_temperature_main");
     features[1] = apiSelectionPtr ->_5_boiler_temperature;
     strcpy(features[1].name, (const char *)"_5_boiler_temperature");
     features[2] = apiSelectionPtr ->_7_burner_modulation;
@@ -3313,27 +3329,27 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     strcpy(features[7].name, (const char *)"_23_heating_curve_slope");
     features[8] = apiSelectionPtr ->_77_temperature_supply;
     strcpy(features[8].name, (const char *)"_77_temperature_supply");
-    features[9] = apiSelectionPtr ->_85_heating_dhw_charging;
-    strcpy(features[9].name, (const char *)"_85_heating_dhw_charging");
-    features[10] = apiSelectionPtr ->_86_heating_dhw_pump_status;
-    strcpy(features[10].name, (const char *)"_86_heating_dhw_pump_status");
-    features[11] = apiSelectionPtr ->_88_heating_dhw_pump_primary_status;
-    strcpy(features[11].name, (const char *)"_88_heating_dhw_pump_primary_status");
-    features[12] = apiSelectionPtr ->_90_heating_dhw_cylinder_temperature;
-    strcpy(features[12].name, (const char *)"_90_heating_dhw_cylinder_temperature");
-    features[13] = apiSelectionPtr ->_92_heating_dhw_outlet_temperature;
-    strcpy(features[13].name, (const char *)"_92_heating_dhw_outlet_temperature");
-    features[14] = apiSelectionPtr ->_93_heating_dhw_main_temperature;
-    strcpy(features[14].name, (const char *)"_93_heating_dhw_main_temperature");
-    features[15] = apiSelectionPtr ->_95_heating_temperature_outside;
-    strcpy(features[15].name, (const char *)"_95_heating_temperature_outside");
+    features[9] = apiSelectionPtr ->_84_heating_dhw_charging;
+    strcpy(features[9].name, (const char *)"_84_heating_dhw_charging");
+    features[10] = apiSelectionPtr ->_85_heating_dhw_pump_status;
+    strcpy(features[10].name, (const char *)"_85_heating_dhw_pump_status");
+    features[11] = apiSelectionPtr ->_87_heating_dhw_pump_primary_status;
+    strcpy(features[11].name, (const char *)"_87_heating_dhw_pump_primary_status");
+    features[12] = apiSelectionPtr ->_89_heating_dhw_cylinder_temperature;
+    strcpy(features[12].name, (const char *)"_89_heating_dhw_cylinder_temperature");
+    features[13] = apiSelectionPtr ->_91_heating_dhw_outlet_temperature;
+    strcpy(features[13].name, (const char *)"_91_heating_dhw_outlet_temperature");
+    features[14] = apiSelectionPtr ->_92_heating_dhw_main_temperature;
+    strcpy(features[14].name, (const char *)"_92_heating_dhw_main_temperature");
+    features[15] = apiSelectionPtr ->_94_heating_temperature_outside;
+    strcpy(features[15].name, (const char *)"_94_heating_temperature_outside");
     
     // Get 4 On/Off sensor values which were read from the Viessmann Api
     // and store them in a 'twin' of the sensor, reflecting its state 
     OnOffBurnerStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_9_burner_is_active.value), (const char *)"true") == 0, dateTimeUTCNow);
-    OnOffCirculationPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_11_circulation_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
-    OnOffHotWaterCircualtionPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_86_heating_dhw_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
-    OnOffHotWaterPrimaryPumpStatus.Feed(strcmp((apiSelectionPtr -> _88_heating_dhw_pump_primary_status.value), (const char *)"on") == 0, dateTimeUTCNow);   
+    OnOffCirculationPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_10_circulation_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
+    OnOffHotWaterCircualtionPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_85_heating_dhw_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
+    OnOffHotWaterPrimaryPumpStatus.Feed(strcmp((apiSelectionPtr -> _87_heating_dhw_pump_primary_status.value), (const char *)"on") == 0, dateTimeUTCNow);   
   }
   else
   {

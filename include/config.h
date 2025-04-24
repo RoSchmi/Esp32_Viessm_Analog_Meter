@@ -84,7 +84,7 @@
                                            // With this option set, you can set  NTP_UPDATE_INTERVAL_MINUTES to a very
                                            // long time, so that it 'never' happens                                      
 
-#define ANALOG_SENSOR_READ_INTERVAL_SECONDS 0   // Analog sensors are read with this interval (seconds, limeted to be not below 2)
+#define ANALOG_SENSOR_READ_INTERVAL_SECONDS 5   // Analog sensors are read with this interval (seconds, limeted to be not below 2)
 
 #define GASMETER_AI_API_READ_INTERVAL_SECONDS 4  //Values from the AiOnTheEdge gasmeter are read with this timeinterval
 

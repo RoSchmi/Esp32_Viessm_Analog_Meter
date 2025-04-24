@@ -1,11 +1,18 @@
 #include "ViessmannApiSelection.h"
 
+     
+
 // Constructor
-ViessmannApiSelection::ViessmannApiSelection(DateTime pLastReadTime, TimeSpan pReadInterval)
+
+ViessmannApiSelection::ViessmannApiSelection(int64_t pLastReadTimeSeconds, int32_t pReadIntervalSeconds)
 {
-    readInterval = pReadInterval;
-    lastReadTime = pLastReadTime;
+    readIntervalSeconds = pReadIntervalSeconds;
+
+    lastReadTimeSeconds = pLastReadTimeSeconds;
+    
 }
+
+
 
 /**
  * destructor
