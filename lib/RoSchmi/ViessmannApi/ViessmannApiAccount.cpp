@@ -51,5 +51,7 @@ void ViessmannApiAccount::RenewAccessToken(const String accessToken)
 /**
  * destructor
  */
+/*
 ViessmannApiAccount::~ViessmannApiAccount()
 {}
+*/

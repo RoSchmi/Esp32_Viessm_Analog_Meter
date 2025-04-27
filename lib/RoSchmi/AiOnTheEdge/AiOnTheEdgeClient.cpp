@@ -13,6 +13,7 @@ AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCe
     
     _aiOnTheEdgeHttpPtr -> setReuse(false);
     _aiOnTheEdgeHttpPtr ->useHTTP10(false);
+    
   
     
      
@@ -82,25 +83,36 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
         if (httpResponseCode == HTTP_CODE_OK)
         {
             
-           #if SERIAL_PRINT == 1
+           #if SERIAL_PRINT == 1        
               Serial.println(F("Received ResponseCode > 0"));
            #endif
             
            String payload = _aiOnTheEdgeHttpPtr ->getString();
-           #if SERIAL_PRINT == 1         
-                Serial.printf("%s\n",payload.c_str());
-           #endif
+           
+
+           //#if SERIAL_PRINT == 1         
+               Serial.printf("%s\n",payload.c_str());
+               //Serial.printf("%s\n", (const char *) payload);
+           //#endif
           
-           int charsToCopy = payload.length() < reponseBufferLength ? payload.length() : reponseBufferLength;
+           int charsToCopy = payload.length() < reponseBufferLength ? payload.length() : reponseBufferLength - 1;
            for (int i = 0; i < charsToCopy; i++)
            {
                responseBuffer[i] = payload[i];
            }
+           responseBuffer[charsToCopy] = '\0';
+           
            
            const char* json = (char *)responseBuffer;
            
             JsonDocument doc;
             deserializeJson(doc, json);
+
+            
+            
+            //Serial.printf("The Vi-Lastreadtime (nach deserializeJson) %u\n", apiSelectionPtr ->lastReadTime);
+            
+            
               
             int nameLen = apiSelectionPtr ->nameLenght;
             int stampLen = apiSelectionPtr -> stampLength;
@@ -200,9 +212,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
     }
     
     _aiOnTheEdgeHttpPtr->end();
+    //Serial.printf("Free heapsize: %d Minimum: %d\n\n", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
     
     return httpResponseCode;
 }
-
-AiOnTheEdgeClient::~AiOnTheEdgeClient()
-{};

@@ -10,5 +10,7 @@ AiOnTheEdgeApiSelection::AiOnTheEdgeApiSelection(DateTime pLastReadTime, TimeSpa
 /**
  * destructor
  */
+/*
 AiOnTheEdgeApiSelection::~AiOnTheEdgeApiSelection()
 {}
+*/

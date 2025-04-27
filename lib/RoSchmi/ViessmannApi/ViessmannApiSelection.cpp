@@ -6,16 +6,18 @@
 
 ViessmannApiSelection::ViessmannApiSelection(int64_t pLastReadTimeSeconds, int32_t pReadIntervalSeconds)
 {
-    readIntervalSeconds = pReadIntervalSeconds;
-
     lastReadTimeSeconds = pLastReadTimeSeconds;
-    
+    readIntervalSeconds = pReadIntervalSeconds;
+    //valueLength = FEATUREVALUELENGTH;
+    //nameLenght = FEATURENAMELENGTH;
+    //stampLength = FEATURESTAMPLENGTH; 
 }
 
 
 
-/**
+/*
  * destructor
- */
 ViessmannApiSelection::~ViessmannApiSelection()
 {}
+
+ */

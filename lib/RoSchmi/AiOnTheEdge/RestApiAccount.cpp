@@ -32,5 +32,7 @@ void RestApiAccount::ChangeAccountParams(const String accountName, const String 
 /**
  * destructor
  */
+/*
 RestApiAccount::~RestApiAccount()
 {}
+*/

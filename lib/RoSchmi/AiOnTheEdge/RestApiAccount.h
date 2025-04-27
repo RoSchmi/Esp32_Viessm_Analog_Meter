@@ -11,7 +11,7 @@ class RestApiAccount
 public:
     RestApiAccount();
     RestApiAccount(const String accountName, const String accountKey, const String hostName, const bool useHttps, const bool useCaCert);
-    ~RestApiAccount();
+    //~RestApiAccount();
 
     void ChangeAccountParams(const String accountName, const String accountKey, const String hostName, const bool useHttps, const bool useCaCert);
     

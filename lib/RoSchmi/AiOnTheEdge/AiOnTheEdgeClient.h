@@ -14,17 +14,11 @@
 class AiOnTheEdgeClient
 {
     public:
-    //AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient *httpClient, WiFiClient * wifiClient, uint8_t * bufferStore);
     AiOnTheEdgeClient(RestApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient * pWifiClient);
     
-    
-    ~AiOnTheEdgeClient();
-    
-    //int GetFeatures(uint8_t * reponsePtr, const uint16_t reponseBufferLength);
     int GetFeatures(const char * url, uint8_t * reponsePtr, const uint16_t reponseBufferLength, AiOnTheEdgeApiSelection * apiSelectionPtr);
     int SetPreValue(const char * url, const char * preValue, uint8_t * reponsePtr, const uint16_t reponseBufferLength);
-    
-    
+     
    private:
 
    WiFiClient * _aiOnTheEdgeWifiClient;

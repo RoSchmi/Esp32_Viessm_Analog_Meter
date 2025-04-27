@@ -21,7 +21,8 @@
 
 // Uri defining where to get data from the Viessmann API
 #define VIESSMANN_USER_BASE_URI  "api.viessmann.com/users/v1/users/me";
-#define VIESSMANN_IOT_BASE_URI "api.viessmann.com/iot/v1/";
+//#define VIESSMANN_IOT_BASE_URI "api.viessmann.com/iot/v1/";
+#define VIESSMANN_IOT_BASE_URI "api.viessmann.com/iot/v2/";
 #define VIESSMANN_TOKEN_BASE_URI "iam.viessmann.com/idp/v3/token";
 
 // The credentials of your WiFi router and the name and key of your
@@ -86,7 +87,7 @@
 
 #define ANALOG_SENSOR_READ_INTERVAL_SECONDS 5   // Analog sensors are read with this interval (seconds, limeted to be not below 2)
 
-#define GASMETER_AI_API_READ_INTERVAL_SECONDS 4  //Values from the AiOnTheEdge gasmeter are read with this timeinterval
+#define GASMETER_AI_API_READ_INTERVAL_SECONDS 60 //Values from the AiOnTheEdge gasmeter are read with this timeinterval
 
 #define API_ANALOG_SENSOR_READ_INTERVAL_SECONDS 77  // Analog Sensor values from the Viessmann Api (seconds, can be 0)
 

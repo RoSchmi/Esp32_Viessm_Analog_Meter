@@ -29,7 +29,7 @@ class AiOnTheEdgeApiSelection
 
     AiOnTheEdgeApiSelection();
     AiOnTheEdgeApiSelection(DateTime pLastReadTime, TimeSpan pReadInterval);
-    ~AiOnTheEdgeApiSelection();
+    //~AiOnTheEdgeApiSelection();
     
     //static Feature featureEmpty;
 

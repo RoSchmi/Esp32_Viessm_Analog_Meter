@@ -4,33 +4,43 @@
 #ifndef _VIESSMANNAPISELECTION_H_
 #define _VIESSMANNAPISELECTION_H_
 
-#define FEATUREVALUELENGTH 12
-#define FEATURENAMELENGTH 60
-#define FEATURESTAMPLENGTH 30
+//#define FEATUREVALUELENGTH 12
+//#define FEATURENAMELENGTH 60
+//#define FEATURESTAMPLENGTH 30
 
 class ViessmannApiSelection
 {
-    public:  
-    int  valueLength = FEATUREVALUELENGTH;
-    int nameLenght = FEATURENAMELENGTH;
-    int stampLength = FEATURESTAMPLENGTH;
+
+    public:
+    static const int valueLength = 12;
+    static const int nameLenght = 60;
+    static const int stampLength = 30;
+
+    public:
+    int64_t lastReadTimeSeconds;
+    int32_t readIntervalSeconds;
+
+ 
+    //int  valueLength = FEATUREVALUELENGTH;
+    //int nameLenght = FEATURENAMELENGTH;
+    //int stampLength = FEATURESTAMPLENGTH;
     
-    int64_t lastReadTimeSeconds = 10;
-    int32_t readIntervalSeconds = 15;
+    //int64_t lastReadTimeSeconds;
+    //int32_t readIntervalSeconds;
     //DateTime  lastReadTime = DateTime();
     //TimeSpan readInterval = 0;
     
     typedef struct Feature
     { 
         int  idx = 0;    
-        char name[FEATURENAMELENGTH] = {0};
-        char timestamp[FEATURESTAMPLENGTH] = {0};     
-        char value[FEATUREVALUELENGTH] = {0};       
+        char name[nameLenght] = {0};
+        char timestamp[stampLength] = {0};     
+        char value[valueLength] = {0};       
     }Feature;
 
     ViessmannApiSelection();
     ViessmannApiSelection(int64_t pLastReadTimeSeconds, int32_t pReadIntervalSeconds);
-    ~ViessmannApiSelection();
+    //~ViessmannApiSelection();
     
     //static Feature featureEmpty;
 
