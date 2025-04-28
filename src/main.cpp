@@ -190,6 +190,7 @@ ViessmannApiAccount * myViessmannApiAccountPtr = &myViessmannApiAccount;
 
 ViessmannApiSelection viessmannApiSelection_01( 0, VIESSMANN_API_READ_INTERVAL_SECONDS);
 ViessmannApiSelection * viessmannApiSelectionPtr_01 = &viessmannApiSelection_01;
+ 
 
 
 
@@ -2593,9 +2594,8 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
     strncpy(myUriEndpoint, (const char *)(pRestApiAccount ->UriEndPointJson).c_str(), sizeof(myUriEndpoint) - 1);
     
     
-    //Serial.printf("The Vi-Lastreatime (vor readJsonFromRestApi) %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
+    
     httpCode = readJsonFromRestApi(myX509Certificate, pRestApiAccount, pAiOnTheEdgeApiSelectionPtr);   
-    //Serial.printf("The Vi-Lastreatime (nach readJsonFromRestApi) %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
     
 
     if (httpCode == t_http_codes::HTTP_CODE_OK)
@@ -3291,14 +3291,16 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestAp
 
    Serial.printf("readJsonFromRestApi: %s\n", (const char *)url);
   Serial.printf("The Vi-Lastreadtime (vor GetFeatures) %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
+  
+  
   int64_t tempLastReadTimeSeconds = viessmannApiSelectionPtr_01 ->lastReadTimeSeconds;
   int32_t tempReadIntervalSeconds = viessmannApiSelectionPtr_01 ->readIntervalSeconds;
   
   t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures((const char *)url, bufferStorePtr, bufferStoreLength, apiSelectionPtr);
   
-  //viessmannApiSelectionPtr_01 ->lastReadTimeSeconds = tempLastReadTimeSeconds;
-  //viessmannApiSelectionPtr_01 ->readIntervalSeconds = tempReadIntervalSeconds;
-  Serial.printf("The ViLastreadtime (nach GetFeatures) %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
+  viessmannApiSelectionPtr_01 ->lastReadTimeSeconds = tempLastReadTimeSeconds;
+  viessmannApiSelectionPtr_01 ->readIntervalSeconds = tempReadIntervalSeconds;
+  Serial.printf("The Vi-Lastreadtime (nach GetFeatures) %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
   
   loadGasMeterJsonCount++;
   if (responseCode == t_http_codes::HTTP_CODE_OK)
@@ -3339,6 +3341,8 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     //Serial.println("Setting Viessmann Client insecure\n");
   }
 
+  //uint32_t tempLastReadTimeSeconds = pApiSelectionPtr ->lastReadTimeSeconds;
+
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
   #endif
@@ -3365,6 +3369,8 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
   Serial.printf("(%u) Viessmann Features: httpResponseCode is: %d\r\n", loadViFeaturesCount, responseCode);
   if (responseCode == t_http_codes::HTTP_CODE_OK)
   {
+    //pApiSelectionPtr ->lastReadTimeSeconds = dateTimeUTCNow.secondstime();
+    
     loadViFeaturesCount++;
     // After each successful request error counters are reset
     loadViFeaturesResp400Count = 0;
@@ -3538,8 +3544,6 @@ t_httpCode refresh_Vi_AccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAc
   {
     secure_wifi_client.setInsecure();
   }
-  
-  
   
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();

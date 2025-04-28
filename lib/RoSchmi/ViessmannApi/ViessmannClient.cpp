@@ -1,5 +1,5 @@
 #include "ViessmannClient.h"
-#include "ViessmannApiSelection.h"
+//#include "ViessmannApiSelection.h"
 #include "config.h"
 
 WiFiClient * _viessmannWifiClient;
@@ -68,10 +68,13 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     String Url = _viessmannAccountPtr -> UriEndPointIot + addendum;
     String authorizationHeader = "Bearer " + _viessmannAccountPtr ->AccessToken;
     //Serial.println(F("Loading Viessmann features from Cloud"));
+    
+    
+    //apiSelectionPtr ->lastReadTimeSeconds
 
-    int valLen = ViessmannApiSelection::valueLength;
-    int nameLen = ViessmannApiSelection::nameLenght;
-    int stampLen = ViessmannApiSelection::stampLength;
+    int nameLen = apiSelectionPtr ->nameLenght;
+    int stampLen = apiSelectionPtr -> stampLength;
+    int valLen = apiSelectionPtr -> valueLength;
     
     //#if SERIAL_PRINT == 1
     //Serial.printf("VI-WiFiClient Address: %d\n\n", &_viessmannWifiClient);
@@ -118,8 +121,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             Serial.println(F("JsonDoc is deserialized"));
             #endif
 
-            //_viessmannHttpPtr ->useHTTP10(false);
-            //_viessmannHttpPtr->end();
+            
             
     
             char tempVal[valLen] = {'\0'};
@@ -270,6 +272,9 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                 snprintf(apiSelectionPtr -> _94_heating_temperature_outside.value, valLen - 1, (const char*)tempVal);
                             
                 Serial.println(F("Doc 17"));
+
+                
+                
                 //Serial.printf("%s   %s   %s\n", apiSelectionPtr -> _94_heating_temperature_outside.name, apiSelectionPtr -> _94_heating_temperature_outside.timestamp, apiSelectionPtr -> _94_heating_temperature_outside.value);   
             }
             else

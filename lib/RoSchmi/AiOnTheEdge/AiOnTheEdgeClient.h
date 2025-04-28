@@ -26,8 +26,8 @@ class AiOnTheEdgeClient
    RestApiAccount * _restApiAccountPtr;
    char * _aiOnTheEdgeCaCert;
 
-   char initName[FEATURENAMELENGTH] {0};
-   char initTimestamp[FEATURESTAMPLENGTH] {0};
-   char initValue[FEATUREVALUELENGTH] {0};
+  // char initName[FEATURENAMELENGTH] {0};
+  // char initTimestamp[FEATURESTAMPLENGTH] {0};
+  // char initValue[FEATUREVALUELENGTH] {0};
 };
 #endif

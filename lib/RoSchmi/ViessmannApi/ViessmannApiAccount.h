@@ -13,8 +13,7 @@ class ViessmannApiAccount
 public:
     ViessmannApiAccount();
     ViessmannApiAccount(String clientId, String accessToken, String apiIot, String apiUser, String apiToken, const bool useHttps, const bool useCaCert);
-    //~ViessmannApiAccount();
-
+    
     void ChangeAccountParams(String clientId, String accessToken, String apiIot, String apiUser, String apiToken, const bool useHttps, const bool useCaCert);
     
     void RenewAccessToken(const String accessToken);
@@ -30,7 +29,6 @@ public:
 
     bool UseHttps;
     bool UseCaCert;
-  
 };
 
 #endif  // _VIESSMANNAPIACCOUNT_H_

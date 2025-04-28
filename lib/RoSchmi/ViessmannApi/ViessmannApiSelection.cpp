@@ -8,6 +8,7 @@ ViessmannApiSelection::ViessmannApiSelection(int64_t pLastReadTimeSeconds, int32
 {
     lastReadTimeSeconds = pLastReadTimeSeconds;
     readIntervalSeconds = pReadIntervalSeconds;
+    
     //valueLength = FEATUREVALUELENGTH;
     //nameLenght = FEATURENAMELENGTH;
     //stampLength = FEATURESTAMPLENGTH; 

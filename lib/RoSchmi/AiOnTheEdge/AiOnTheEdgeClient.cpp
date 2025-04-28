@@ -14,9 +14,6 @@ AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCe
     _aiOnTheEdgeHttpPtr -> setReuse(false);
     _aiOnTheEdgeHttpPtr ->useHTTP10(false);
     
-  
-    
-     
 
     // Some buffers located in memory segment .dram0.bss are injected to achieve lesser stack consumption
     

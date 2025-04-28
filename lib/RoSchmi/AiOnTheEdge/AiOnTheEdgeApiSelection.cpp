@@ -6,11 +6,3 @@ AiOnTheEdgeApiSelection::AiOnTheEdgeApiSelection(DateTime pLastReadTime, TimeSpa
     readInterval = pReadInterval;
     lastReadTime = pLastReadTime;
 }
-
-/**
- * destructor
- */
-/*
-AiOnTheEdgeApiSelection::~AiOnTheEdgeApiSelection()
-{}
-*/
