@@ -1781,7 +1781,7 @@ void setup()
   
   analogSensorMgr_Vi_01.SetReadInterval(API_ANALOG_SENSOR_READ_INTERVAL_SECONDS);
   
-  httpCode = refresh_Vi_AccessTokenFromApi((const char*)"dummyCert", myViessmannApiAccountPtr, viessmannRefreshToken);
+  httpCode = refresh_Vi_AccessTokenFromApi((const char*)"dummyCaCert", myViessmannApiAccountPtr, viessmannRefreshToken);
   if (httpCode == t_http_codes::HTTP_CODE_OK)
   {   
     AccessTokenRefreshTime = dateTimeUTCNow;
@@ -1797,7 +1797,7 @@ void setup()
     }
   }
   
-  httpCode = read_Vi_UserFromApi((const char*)"dummyCert", myViessmannApiAccountPtr);
+  httpCode = read_Vi_UserFromApi((const char*)"dummyCaCert", myViessmannApiAccountPtr);
   if (httpCode == t_http_codes::HTTP_CODE_OK)
   {
     Serial.println(F("UserId successfully read from Viessmann Cloud"));
@@ -1816,7 +1816,7 @@ void setup()
   }
 
   
-  httpCode = read_Vi_EquipmentFromApi((const char*)"dummyCert", myViessmannApiAccountPtr, &Data_0_Id, equipBufLen, Data_0_Description, Data_0_Address_Street, Data_0_Address_HouseNumber, Gateways_0_Serial, Gateways_0_Devices_0_Id);
+  httpCode = read_Vi_EquipmentFromApi((const char*)"dummyCaCert", myViessmannApiAccountPtr, &Data_0_Id, equipBufLen, Data_0_Description, Data_0_Address_Street, Data_0_Address_HouseNumber, Gateways_0_Serial, Gateways_0_Devices_0_Id);
   if (httpCode == t_http_codes::HTTP_CODE_OK)
   {
     Serial.println(F("Equipment successfully read from Viessmann Cloud"));
@@ -1883,7 +1883,7 @@ void loop()
       // refresh access token if refresh interval has expired 
       if ((AccessTokenRefreshTime.operator+(AccessTokenRefreshInterval)).operator<(dateTimeUTCNow))
       {
-          httpCode = refresh_Vi_AccessTokenFromApi((const char*)"dummyCert", myViessmannApiAccountPtr, viessmannRefreshToken);
+          httpCode = refresh_Vi_AccessTokenFromApi((const char*)"dummyCaCert", myViessmannApiAccountPtr, viessmannRefreshToken);
           
           if (httpCode == t_http_codes::HTTP_CODE_OK)
           {           
@@ -2654,16 +2654,13 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
     {
       if (httpResponseCode == t_http_codes::HTTP_CODE_OK)
       {
-        Serial.println("Success to read Features from Ai-On-The-Edge");
-        //pAiOnTheEdgeApiSelectionPtr = tempAiOnTheEdgeApiSelectionPtr;
-        //Serial.printf("Raw-Value = %s", (char *)(pAiOnTheEdgeApiSelectionPtr->_1_raw).value);     
-        pAiOnTheEdgeApiSelectionPtr ->lastReadTimeSeconds = (int64_t)dateTimeUTCNow.secondstime();
-          
+        //Serial.println("Success to read Features from Ai-On-The-Edge");       
+        pAiOnTheEdgeApiSelectionPtr ->lastReadTimeSeconds = (int64_t)dateTimeUTCNow.secondstime();          
       }
       else
       {
         pAiOnTheEdgeApiSelectionPtr ->lastReadTimeSeconds = (int64_t)dateTimeUTCNow.secondstime();
-        Serial.println(F("Failed to read Features from Ai-On-The-Edge-Device")); 
+        Serial.println("Failed to read Features from Ai-On-The-Edge-Device"); 
         Serial.println((char*)bufferStorePtr);
       }
     }
@@ -2796,14 +2793,14 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
           strncpy(preValue, (const char *)selectedFeature.value, sizeof(preValue) -1);
           preValue[sizeof(preValue) -1] = '\0';
           
-          Serial.printf("Value read was: %s\n", preValue);
+          //Serial.printf("Raw-value read was: %s\n", preValue);
           
           if (strcmp((char *)preValue, (char *)"999.9") != 0)
           {
             float preValueFloat = atof(preValue);
             preValueFloat = preValueFloat - 0.01f;
             snprintf(preValue, sizeof(preValue), "%.2f", preValueFloat);             
-            t_httpCode httpResponse = setAiPreValueViaRestApi((const char*)"dummyCertificate", &gasmeterApiAccount, (const char *)preValue);
+            t_httpCode httpResponse = setAiPreValueViaRestApi((const char*)"dummyCaCert", &gasmeterApiAccount, (const char *)preValue);
             if (httpResponse == t_http_codes::HTTP_CODE_OK)
             {
               isFirstGasmeterRead = false;
@@ -3386,48 +3383,24 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestAp
   strncpy(url, (const char *)((pRestApiAccount -> UriEndPointJson).c_str()), sizeof(url) - 1);
   Serial.printf("readJsonFromRestApi: %s\n", (const char *)url);
   
-  //AiOnTheEdgeClient * aiOnTheEdgeClient = new AiOnTheEdgeClient(pRestApiAccount, pCaCert, httpPtr, selectedClient);
-  
-  //RoSchmi
-  //AiOnTheEdgeClient aiOnTheEdgeClient(&gasmeterApiAccount, pCaCert, httpPtr, selectedClient);
-  AiOnTheEdgeClient aiOnTheEdgeClient(pRestApiAccount, (const char*)"myCaCert", httpPtr, selectedClient);
-
+  AiOnTheEdgeClient aiOnTheEdgeClient(pRestApiAccount, (const char*)"dummyCaCert", httpPtr, selectedClient);
 
   Serial.printf("\r\n(%u) ", loadGasMeterJsonCount);
   Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
                                         localTime.month() , localTime.day(),
                                         localTime.hour() , localTime.minute());
    
-  //Serial.printf("The Vi-Lastreadtime (vor GetFeatures) %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
-  
-  
-  //int64_t tempViLastReadTimeSeconds = viessmannApiSelectionPtr_01 ->lastReadTimeSeconds;
-  //int32_t tempViReadIntervalSeconds = viessmannApiSelectionPtr_01 ->readIntervalSeconds;
   
   t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures((const char *)url, bufferStorePtr, bufferStoreLength, apiSelectionPtr);
 
-  
-  
-  //viessmannApiSelectionPtr_01 ->lastReadTimeSeconds = tempLastReadTimeSeconds;
-  //viessmannApiSelectionPtr_01 ->readIntervalSeconds = tempReadIntervalSeconds;
   Serial.println("Back from aiOnTheEdgeClient.GetFeatures");
-  //Serial.printf("The Vi-Lastreadtime (nach GetFeatures) %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
   
   loadGasMeterJsonCount++;
-  Serial.println("incremented");
-  /*
-  for (int i = 0; i < 3; i++)
-  {
-    delay (500);
-    Serial.println("Looping (0)");
-  }
-  */
-
+  
   if (responseCode == t_http_codes::HTTP_CODE_OK)
   {
     // Populate features array and replace the name read from Api
-    // with the name used in this Application
-    Serial.println("Going to populate features");
+    // with the special names used in this Application
     
     ai_features[0] = apiSelectionPtr ->_0_value;
     ai_features[1] = apiSelectionPtr ->_1_raw;
@@ -3435,9 +3408,6 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestAp
     ai_features[3] = apiSelectionPtr ->_3_error;
     ai_features[4] = apiSelectionPtr ->_4_rate;
     ai_features[5] = apiSelectionPtr ->_5_timestamp;
-    
-    Serial.println("Ready to populate features");
-   
   }
   else
   {
@@ -3451,8 +3421,6 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestAp
     
     Serial.printf("Request from REST-Api failed: Code: %d Substitution: %s \n", responseCode, ai_features[0].value);
   }
-  
-  //pRestApiSelectionPtr = apiSelectionPtr; 
   return responseCode;
 }
 #pragma endregion

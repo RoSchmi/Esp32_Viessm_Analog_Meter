@@ -13,22 +13,6 @@ AiOnTheEdgeClient::AiOnTheEdgeClient(RestApiAccount * account, const char * caCe
     
     _aiOnTheEdgeHttpPtr -> setReuse(false);
     _aiOnTheEdgeHttpPtr ->useHTTP10(false);
-    
-
-    // Some buffers located in memory segment .dram0.bss are injected to achieve lesser stack consumption
-    
-    /*
-    _requestPtr = bufferStorePtr;
-    _propertiesPtr = bufferStorePtr + REQUEST_BODY_BUFFER_LENGTH;
-    _authorizationHeaderBufferPtr = bufferStorePtr + REQUEST_BODY_BUFFER_LENGTH + PROPERTIES_BUFFER_LENGTH;
-    _responsePtr = bufferStorePtr + REQUEST_BODY_BUFFER_LENGTH + PROPERTIES_BUFFER_LENGTH + AUTH_HEADER_BUFFER_LENGTH;
-    */
-
-    
-    /*
-       char responseString[RESPONSE_BUFFER_LENGTH];
-       memset(&(responseString[0]), 0, RESPONSE_BUFFER_LENGTH);
-    */
 }
 
 #pragma region Method GetFeatures()
@@ -87,10 +71,8 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
             {               
                 // From the Features JSON string get the selected entities
                 
-                aiApiSelectionPtr -> _0_value.idx = 0;
-                Serial.println("Could access via pointer");             
-                strncpy(aiApiSelectionPtr -> _0_value.name, "value", nameLen - 1);
-                Serial.println("Could access value.name");
+                aiApiSelectionPtr -> _0_value.idx = 0;                            
+                strncpy(aiApiSelectionPtr -> _0_value.name, "value", nameLen - 1);               
                 strncpy(aiApiSelectionPtr-> _0_value.timestamp, doc["main"]["timestamp"], stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.2f", (float)doc["main"]["value"]); 
                 snprintf(aiApiSelectionPtr -> _0_value.value, valLen - 1, (const char*)tempVal);
@@ -122,9 +104,6 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
                 strncpy(aiApiSelectionPtr -> _5_timestamp.name, "timestamp", nameLen - 1);
                 strncpy(aiApiSelectionPtr-> _5_timestamp.timestamp, doc["main"]["timestamp"], stampLen - 1);
                 strncpy(aiApiSelectionPtr-> _5_timestamp.value, doc["main"]["timestamp"], nameLen - 1);
-                Serial.println("Could access all AiOntheEdge Items");
-                //Serial.printf("Value: %s\n", apiSelectionPtr -> _0_value.value);
-                //Serial.printf("Timestamp: %s\n", apiSelectionPtr -> _0_value.timestamp);                
             }
             else
             {
@@ -177,8 +156,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
     }
     
     _aiOnTheEdgeHttpPtr->end();
-    Serial.printf("Free heapsize: %d Minimum: %d\n\n", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
-    
+    //Serial.printf("Free heapsize: %d Minimum: %d\n\n", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());   
     return httpResponseCode;
 }
 #pragma endregion
@@ -202,7 +180,7 @@ t_httpCode AiOnTheEdgeClient::SetPreValue(const char * url, const char * preValu
         }
         else
         {
-            //Serial.printf("Request returned:%d\n", httpResponseCode);
+            Serial.printf("Request got wrong responsecode:%d\n", httpResponseCode);
         }
     }
     else
