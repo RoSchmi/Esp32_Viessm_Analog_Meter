@@ -2628,12 +2628,18 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
 
   // Only read features from AiOnTheEdgeDevice when readInterval has expired
   
-  int32_t remainigSeconds = pAiOnTheEdgeApiSelectionPtr ->lastReadTimeSeconds + pAiOnTheEdgeApiSelectionPtr ->readIntervalSeconds - dateTimeUTCNow.secondstime();
+  //int64_t remainigSeconds = pAiOnTheEdgeApiSelectionPtr ->lastReadTimeSeconds + pAiOnTheEdgeApiSelectionPtr ->readIntervalSeconds - dateTimeUTCNow.secondstime();
   
-  Serial.printf("Remaining seconds (Ai): %d\n", remainigSeconds);
+  int64_t utcNowSecondsTime = (int64_t)dateTimeUTCNow.secondstime();
+   
+  int64_t remainingSeconds = ((tempLastReadTimeSeconds + tempReadIntervalSeconds) - utcNowSecondsTime);
+  
+  Serial.printf("(Ai) LastReadTime: %d Interval: %d Now: %d\n", (int32_t)tempLastReadTimeSeconds, tempReadIntervalSeconds,  (int32_t)utcNowSecondsTime);
+
+  Serial.printf("Remaining seconds (Ai): %d\n", (int32_t)remainingSeconds);
   //if ((pAiOnTheEdgeApiSelectionPtr ->lastReadTime.operator+(pAiOnTheEdgeApiSelectionPtr -> readInterval)).operator<(dateTimeUTCNow))
   
-  if ((tempLastReadTimeSeconds + tempReadIntervalSeconds) < dateTimeUTCNow.secondstime())  
+  if ((tempLastReadTimeSeconds + tempReadIntervalSeconds) < (int64_t)dateTimeUTCNow.secondstime())  
   {
     char myUriEndpoint[50] = {0};
     strncpy(myUriEndpoint, (const char *)(pRestApiAccount ->UriEndPointJson).c_str(), sizeof(myUriEndpoint) - 1);
@@ -2784,31 +2790,25 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         if (isFirstGasmeterRead)
         {
           // Read raw instead of value
-          //selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, &gasmeterApiAccount, (const char *)"raw", aiOnTheEdgeApiSelectionPtr);
-          gasmeterApiSelection.lastReadTimeSeconds = (int64_t)dateTimeUTCNow.secondstime();
-          gasmeterApiSelection.readIntervalSeconds = GASMETER_AI_API_READ_INTERVAL_SECONDS;
-          selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, &gasmeterApiAccount, (const char *)"raw", gasmeterApiSelectionPtr);
-          
-                  
+          selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, &gasmeterApiAccount, (const char *)"raw", gasmeterApiSelectionPtr);                  
           char preValue[12] = {'\0'};
-          
-          
+               
           strncpy(preValue, (const char *)selectedFeature.value, sizeof(preValue) -1);
           preValue[sizeof(preValue) -1] = '\0';
+          
           Serial.printf("Value read was: %s\n", preValue);
           
           if (strcmp((char *)preValue, (char *)"999.9") != 0)
           {
-             
+            float preValueFloat = atof(preValue);
+            preValueFloat = preValueFloat - 0.01f;
+            snprintf(preValue, sizeof(preValue), "%.2f", preValueFloat);             
             t_httpCode httpResponse = setAiPreValueViaRestApi((const char*)"dummyCertificate", &gasmeterApiAccount, (const char *)preValue);
             if (httpResponse == t_http_codes::HTTP_CODE_OK)
             {
               isFirstGasmeterRead = false;
             }
-          }
-          // Write the last raw Value to preValue
-          //setAiPreValueViaRestApi(myX509Certificate, &gasmeterApiAccount, (const char *)preValue);
-          
+          }         
         }
         else
         {
@@ -2882,10 +2882,12 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
             Serial.printf("\nDisplayValue: %.1f  UnClippedValue: %.1f\n", returnValueStruct.displayValue, returnValueStruct.unClippedValue);
         //#endif
         //Serial.printf("The Vi-Lastreadtime (1): %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
+        /*
         while (true)
         {
           delay (500);
-        }                                                                                                                
+        }
+        */
       }
       break;                   
       case 1:    // Consumption this day
@@ -3386,8 +3388,9 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestAp
   
   //AiOnTheEdgeClient * aiOnTheEdgeClient = new AiOnTheEdgeClient(pRestApiAccount, pCaCert, httpPtr, selectedClient);
   
-  //AiOnTheEdgeClient aiOnTheEdgeClient(pRestApiAccount, pCaCert, httpPtr, selectedClient);
-  AiOnTheEdgeClient aiOnTheEdgeClient(&gasmeterApiAccount, pCaCert, httpPtr, selectedClient);
+  //RoSchmi
+  //AiOnTheEdgeClient aiOnTheEdgeClient(&gasmeterApiAccount, pCaCert, httpPtr, selectedClient);
+  AiOnTheEdgeClient aiOnTheEdgeClient(pRestApiAccount, (const char*)"myCaCert", httpPtr, selectedClient);
 
 
   Serial.printf("\r\n(%u) ", loadGasMeterJsonCount);
