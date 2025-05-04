@@ -71,10 +71,16 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     
     
     //apiSelectionPtr ->lastReadTimeSeconds
-
+    /*
     int nameLen = apiSelectionPtr ->nameLenght;
     int stampLen = apiSelectionPtr -> stampLength;
     int valLen = apiSelectionPtr -> valueLength;
+    */
+    
+    int nameLen = VI_FEATURENAMELENGTH;
+    int stampLen = VI_FEATURESTAMPLENGTH;
+    int valLen = VI_FEATUREVALUELENGTH;
+
     
     //#if SERIAL_PRINT == 1
     //Serial.printf("VI-WiFiClient Address: %d\n\n", &_viessmannWifiClient);

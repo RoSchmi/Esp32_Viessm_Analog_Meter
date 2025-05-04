@@ -1,8 +1,14 @@
 #include "AiOnTheEdgeApiSelection.h"
 
 // Constructor
-AiOnTheEdgeApiSelection::AiOnTheEdgeApiSelection(DateTime pLastReadTime, TimeSpan pReadInterval)
+AiOnTheEdgeApiSelection::AiOnTheEdgeApiSelection()
 {
-    readInterval = pReadInterval;
-    lastReadTime = pLastReadTime;
+    lastReadTimeSeconds = 0;
+    readIntervalSeconds = 0;    
+};
+
+AiOnTheEdgeApiSelection::AiOnTheEdgeApiSelection(int64_t pLastReadTimeSeconds, int32_t pReadIntervalSeconds)
+{
+    lastReadTimeSeconds = pLastReadTimeSeconds;
+    readIntervalSeconds = pReadIntervalSeconds;   
 }

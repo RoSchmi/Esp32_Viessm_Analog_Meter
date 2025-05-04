@@ -27,12 +27,3 @@ void RestApiAccount::ChangeAccountParams(const String accountName, const String 
     UriEndPointJson = String(strData);  
 }
 
-
-
-/**
- * destructor
- */
-/*
-RestApiAccount::~RestApiAccount()
-{}
-*/

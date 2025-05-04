@@ -1,43 +1,35 @@
 #include <Arduino.h>
 #include "DateTime.h"
 
-#ifndef _AIONTHEEDGESELECTION_H_
-#define _AIONTHEEDGESELECTION_H_
+#ifndef AIONTHEEDGEAPISELECTION_H_
+#define AIONTHEEDGEAPISELECTION_H_
 
-//#define FEATUREVALUELENGTH 12
-//#define FEATURENAMELENGTH 60
-//#define FEATURESTAMPLENGTH 30
+#define AI_FEATUREVALUELENGTH 12
+#define AI_FEATURENAMELENGTH 60
+#define AI_FEATURESTAMPLENGTH 30
 
 class AiOnTheEdgeApiSelection
 {
     public:
-
+      
     static const int valueLength = 12;
     static const int nameLenght = 60;
     static const int stampLength = 30;
-
-    //int valueLength = FEATUREVALUELENGTH;
-    //int nameLenght = FEATURENAMELENGTH;
-    //int stampLength = FEATURESTAMPLENGTH;
-    
-    
-    DateTime  lastReadTime;
-    TimeSpan readInterval;
-    
+       
+    int64_t lastReadTimeSeconds;
+    int32_t readIntervalSeconds;
+      
     typedef struct Feature
     { 
         int  idx = 0;    
-        char name[nameLenght] = {0};
-        char timestamp[stampLength] = {0};     
-        char value[valueLength] = {0};       
+        char name[AI_FEATURENAMELENGTH] = {'\0'};
+        char timestamp[AI_FEATURESTAMPLENGTH] = {'\0'};     
+        char value[AI_FEATUREVALUELENGTH] = {'\0'};       
     }Feature;
 
     AiOnTheEdgeApiSelection();
-    AiOnTheEdgeApiSelection(DateTime pLastReadTime, TimeSpan pReadInterval);
-    //~AiOnTheEdgeApiSelection();
+    AiOnTheEdgeApiSelection(int64_t pLastReadTimeSeconds, int32_t pReadIntervalSeconds);
     
-    //static Feature featureEmpty;
-
     Feature _0_value;
     Feature _1_raw;
     Feature _2_pre;
