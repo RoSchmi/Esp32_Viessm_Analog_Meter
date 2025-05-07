@@ -27,11 +27,6 @@ class ViessmannApiSelection
     int nameLenght = VI_FEATURENAMELENGTH;
     int stampLength = VI_FEATURESTAMPLENGTH;
     
-    //int64_t lastReadTimeSeconds;
-    //int32_t readIntervalSeconds;
-    //DateTime  lastReadTime = DateTime();
-    //TimeSpan readInterval = 0;
-    
     typedef struct Feature
     { 
         int  idx = 0;    

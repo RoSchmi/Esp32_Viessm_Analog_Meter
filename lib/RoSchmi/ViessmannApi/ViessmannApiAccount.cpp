@@ -29,7 +29,9 @@ void ViessmannApiAccount::ChangeAccountParams(const String clientId, const Strin
     
     const char * insert = (char *)useHttps ? "s" : "";
     int baseLength = apiIot.length() > apiUser.length() ? apiIot.length() : apiUser.length();
-    char strData[baseLength + 30];
+    // RoSchmi baseLength must be constant
+    //char strData[baseLength + 30];
+    char strData[60 + 30];
     
     sprintf(strData, "http%s://%s", insert, apiIot.c_str());
     UriEndPointIot = String(strData);

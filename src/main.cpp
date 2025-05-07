@@ -431,9 +431,8 @@ void GPIOPinISR()
 void trimLeadingSpaces(char * workstr);
 ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char * pSensorName, ViessmannApiSelection * pViessmannApiSelectionPtr);
 AiOnTheEdgeApiSelection:: Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, RestApiAccount * pRestApiAccount, const char * pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr);
-
 t_httpCode refresh_Vi_AccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, const char * refreshToken);
-t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, uint32_t Data_0_Id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * pApiSelectionPtr);
+t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, uint32_t Data_0_Id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr);
 t_httpCode read_Vi_EquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, uint32_t * p_data_0_id, const int equipBufLen, char * p_data_0_description, char * p_data_0_address_street, char * p_data_0_address_houseNumber, char * p_gateways_0_serial, char * p_gateways_0_devices_0_id);
 t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestApiAccount, AiOnTheEdgeApiSelection * apiSelectionPtr);
 t_httpCode setAiPreValueViaRestApi(X509Certificate pCaCert, RestApiAccount * pRestApiAccount, const char * pPreValue);
@@ -1907,11 +1906,7 @@ void loop()
       //testResult = atof((ReadViessmannApi_Analog_01(1, (const char *)"_2_temperature_main", viessmannApiSelectionPtr_01)).value);
       //testResult = atof((ReadViessmannApi_Analog_01(1, (const char *)"_89_heating_dhw_cylinder_temperature", viessmannApiSelectionPtr_01)).value);
       //testResult = atof((ReadViessmannApi_Analog_01(1, (const char *)"_7_burner_modulation", viessmannApiSelectionPtr_01)).value);
-
-
-
-      
-      
+ 
       dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_94_heating_temperature_outside", viessmannApiSelectionPtr_01)).value)); // Aussen
       dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_2_temperature_main", viessmannApiSelectionPtr_01)).value)); // Vorlauf                
       dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"_89_heating_dhw_cylinder_temperature",viessmannApiSelectionPtr_01)).value)); // Boiler
@@ -2323,6 +2318,627 @@ void loop()
 }
 #pragma endregion
 
+#pragma region Function ReadAnalogSensorStruct_01(int pSensorIndex)
+ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
+{
+  ValueStruct returnValueStruct = { 
+      .displayValue = (float)MAGIC_NUMBER_INVALID,
+      .unClippedValue = (float)MAGIC_NUMBER_INVALID};
+
+  char consumption[12] = {0};
+
+  switch(pSensorIndex)
+  {
+      case 0:
+      { 
+        // Total Consumption, DisplayValue and UnClippedValue 
+        //AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;
+                             
+        // select Feature by its name (pSensorName value, raw, pre, error, rate, timestamp)
+        
+        //Serial.printf("The Vi-Lastreadtime (0): %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
+    
+
+        AiOnTheEdgeApiSelection::Feature selectedFeature;
+        
+        if (isFirstGasmeterRead)
+        {
+          // Read raw instead of value
+          selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, &gasmeterApiAccount, (const char *)"raw", gasmeterApiSelectionPtr);                  
+          char preValue[12] = {'\0'};
+               
+          strncpy(preValue, (const char *)selectedFeature.value, sizeof(preValue) -1);
+          preValue[sizeof(preValue) -1] = '\0';
+          
+          //Serial.printf("Raw-value read was: %s\n", preValue);
+          
+          if (strcmp((char *)preValue, (char *)"999.9") != 0)
+          {
+            float preValueFloat = atof(preValue);
+            preValueFloat = preValueFloat - 0.1f;
+            snprintf(preValue, sizeof(preValue), "%.2f", preValueFloat);             
+            t_httpCode httpResponse = setAiPreValueViaRestApi((const char*)"dummyCaCert", &gasmeterApiAccount, (const char *)preValue);
+            if (httpResponse == t_http_codes::HTTP_CODE_OK)
+            {
+              isFirstGasmeterRead = false;
+            }
+          }         
+        }
+        else
+        {
+          selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, &gasmeterApiAccount,(const char *)"value", gasmeterApiSelectionPtr);
+          
+        }
+        //Serial.printf("The Vi-Lastreadtime (danach): %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
+        
+        Serial.println("Read value (1)");
+       
+
+        strncpy(consumption, selectedFeature.value, sizeof(consumption));                                          
+     
+        float tempNumber = (float)MAGIC_NUMBER_INVALID;
+        
+        Serial.println("Read value (2)");
+        //Serial.printf("writing consumption: %s Length: %d\n", (const char *)consumption, strlen(consumption));
+         
+        if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
+        {
+          tempNumber = atof(consumption);
+          //#if SERIAL_PRINT == 1
+            Serial.printf("\nString could be parsed to float: %s StringLength: %d\n", consumption, strlen(consumption));
+          //#endif
+        }
+        else
+        {
+          Serial.printf("Value invalid (0.00) or could not be parsed to float: %s\n", consumption);
+          tempNumber = (float)MAGIC_NUMBER_INVALID;
+
+          Serial.println("Read value (2)");
+          // RoSchmi
+          /*
+          while (true)
+          {
+            delay(500);
+          }
+          */
+        }
+        
+        // convert values near MAGIC_NUMBER_INVALID to MAGIC_NUMBER_INVALID  
+        tempNumber = (tempNumber > (float)MAGIC_NUMBER_INVALID - 0.01 && tempNumber < (float)MAGIC_NUMBER_INVALID + 0.01) ? (float)MAGIC_NUMBER_INVALID: tempNumber;
+        
+        Serial.println("Read value (3)");
+
+        if (tempNumber > (MAGIC_NUMBER_INVALID - 0.01) && tempNumber < (MAGIC_NUMBER_INVALID + 0.01))
+        {
+          // if tempNumber = MAGIC_NUMBER_INVALID return both with MAGIC_NUMBER_INVALID
+          // was preset at the beginning
+          // this means, that the values are ignored in further process
+          return returnValueStruct;
+        }
+
+        Serial.println("Read value (4)");
+
+        // multply by 10, so that there remains 1 significant digit after decimal point
+        sprintf(consumption, "%.1f", tempNumber * 10);
+        returnValueStruct.unClippedValue = atof((const char *)consumption);
+        
+        // remove leading digits, so that there are maximal 2 digits 
+        // before decimal point for .displayValue
+        while (strlen(consumption) > 4)
+        {
+            memmove(consumption, consumption + 1, strlen(consumption));
+        }
+        returnValueStruct.displayValue = atof((const char *)consumption);
+        
+        Serial.println("Read value (5)");
+
+        //#if SERIAL_PRINT == 1
+            Serial.printf("\nDisplayValue: %.1f  UnClippedValue: %.1f\n", returnValueStruct.displayValue, returnValueStruct.unClippedValue);
+        //#endif
+        //Serial.printf("The Vi-Lastreadtime (1): %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
+        /*
+        while (true)
+        {
+          delay (500);
+        }
+        */
+      }
+      break;                   
+      case 1:    // Consumption this day
+      {
+        // Calculate Day-Consumption from BaseValue and UnClippedValue 
+        float copyBaseValue = dataContainer.SampleValues[0].BaseValue;
+        float copyUnClippedValue = dataContainer.SampleValues[0].UnClippedValue;
+        uint32_t LastSendTimeSeconds = dataContainer._lastSentTime.secondstime();
+        uint32_t timeSinceLastSendSeconds = dateTimeUTCNow.secondstime() - LastSendTimeSeconds;
+                 
+        if (copyBaseValue <= copyUnClippedValue)
+        {
+          returnValueStruct.displayValue = (copyUnClippedValue - copyBaseValue); 
+        }
+        else
+        {
+          // Overflow of copyUnClippedValue has occured
+          int preDecimalPoint = (int)copyBaseValue;
+          int oneMoreDigit =  pow(10,(int)log10(preDecimalPoint) + 1);
+          returnValueStruct.displayValue = copyUnClippedValue + (oneMoreDigit - copyBaseValue);
+        }
+              
+        returnValueStruct.unClippedValue = copyUnClippedValue;
+        if (timeSinceLastSendSeconds > dataContainer.SendInterval.totalseconds() -3)
+        {                      
+          Serial.printf("\nCase 1: Day-Consumption: %.1f\n", returnValueStruct.displayValue);
+        }                      
+      }
+      break;
+      case 2:   // rate
+      {
+        uint32_t sendIntervalSeconds = dataContainer.SendInterval.totalseconds();
+        uint32_t LastSendTimeSeconds = dataContainer._lastSentTime.secondstime();       
+        
+        float copyLastSendUnClippedValue = dataContainer.SampleValues[0].LastSendUnClippedValue;
+        float copyUnClippedValue = dataContainer.SampleValues[0].UnClippedValue;                    
+        uint32_t timeSinceLastSendSeconds = dateTimeUTCNow.secondstime() - LastSendTimeSeconds;
+             
+          // Only print the last messages
+          if (timeSinceLastSendSeconds > dataContainer.SendInterval.totalseconds() -3)
+          {
+            Serial.printf("LastSendTime: %d Actual: %.d Diff: %d Interval: %d Remain %d\n", LastSendTimeSeconds,  
+            dateTimeUTCNow.secondstime(), dateTimeUTCNow.secondstime() - LastSendTimeSeconds, sendIntervalSeconds, 
+            LastSendTimeSeconds + sendIntervalSeconds - dateTimeUTCNow.secondstime());
+          }
+   
+        float valueDiffOverflowCorrected = 0;
+
+        if (copyLastSendUnClippedValue <= copyUnClippedValue)
+        {
+          Serial.println("No Overflow");
+          valueDiffOverflowCorrected = (copyUnClippedValue - copyLastSendUnClippedValue);
+          //returnValueStruct.displayValue = (copyUnClippedValue - copyLastSendUnClippedValue); 
+        }
+        else
+        {
+          // Overflow of copyUnClippedValue has occured
+          Serial.println("Overflow has occured");
+          int preDecimalPoint = (int)copyLastSendUnClippedValue;
+          int oneMoreDigit =  pow(10,(int)log10(preDecimalPoint) + 1);  
+          valueDiffOverflowCorrected = copyUnClippedValue + (oneMoreDigit - copyLastSendUnClippedValue);
+        }  
+        
+        float rate = 0.0;
+
+        if (valueDiffOverflowCorrected != 0.0f)
+        {
+            if (timeSinceLastSendSeconds > 1.0)
+            {             
+              rate = valueDiffOverflowCorrected * 50.0f / ((float)timeSinceLastSendSeconds / 60.0f); // *50 gives reasonable size in         
+            }
+        }
+          // RoSchmi
+          // Only print the last messages
+          if (timeSinceLastSendSeconds > dataContainer.SendInterval.totalseconds() -3)
+          {
+            Serial.printf("LastSendValue: %.1f Actual: %.1f Diff: %.1f Seconds: %d\n", copyLastSendUnClippedValue, 
+            copyUnClippedValue, copyUnClippedValue - copyLastSendUnClippedValue, timeSinceLastSendSeconds);  
+          
+            Serial.printf("\nCase 2: Flow is: %.1f per minute. Read after: %d seconds\n\n", rate, timeSinceLastSendSeconds);
+          }
+          // Neglect (set to MAGIC_NUMBER_INVALID when timeSinceLastSendSeconds < 5 sec)
+          returnValueStruct.displayValue = timeSinceLastSendSeconds > 5 ? rate : (float)MAGIC_NUMBER_INVALID;
+          returnValueStruct.unClippedValue = copyUnClippedValue;                              
+      }
+      break;
+      case 3:
+      {
+
+          // in the forth graph show Viessmann Vorlauftemperatur
+          
+          //SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
+          //returnValueStruct.displayValue = featureValueSet.SampleValues[1].Value;
+          //returnValueStruct.unClippedValue = returnValueStruct.displayValue;
+                     
+          // This is an alternative way to get a Viessmann Api Sensor valu                      
+          
+          //SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
+          //theRead = featureValueSet.SampleValues[1].Value;
+          
+                      
+          //theRead = atoi((char *)sSwiThresholdStr) / 10; // dummy
+          //Show ascending lines from 0 to 5, so re-boots of the board are indicated                                                
+          //theRead = ((double)(insertCounterAnalogTable % 50)) / 10;
+          returnValueStruct.displayValue = ((float)(insertCounterAnalogTable % 50)) / 10;
+          returnValueStruct.unClippedValue = 0.0;                      
+      }                   
+      break;
+    }
+  //}
+    //Serial.printf("The Vi-Lastreadtime (2): %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
+    //Serial.printf("Returning returnValueStruct %.1f %.1f\n", returnValueStruct.displayValue, returnValueStruct.unClippedValue);
+    return returnValueStruct;
+}
+#pragma endregion
+
+#pragma region Routine ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, * pRestApiAccount, const char* pSensorName, * pAiOnTheEdgeApiSelectionPtr)
+AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, RestApiAccount * pRestApiAccount, const char* pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr)
+{
+  // Use values read from the AiOnTheEdge Rest API
+  // pSensorIndex determins the line chart (No. 0 to No. 3) to be displayed.
+  // pRestApiAccount contains the url and the scheme to be used in the http-request to get the desired data
+  // pSensorName is the name of the feature to be selected (value, raw, error etc.) (see AiOnTheEdgeSelection.h)
+
+  
+  AiOnTheEdgeApiSelection::Feature returnFeature;
+  returnFeature.idx = 0;
+  strncpy(returnFeature.name, (const char *)"", sizeof(returnFeature.name) -1);
+  strncpy(returnFeature.timestamp, (const char *)"", sizeof(returnFeature.timestamp) -1);
+
+   
+  
+  // Set value to MAGIC_NUMBER_INVALID. This value is ignored in the following process
+  strncpy(returnFeature.value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.value) - 1);
+  
+  // Save lastReadTimeSeconds and readIntervalSeconds (are restored later)
+  int64_t tempLastReadTimeSeconds = pAiOnTheEdgeApiSelectionPtr -> lastReadTimeSeconds;
+  int32_t tempReadIntervalSeconds = pAiOnTheEdgeApiSelectionPtr ->readIntervalSeconds;
+  
+  //AiOnTheEdgeApiSelection tempAiOnTheEdgeApiSelection(tempLastReadTimeSeconds, tempReadIntervalSeconds);
+  //AiOnTheEdgeApiSelection::Feature initFeature;
+  //initFeature.idx = 0;
+  //strncpy(initFeature.name, (const char *)"", sizeof(initFeature.name)) ;
+  
+  //RoSchmi
+  //AiOnTheEdgeApiSelection * tempAiOnTheEdgeApiSelectionPtr = &tempAiOnTheEdgeApiSelection;
+
+  // Only read features from AiOnTheEdgeDevice when readInterval has expired
+  
+  //int64_t remainigSeconds = pAiOnTheEdgeApiSelectionPtr ->lastReadTimeSeconds + pAiOnTheEdgeApiSelectionPtr ->readIntervalSeconds - dateTimeUTCNow.secondstime();
+  
+  int64_t utcNowSecondsTime = (int64_t)dateTimeUTCNow.secondstime();
+   
+  int64_t remaining_Ai_Seconds = ((tempLastReadTimeSeconds + tempReadIntervalSeconds) - utcNowSecondsTime);
+  
+  Serial.printf("(Ai) LastReadTime: %d Interval: %d Now: %d\n", (int32_t)tempLastReadTimeSeconds, tempReadIntervalSeconds,  (int32_t)utcNowSecondsTime);
+
+  Serial.printf("Remaining seconds (Ai): %d\n", (int32_t)remaining_Ai_Seconds);
+  //if ((pAiOnTheEdgeApiSelectionPtr ->lastReadTime.operator+(pAiOnTheEdgeApiSelectionPtr -> readInterval)).operator<(dateTimeUTCNow))
+  
+  if ((tempLastReadTimeSeconds + tempReadIntervalSeconds) < utcNowSecondsTime)  
+  {
+    char myUriEndpoint[50] = {0};
+    strncpy(myUriEndpoint, (const char *)(pRestApiAccount ->UriEndPointJson).c_str(), sizeof(myUriEndpoint) - 1);
+    
+    t_httpCode httpResponseCode = readJsonFromRestApi(myX509Certificate, pRestApiAccount, pAiOnTheEdgeApiSelectionPtr);   
+    
+    // Restore lastReadTimeSeconds and readIntervalSeconds
+    pAiOnTheEdgeApiSelectionPtr->lastReadTimeSeconds = tempLastReadTimeSeconds;
+    pAiOnTheEdgeApiSelectionPtr->readIntervalSeconds = tempReadIntervalSeconds;
+
+    if (httpResponseCode > 0)
+    {
+      if (httpResponseCode == t_http_codes::HTTP_CODE_OK)
+      {
+        //Serial.println("Success to read Features from Ai-On-The-Edge");       
+        pAiOnTheEdgeApiSelectionPtr ->lastReadTimeSeconds = (int64_t)dateTimeUTCNow.secondstime();          
+      }
+      else
+      {
+        pAiOnTheEdgeApiSelectionPtr ->lastReadTimeSeconds = (int64_t)dateTimeUTCNow.secondstime();
+        Serial.println("Failed to read Features from Ai-On-The-Edge-Device"); 
+        Serial.println((char*)bufferStorePtr);
+      }
+    }
+    else
+    {
+      Serial.println("Failed reading from Ai-On-The-Edge-Device"); 
+    }
+  }
+ 
+  if (analogSensorMgr_Ai_01.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
+  {
+    for (int i = 0; i < AI_FEATURES_COUNT; i++)
+    {       
+      if (strcmp((const char *)ai_features[i].name, pSensorName) == 0)
+      {       
+        returnFeature = ai_features[i];
+
+        Serial.printf("\nanalogSensorMgr_Ai_01: Value is used. Index: %d Value: %s\n", pSensorIndex, returnFeature.value);
+        
+        analogSensorMgr_Ai_01.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, atof(returnFeature.value), 0.0f, MAGIC_NUMBER_INVALID);                         
+        break;
+      }     
+    } 
+  } 
+  return returnFeature;
+}
+#pragma endregion
+
+#pragma region Routine readJsonFromRestApi(pCaCert, *pRestApiAccount, *apiSelectionPtr)
+t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestApiAccount , AiOnTheEdgeApiSelection * apiSelectionPtr)
+{
+  WiFiClient * selectedClient = pRestApiAccount ->UseHttps ? &secure_wifi_client : &plain_wifi_client;
+  
+  if (pRestApiAccount -> UseHttps && !(pRestApiAccount -> UseCaCert))
+  {
+    secure_wifi_client.setInsecure();
+  }
+
+  int64_t tempLastReadTimeSeconds = apiSelectionPtr ->lastReadTimeSeconds;
+  int32_t tempReadIntervalSeconds = apiSelectionPtr ->readIntervalSeconds;
+
+  #if WORK_WITH_WATCHDOG == 1
+      esp_task_wdt_reset();
+  #endif
+
+  memset(bufferStorePtr, '\0', bufferStoreLength);
+
+  char url[70] = {'\0'};
+  strncpy(url, (const char *)((pRestApiAccount -> UriEndPointJson).c_str()), sizeof(url) - 1);
+  Serial.printf("readJsonFromRestApi: %s\n", (const char *)url);
+  
+  AiOnTheEdgeClient aiOnTheEdgeClient(pRestApiAccount, (const char*)"dummyCaCert", httpPtr, selectedClient);
+
+  Serial.printf("\r\n(%u) ", loadGasMeterJsonCount);
+  Serial.printf("%i/%02d/%02d %02d:%02d \n", localTime.year(), 
+                                        localTime.month() , localTime.day(),
+                                        localTime.hour() , localTime.minute());
+   
+  
+  Serial.printf("The Vi-Lastreadtime (vor GetFeatures) %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
+  int64_t tempLast_Vi_ReadTimeSeconds = viessmannApiSelectionPtr_01 ->lastReadTimeSeconds;
+  int32_t temp_Vi_ReadIntervalSeconds = viessmannApiSelectionPtr_01 ->readIntervalSeconds;
+
+  t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures((const char *)url, bufferStorePtr, bufferStoreLength, apiSelectionPtr);
+  
+  viessmannApiSelectionPtr_01 ->lastReadTimeSeconds = tempLast_Vi_ReadTimeSeconds;
+  viessmannApiSelectionPtr_01 ->readIntervalSeconds = temp_Vi_ReadIntervalSeconds;
+  
+  Serial.println("Back from aiOnTheEdgeClient.GetFeatures");
+  Serial.printf("The ViLastreadtime (nach GetFeatures) %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
+  
+  
+  loadGasMeterJsonCount++;
+  
+  if (responseCode == t_http_codes::HTTP_CODE_OK)
+  {
+    // Populate features array and replace the name read from Api
+    // with the special names used in this Application
+    
+    ai_features[0] = apiSelectionPtr ->_0_value;
+    ai_features[1] = apiSelectionPtr ->_1_raw;
+    ai_features[2] = apiSelectionPtr ->_2_pre;
+    ai_features[3] = apiSelectionPtr ->_3_error;
+    ai_features[4] = apiSelectionPtr ->_4_rate;
+    ai_features[5] = apiSelectionPtr ->_5_timestamp;
+  }
+  else
+  {
+    
+    ai_features[0] = apiSelectionPtr ->_0_value;
+    ai_features[1] = apiSelectionPtr ->_1_raw;
+    ai_features[2] = apiSelectionPtr ->_2_pre;
+    ai_features[3] = apiSelectionPtr ->_3_error;
+    ai_features[4] = apiSelectionPtr ->_4_rate;
+    ai_features[5] = apiSelectionPtr ->_5_timestamp;
+    
+    Serial.printf("Request from REST-Api failed: Code: %d Substitution: %s \n", responseCode, ai_features[0].value);
+  }
+  return responseCode;
+}
+#pragma endregion
+
+
+#pragma region Routine ReadViessmannApi_Analog_01(pSensorIndex, const char* pSensorName, * pViessmannApiSelectionPtr)
+ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char* pSensorName, ViessmannApiSelection * pViessmannApiSelectionPtr)
+{
+  
+  // Use values read from the Viessmann API
+  // pSensorIndex determins the position (from 4). pSensorName is the name of the feature (see ViessmannApiSelection.h)
+  
+  // preset a 'returnFeature' with value = MAGIC_NUMBER_INVALID (999.9)
+
+  int64_t tempLastReadTimeSeconds = pViessmannApiSelectionPtr -> lastReadTimeSeconds;
+  int32_t tempReadIntervalSeconds = pViessmannApiSelectionPtr ->readIntervalSeconds;
+  //ViessmannApiSelection tempViessmannApiSelection(tempLastReadTimeSeconds, tempReadIntervalSeconds);
+  
+  ViessmannApiSelection::Feature returnFeature;
+  strncpy(returnFeature.value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.value) - 1);
+  
+  // Only read features from the cloud when readInterval has expired
+  
+   
+  //int64_t remaining_Vi_seconds = pViessmannApiSelectionPtr ->lastReadTimeSeconds + pViessmannApiSelectionPtr ->readIntervalSeconds - dateTimeUTCNow.secondstime();
+  int64_t utcNowSecondsTime = (int64_t)dateTimeUTCNow.secondstime();
+  int64_t remaining_Vi_seconds = tempLastReadTimeSeconds + tempReadIntervalSeconds - utcNowSecondsTime;
+  
+  //if (remaining_Vi_seconds < 2)
+  //{
+  //Serial.printf("Vi-LastReadTimeSeconds: %u dateTimeUTCNow: %u ReadInterval: %u\n", (uint32_t)pViessmannApiSelectionPtr -> lastReadTimeSeconds, dateTimeUTCNow.secondstime(), pViessmannApiSelectionPtr ->readIntervalSeconds);
+  //Serial.printf("Remaining seconds to read (Vi): %d\n", pViessmannApiSelectionPtr ->lastReadTimeSeconds + pViessmannApiSelectionPtr ->readIntervalSeconds - dateTimeUTCNow.secondstime());
+  Serial.printf("Remaining seconds to read (Vi): %d\n",  (int32_t)remaining_Vi_seconds);
+  
+//}
+
+
+  //if ((pViessmannApiSelectionPtr ->lastReadTimeSeconds + pViessmannApiSelectionPtr ->readIntervalSeconds) < dateTimeUTCNow.secondstime())
+  if ((tempLastReadTimeSeconds + tempReadIntervalSeconds) < utcNowSecondsTime)
+  
+  { 
+      Serial.println(F("########## Have to read Vi-Features #########\n"));
+      
+      t_httpCode httpCode = read_Vi_FeaturesFromApi(myX509Certificate, myViessmannApiAccountPtr, Data_0_Id, Gateways_0_Serial, Gateways_0_Devices_0_Id, pViessmannApiSelectionPtr);
+      
+      //int httpCode = t_http_codes::HTTP_CODE_OK;
+
+      // Restore lastReadTimeSeconds and readIntervalSeconds
+      pViessmannApiSelectionPtr->lastReadTimeSeconds = tempLastReadTimeSeconds;
+      pViessmannApiSelectionPtr->readIntervalSeconds = tempReadIntervalSeconds;
+      if (httpCode == t_http_codes::HTTP_CODE_OK)
+      {
+        pViessmannApiSelectionPtr ->lastReadTimeSeconds = utcNowSecondsTime;
+        //viessmannApiSelection_01.lastReadTimeSeconds = dateTimeUTCNow.secondstime();
+        
+        Serial.println(F("Succeeded to read Features from Viessmann Cloud\n"));
+        
+        Serial.printf("OK-Vi-LastReadTime: %u dateTimeUTCNow: %u, Interval: %u\n", (uint32_t)pViessmannApiSelectionPtr ->lastReadTimeSeconds, dateTimeUTCNow.secondstime(), pViessmannApiSelectionPtr ->readIntervalSeconds); 
+      }
+      else
+      {
+        pViessmannApiSelectionPtr ->lastReadTimeSeconds = utcNowSecondsTime;
+        //viessmannApiSelection_01.lastReadTimeSeconds = dateTimeUTCNow.secondstime();
+        
+        //viessmannApiSelection_01.lastReadTime = dateTimeUTCNow;
+        Serial.println(F("Failed to read Features from Viessmann Cloud"));
+        Serial.printf("Else-LastReadTime: %u dateTimeUTCNow: %u, Interval: %u\n", (uint32_t)viessmannApiSelection_01.lastReadTimeSeconds, dateTimeUTCNow.secondstime(), (uint32_t)viessmannApiSelection_01.readIntervalSeconds); 
+        //Serial.println((char*)bufferStorePtr);
+      } 
+  }
+  
+  if (analogSensorMgr_Vi_01.HasToBeRead(pSensorIndex, dateTimeUTCNow))
+  {
+    //Serial.printf("\nanalogSensorMgr_Vi_01: Value is used %d\n", pSensorIndex); 
+      
+    for (int i = 0; i < VI_FEATURES_COUNT; i++)
+    {       
+      if (strcmp((const char *)features[i].name, pSensorName) == 0)
+      {
+        returnFeature = features[i];
+        analogSensorMgr_Vi_01.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, atof(returnFeature.value), 0.0f, MAGIC_NUMBER_INVALID);           
+        break;
+      }
+    } 
+  } 
+  return returnFeature;
+}
+#pragma endregion
+
+#pragma region Routine read_Vi_FeaturesFromApi(...)
+t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * pViessmannApiAccountPtr, const uint32_t data_0_id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr)
+{
+  WiFiClient * selectedClient = (pViessmannApiAccountPtr -> UseHttps) ? &secure_wifi_client : &plain_wifi_client;
+  //Serial.printf("Have selected Client \n");
+  if ((pViessmannApiAccountPtr -> UseHttps) && !(pViessmannApiAccountPtr -> UseCaCert))
+  {
+    secure_wifi_client.setInsecure();
+    //Serial.println("Setting Viessmann Client insecure\n");
+  }
+
+  
+
+  #if WORK_WITH_WATCHDOG == 1
+      esp_task_wdt_reset();
+  #endif
+
+  int64_t tempLastReadTimeSeconds = apiSelectionPtr -> lastReadTimeSeconds;
+  int32_t tempReadIntervalSeconds = apiSelectionPtr ->readIntervalSeconds;
+  //ViessmannApiSelection tempViessmannApiSelection(tempLastReadTimeSeconds, tempReadIntervalSeconds);
+  
+  //ViessmannApiSelection * apiSelectionPtr = &tempViessmannApiSelection;
+  
+  memset(bufferStorePtr, '\0', bufferStoreLength);
+  
+  //ViessmannClient * viessmannClient = new ViessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, selectedClient, bufferStorePtr);
+  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, selectedClient, bufferStorePtr);
+  
+
+
+  Serial.printf("\r\n(%u) ",loadViFeaturesCount);
+  Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
+                                        localTime.month() , localTime.day(),
+                                        localTime.hour() , localTime.minute());
+  
+  //t_httpCode responseCode = viessmannClient ->GetFeatures(bufferStorePtr, bufferStoreLength, data_0_id, Gateways_0_Serial, Gateways_0_Devices_0_Id, apiSelectionPtr);
+  
+  
+  
+  
+  t_httpCode responseCode = viessmannClient.GetFeatures(bufferStorePtr, bufferStoreLength, data_0_id, Gateways_0_Serial, Gateways_0_Devices_0_Id, apiSelectionPtr);
+
+  
+  
+  Serial.printf("(%u) Viessmann Features: httpResponseCode is: %d\r\n", loadViFeaturesCount, responseCode);
+  if (responseCode == t_http_codes::HTTP_CODE_OK)
+  {
+    //pApiSelectionPtr ->lastReadTimeSeconds = dateTimeUTCNow.secondstime();
+    
+    loadViFeaturesCount++;
+    // After each successful request error counters are reset
+    loadViFeaturesResp400Count = 0;
+    loadViFeaturesRespOtherCount = 0;
+
+    // Populate features array and replace the name read from Api
+    // with the name used in this Application
+    features[0] = apiSelectionPtr ->_2_temperature_main;
+    strcpy(features[0].name, (const char *)"_2_temperature_main");
+    features[1] = apiSelectionPtr ->_5_boiler_temperature;
+    strcpy(features[1].name, (const char *)"_5_boiler_temperature");
+    features[2] = apiSelectionPtr ->_7_burner_modulation;
+    strcpy(features[2].name, (const char *)"_7_burner_modulation");
+    features[3] = apiSelectionPtr ->_8_burner_hours;
+    strcpy(features[3].name, (const char *)"_8_burner_hours");
+    features[4] = apiSelectionPtr ->_8_burner_starts;
+    strcpy(features[4].name, (const char *)"_8_burner_starts");
+    features[5] = apiSelectionPtr ->_9_burner_is_active;
+    strcpy(features[5].name, (const char *)"_9_burner_is_active");
+    features[6] = apiSelectionPtr ->_23_heating_curve_shift;
+    strcpy(features[6].name, (const char *)"_23_heating_curve_shift");
+    features[7] = apiSelectionPtr ->_23_heating_curve_slope;
+    strcpy(features[7].name, (const char *)"_23_heating_curve_slope");
+    features[8] = apiSelectionPtr ->_77_temperature_supply;
+    strcpy(features[8].name, (const char *)"_77_temperature_supply");
+    features[9] = apiSelectionPtr ->_84_heating_dhw_charging;
+    strcpy(features[9].name, (const char *)"_84_heating_dhw_charging");
+    features[10] = apiSelectionPtr ->_85_heating_dhw_pump_status;
+    strcpy(features[10].name, (const char *)"_85_heating_dhw_pump_status");
+    features[11] = apiSelectionPtr ->_87_heating_dhw_pump_primary_status;
+    strcpy(features[11].name, (const char *)"_87_heating_dhw_pump_primary_status");
+    features[12] = apiSelectionPtr ->_89_heating_dhw_cylinder_temperature;
+    strcpy(features[12].name, (const char *)"_89_heating_dhw_cylinder_temperature");
+    features[13] = apiSelectionPtr ->_91_heating_dhw_outlet_temperature;
+    strcpy(features[13].name, (const char *)"_91_heating_dhw_outlet_temperature");
+    features[14] = apiSelectionPtr ->_92_heating_dhw_main_temperature;
+    strcpy(features[14].name, (const char *)"_92_heating_dhw_main_temperature");
+    features[15] = apiSelectionPtr ->_94_heating_temperature_outside;
+    strcpy(features[15].name, (const char *)"_94_heating_temperature_outside");
+    
+    // Get 4 On/Off sensor values which were read from the Viessmann Api
+    // and store them in a 'twin' of the sensor, reflecting its state 
+    OnOffBurnerStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_9_burner_is_active.value), (const char *)"true") == 0, dateTimeUTCNow);
+    OnOffCirculationPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_10_circulation_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
+    OnOffHotWaterCircualtionPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_85_heating_dhw_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
+    OnOffHotWaterPrimaryPumpStatus.Feed(strcmp((apiSelectionPtr -> _87_heating_dhw_pump_primary_status.value), (const char *)"on") == 0, dateTimeUTCNow);   
+  }
+  else
+  {
+    
+    if (responseCode == 400)
+    {
+      loadViFeaturesResp400Count++;
+    }
+    else
+    {
+      loadViFeaturesRespOtherCount++;
+    }
+    Serial.printf("Bad httpResponses, Code 400: %d, Others: %d\n", loadViFeaturesResp400Count, loadViFeaturesRespOtherCount);
+  
+    if (loadViFeaturesResp400Count > 50 || loadViFeaturesRespOtherCount > 50)
+    {
+      Serial.printf("Rebooting, failed Vi-Requests. 400: %d, others: %d\n", loadViFeaturesResp400Count, loadViFeaturesRespOtherCount);
+      ESP.restart();
+      while(true)
+      {
+        delay(500); //Wait for ever
+      }
+    }
+
+    bufferStorePtr[bufferStoreLength - 1] = '\0';
+    Serial.println((char *)bufferStorePtr);
+  }
+  
+  return responseCode;
+}
+#pragma endregion
+
+
 #pragma region Routine connectMultiWiFi()
 uint8_t connectMultiWiFi()
 {
@@ -2592,412 +3208,6 @@ ViessmannApiSelection::Feature ReadViessmannFeatureFromSelection(const char * pS
     }
   }
   return returnFeature;
-}
-#pragma endregion
-
-#pragma region Routine ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, * pRestApiAccount, const char* pSensorName, * pAiOnTheEdgeApiSelectionPtr)
-AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, RestApiAccount * pRestApiAccount, const char* pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr)
-{
-  // Use values read from the AiOnTheEdge Rest API
-  // pSensorIndex determins the line chart (No. 0 to No. 3) to be displayed.
-  // pRestApiAccount contains the url and the scheme to be used in the http-request to get the desired data
-  // pSensorName is the name of the feature to be selected (value, raw, error etc.) (see AiOnTheEdgeSelection.h)
-
-  
-  AiOnTheEdgeApiSelection::Feature returnFeature;
-  returnFeature.idx = 0;
-  strncpy(returnFeature.name, (const char *)"", sizeof(returnFeature.name) -1);
-  strncpy(returnFeature.timestamp, (const char *)"", sizeof(returnFeature.timestamp) -1);
-
-   
-  
-  // Set value to MAGIC_NUMBER_INVALID. This value is ignored in the following process
-  strncpy(returnFeature.value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.value) - 1);
-  
-  // Save lastReadTimeSeconds and readIntervalSeconds (are restored later)
-  int64_t tempLastReadTimeSeconds = pAiOnTheEdgeApiSelectionPtr -> lastReadTimeSeconds;
-  int32_t tempReadIntervalSeconds = pAiOnTheEdgeApiSelectionPtr ->readIntervalSeconds;
-  
-  //AiOnTheEdgeApiSelection tempAiOnTheEdgeApiSelection(tempLastReadTimeSeconds, tempReadIntervalSeconds);
-  //AiOnTheEdgeApiSelection::Feature initFeature;
-  //initFeature.idx = 0;
-  //strncpy(initFeature.name, (const char *)"", sizeof(initFeature.name)) ;
-  
-  //RoSchmi
-  //AiOnTheEdgeApiSelection * tempAiOnTheEdgeApiSelectionPtr = &tempAiOnTheEdgeApiSelection;
-
-  // Only read features from AiOnTheEdgeDevice when readInterval has expired
-  
-  //int64_t remainigSeconds = pAiOnTheEdgeApiSelectionPtr ->lastReadTimeSeconds + pAiOnTheEdgeApiSelectionPtr ->readIntervalSeconds - dateTimeUTCNow.secondstime();
-  
-  int64_t utcNowSecondsTime = (int64_t)dateTimeUTCNow.secondstime();
-   
-  int64_t remainingSeconds = ((tempLastReadTimeSeconds + tempReadIntervalSeconds) - utcNowSecondsTime);
-  
-  Serial.printf("(Ai) LastReadTime: %d Interval: %d Now: %d\n", (int32_t)tempLastReadTimeSeconds, tempReadIntervalSeconds,  (int32_t)utcNowSecondsTime);
-
-  Serial.printf("Remaining seconds (Ai): %d\n", (int32_t)remainingSeconds);
-  //if ((pAiOnTheEdgeApiSelectionPtr ->lastReadTime.operator+(pAiOnTheEdgeApiSelectionPtr -> readInterval)).operator<(dateTimeUTCNow))
-  
-  if ((tempLastReadTimeSeconds + tempReadIntervalSeconds) < (int64_t)dateTimeUTCNow.secondstime())  
-  {
-    char myUriEndpoint[50] = {0};
-    strncpy(myUriEndpoint, (const char *)(pRestApiAccount ->UriEndPointJson).c_str(), sizeof(myUriEndpoint) - 1);
-    
-    t_httpCode httpResponseCode = readJsonFromRestApi(myX509Certificate, pRestApiAccount, pAiOnTheEdgeApiSelectionPtr);   
-    
-    // Restore lastReadTimeSeconds and readIntervalSeconds
-    pAiOnTheEdgeApiSelectionPtr->lastReadTimeSeconds = tempLastReadTimeSeconds;
-    pAiOnTheEdgeApiSelectionPtr->readIntervalSeconds = tempReadIntervalSeconds;
-
-    if (httpResponseCode > 0)
-    {
-      if (httpResponseCode == t_http_codes::HTTP_CODE_OK)
-      {
-        //Serial.println("Success to read Features from Ai-On-The-Edge");       
-        pAiOnTheEdgeApiSelectionPtr ->lastReadTimeSeconds = (int64_t)dateTimeUTCNow.secondstime();          
-      }
-      else
-      {
-        pAiOnTheEdgeApiSelectionPtr ->lastReadTimeSeconds = (int64_t)dateTimeUTCNow.secondstime();
-        Serial.println("Failed to read Features from Ai-On-The-Edge-Device"); 
-        Serial.println((char*)bufferStorePtr);
-      }
-    }
-    else
-    {
-      Serial.println("Failed reading from Ai-On-The-Edge-Device"); 
-    }
-  }
- 
-  if (analogSensorMgr_Ai_01.HasToBeRead(pSensorIndex, dateTimeUTCNow, true))
-  {
-    for (int i = 0; i < AI_FEATURES_COUNT; i++)
-    {       
-      if (strcmp((const char *)ai_features[i].name, pSensorName) == 0)
-      {       
-        returnFeature = ai_features[i];
-
-        Serial.printf("\nanalogSensorMgr_Ai_01: Value is used. Index: %d Value: %s\n", pSensorIndex, returnFeature.value);
-        
-        analogSensorMgr_Ai_01.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, atof(returnFeature.value), 0.0f, MAGIC_NUMBER_INVALID);                         
-        break;
-      }     
-    } 
-  } 
-  return returnFeature;
-}
-#pragma endregion
-
-#pragma region Routine ReadViessmannApi_Analog_01(pSensorIndex, const char* pSensorName, * pViessmannApiSelectionPtr)
-ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char* pSensorName, ViessmannApiSelection * pViessmannApiSelectionPtr)
-{
-  
-  // Use values read from the Viessmann API
-  // pSensorIndex determins the position (from 4). pSensorName is the name of the feature (see ViessmannApiSelection.h)
-  
-  // preset a 'returnFeature' with value = MAGIC_NUMBER_INVALID (999.9)
-
-  int64_t tempLastReadTimeSeconds = pViessmannApiSelectionPtr -> lastReadTimeSeconds;
-  int32_t tempReadIntervalSeconds = pViessmannApiSelectionPtr ->readIntervalSeconds;
-  ViessmannApiSelection tempViessmannApiSelection(tempLastReadTimeSeconds, tempReadIntervalSeconds);
-  
-  ViessmannApiSelection::Feature returnFeature;
-  strncpy(returnFeature.value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.value) - 1);
-  
-  // Only read features from the cloud when readInterval has expired
-  
-  int64_t remaining_Vi_seconds = pViessmannApiSelectionPtr ->lastReadTimeSeconds + pViessmannApiSelectionPtr ->readIntervalSeconds - dateTimeUTCNow.secondstime();
-  if (remaining_Vi_seconds < 2)
-  {
-  //Serial.printf("Vi-LastReadTimeSeconds: %u dateTimeUTCNow: %u ReadInterval: %u\n", (uint32_t)pViessmannApiSelectionPtr -> lastReadTimeSeconds, dateTimeUTCNow.secondstime(), pViessmannApiSelectionPtr ->readIntervalSeconds);
-  Serial.printf("Remaining seconds to read (Vi): %d\n", pViessmannApiSelectionPtr ->lastReadTimeSeconds + pViessmannApiSelectionPtr ->readIntervalSeconds - dateTimeUTCNow.secondstime());
-  }
-
-
-  if ((pViessmannApiSelectionPtr ->lastReadTimeSeconds + pViessmannApiSelectionPtr ->readIntervalSeconds) < dateTimeUTCNow.secondstime())
-  { 
-      Serial.println(F("########## Have to read Vi-Features #########\n"));
-      
-      t_httpCode httpCode = read_Vi_FeaturesFromApi(myX509Certificate, myViessmannApiAccountPtr, Data_0_Id, Gateways_0_Serial, Gateways_0_Devices_0_Id, &tempViessmannApiSelection);
-      
-      //int httpCode = t_http_codes::HTTP_CODE_OK;
-      if (httpCode == t_http_codes::HTTP_CODE_OK)
-      {
-        pViessmannApiSelectionPtr ->lastReadTimeSeconds = dateTimeUTCNow.secondstime();
-        //viessmannApiSelection_01.lastReadTimeSeconds = dateTimeUTCNow.secondstime();
-        
-        Serial.println(F("Succeeded to read Features from Viessmann Cloud\n"));
-        
-        Serial.printf("OK-Vi-LastReadTime: %u dateTimeUTCNow: %u, Interval: %u\n", (uint32_t)pViessmannApiSelectionPtr ->lastReadTimeSeconds, dateTimeUTCNow.secondstime(), pViessmannApiSelectionPtr ->readIntervalSeconds); 
-      }
-      else
-      {
-        pViessmannApiSelectionPtr ->lastReadTimeSeconds = dateTimeUTCNow.secondstime();
-        //viessmannApiSelection_01.lastReadTimeSeconds = dateTimeUTCNow.secondstime();
-        
-        //viessmannApiSelection_01.lastReadTime = dateTimeUTCNow;
-        Serial.println(F("Failed to read Features from Viessmann Cloud"));
-        Serial.printf("Else-LastReadTime: %u dateTimeUTCNow: %u, Interval: %u\n", (uint32_t)viessmannApiSelection_01.lastReadTimeSeconds, dateTimeUTCNow.secondstime(), (uint32_t)viessmannApiSelection_01.readIntervalSeconds); 
-        //Serial.println((char*)bufferStorePtr);
-      } 
-  }
-  
-  if (analogSensorMgr_Vi_01.HasToBeRead(pSensorIndex, dateTimeUTCNow))
-  {
-    //Serial.printf("\nanalogSensorMgr_Vi_01: Value is used %d\n", pSensorIndex); 
-      
-    for (int i = 0; i < VI_FEATURES_COUNT; i++)
-    {       
-      if (strcmp((const char *)features[i].name, pSensorName) == 0)
-      {
-        returnFeature = features[i];
-        analogSensorMgr_Vi_01.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, atof(returnFeature.value), 0.0f, MAGIC_NUMBER_INVALID);           
-        break;
-      }
-    } 
-  } 
-  return returnFeature;
-}
-#pragma endregion
-
-#pragma region Function ReadAnalogSensorStruct_01(int pSensorIndex)
-ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
-{
-  ValueStruct returnValueStruct = { 
-      .displayValue = (float)MAGIC_NUMBER_INVALID,
-      .unClippedValue = (float)MAGIC_NUMBER_INVALID};
-
-  char consumption[12] = {0};
-
-  switch(pSensorIndex)
-  {
-      case 0:
-      { 
-        // Total Consumption, DisplayValue and UnClippedValue 
-        //AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;
-                             
-        // select Feature by its name (pSensorName value, raw, pre, error, rate, timestamp)
-        
-        //Serial.printf("The Vi-Lastreadtime (0): %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
-    
-
-        AiOnTheEdgeApiSelection::Feature selectedFeature;
-        
-        if (isFirstGasmeterRead)
-        {
-          // Read raw instead of value
-          selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, &gasmeterApiAccount, (const char *)"raw", gasmeterApiSelectionPtr);                  
-          char preValue[12] = {'\0'};
-               
-          strncpy(preValue, (const char *)selectedFeature.value, sizeof(preValue) -1);
-          preValue[sizeof(preValue) -1] = '\0';
-          
-          //Serial.printf("Raw-value read was: %s\n", preValue);
-          
-          if (strcmp((char *)preValue, (char *)"999.9") != 0)
-          {
-            float preValueFloat = atof(preValue);
-            preValueFloat = preValueFloat - 0.01f;
-            snprintf(preValue, sizeof(preValue), "%.2f", preValueFloat);             
-            t_httpCode httpResponse = setAiPreValueViaRestApi((const char*)"dummyCaCert", &gasmeterApiAccount, (const char *)preValue);
-            if (httpResponse == t_http_codes::HTTP_CODE_OK)
-            {
-              isFirstGasmeterRead = false;
-            }
-          }         
-        }
-        else
-        {
-          selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, &gasmeterApiAccount,(const char *)"value", gasmeterApiSelectionPtr);
-          
-        }
-        //Serial.printf("The Vi-Lastreadtime (danach): %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
-        
-        Serial.println("Read value (1)");
-       
-
-        strncpy(consumption, selectedFeature.value, sizeof(consumption));                                          
-     
-        float tempNumber = (float)MAGIC_NUMBER_INVALID;
-        
-        Serial.println("Read value (2)");
-        //Serial.printf("writing consumption: %s Length: %d\n", (const char *)consumption, strlen(consumption));
-         
-        if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
-        {
-          tempNumber = atof(consumption);
-          //#if SERIAL_PRINT == 1
-            Serial.printf("\nString could be parsed to float: %s StringLength: %d\n", consumption, strlen(consumption));
-          //#endif
-        }
-        else
-        {
-          Serial.printf("Value invalid (0.00) or could not be parsed to float: %s\n", consumption);
-          tempNumber = (float)MAGIC_NUMBER_INVALID;
-
-          Serial.println("Read value (2)");
-          // RoSchmi
-          /*
-          while (true)
-          {
-            delay(500);
-          }
-          */
-        }
-        
-        // convert values near MAGIC_NUMBER_INVALID to MAGIC_NUMBER_INVALID  
-        tempNumber = (tempNumber > (float)MAGIC_NUMBER_INVALID - 0.01 && tempNumber < (float)MAGIC_NUMBER_INVALID + 0.01) ? (float)MAGIC_NUMBER_INVALID: tempNumber;
-        
-        Serial.println("Read value (3)");
-
-        if (tempNumber > (MAGIC_NUMBER_INVALID - 0.01) && tempNumber < (MAGIC_NUMBER_INVALID + 0.01))
-        {
-          // if tempNumber = MAGIC_NUMBER_INVALID return both with MAGIC_NUMBER_INVALID
-          // was preset at the beginning
-          // this means, that the values are ignored in further process
-          return returnValueStruct;
-        }
-
-        Serial.println("Read value (4)");
-
-        // multply by 10, so that there remains 1 significant digit after decimal point
-        sprintf(consumption, "%.1f", tempNumber * 10);
-        returnValueStruct.unClippedValue = atof((const char *)consumption);
-        
-        // remove leading digits, so that there are maximal 2 digits 
-        // before decimal point for .displayValue
-        while (strlen(consumption) > 4)
-        {
-            memmove(consumption, consumption + 1, strlen(consumption));
-        }
-        returnValueStruct.displayValue = atof((const char *)consumption);
-        
-        Serial.println("Read value (5)");
-
-        //#if SERIAL_PRINT == 1
-            Serial.printf("\nDisplayValue: %.1f  UnClippedValue: %.1f\n", returnValueStruct.displayValue, returnValueStruct.unClippedValue);
-        //#endif
-        //Serial.printf("The Vi-Lastreadtime (1): %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
-        /*
-        while (true)
-        {
-          delay (500);
-        }
-        */
-      }
-      break;                   
-      case 1:    // Consumption this day
-      {
-        // Calculate Day-Consumption from BaseValue and UnClippedValue 
-        float copyBaseValue = dataContainer.SampleValues[0].BaseValue;
-        float copyUnClippedValue = dataContainer.SampleValues[0].UnClippedValue;
-        uint32_t LastSendTimeSeconds = dataContainer._lastSentTime.secondstime();
-        uint32_t timeSinceLastSendSeconds = dateTimeUTCNow.secondstime() - LastSendTimeSeconds;
-                 
-        if (copyBaseValue <= copyUnClippedValue)
-        {
-          returnValueStruct.displayValue = (copyUnClippedValue - copyBaseValue); 
-        }
-        else
-        {
-          // Overflow of copyUnClippedValue has occured
-          int preDecimalPoint = (int)copyBaseValue;
-          int oneMoreDigit =  pow(10,(int)log10(preDecimalPoint) + 1);
-          returnValueStruct.displayValue = copyUnClippedValue + (oneMoreDigit - copyBaseValue);
-        }
-              
-        returnValueStruct.unClippedValue = copyUnClippedValue;
-        if (timeSinceLastSendSeconds > dataContainer.SendInterval.totalseconds() -3)
-        {                      
-          Serial.printf("\nCase 1: Day-Consumption: %.1f\n", returnValueStruct.displayValue);
-        }                      
-      }
-      break;
-      case 2:   // rate
-      {
-        uint32_t sendIntervalSeconds = dataContainer.SendInterval.totalseconds();
-        uint32_t LastSendTimeSeconds = dataContainer._lastSentTime.secondstime();       
-        
-        float copyLastSendUnClippedValue = dataContainer.SampleValues[0].LastSendUnClippedValue;
-        float copyUnClippedValue = dataContainer.SampleValues[0].UnClippedValue;                    
-        uint32_t timeSinceLastSendSeconds = dateTimeUTCNow.secondstime() - LastSendTimeSeconds;
-             
-          // Only print the last messages
-          if (timeSinceLastSendSeconds > dataContainer.SendInterval.totalseconds() -3)
-          {
-            Serial.printf("LastSendTime: %d Actual: %.d Diff: %d Interval: %d Remain %d\n", LastSendTimeSeconds,  
-            dateTimeUTCNow.secondstime(), dateTimeUTCNow.secondstime() - LastSendTimeSeconds, sendIntervalSeconds, 
-            LastSendTimeSeconds + sendIntervalSeconds - dateTimeUTCNow.secondstime());
-          }
-   
-        float valueDiffOverflowCorrected = 0;
-
-        if (copyLastSendUnClippedValue <= copyUnClippedValue)
-        {
-          Serial.println("No Overflow");
-          valueDiffOverflowCorrected = (copyUnClippedValue - copyLastSendUnClippedValue);
-          //returnValueStruct.displayValue = (copyUnClippedValue - copyLastSendUnClippedValue); 
-        }
-        else
-        {
-          // Overflow of copyUnClippedValue has occured
-          Serial.println("Overflow has occured");
-          int preDecimalPoint = (int)copyLastSendUnClippedValue;
-          int oneMoreDigit =  pow(10,(int)log10(preDecimalPoint) + 1);  
-          valueDiffOverflowCorrected = copyUnClippedValue + (oneMoreDigit - copyLastSendUnClippedValue);
-        }  
-        
-        float rate = 0.0;
-
-        if (valueDiffOverflowCorrected != 0.0f)
-        {
-            if (timeSinceLastSendSeconds > 1.0)
-            {             
-              rate = valueDiffOverflowCorrected * 50.0f / ((float)timeSinceLastSendSeconds / 60.0f); // *50 gives reasonable size in         
-            }
-        }
-          // RoSchmi
-          // Only print the last messages
-          if (timeSinceLastSendSeconds > dataContainer.SendInterval.totalseconds() -3)
-          {
-            Serial.printf("LastSendValue: %.1f Actual: %.1f Diff: %.1f Seconds: %d\n", copyLastSendUnClippedValue, 
-            copyUnClippedValue, copyUnClippedValue - copyLastSendUnClippedValue, timeSinceLastSendSeconds);  
-          
-            Serial.printf("\nCase 2: Flow is: %.1f per minute. Read after: %d seconds\n\n", rate, timeSinceLastSendSeconds);
-          }
-          // Neglect (set to MAGIC_NUMBER_INVALID when timeSinceLastSendSeconds < 5 sec)
-          returnValueStruct.displayValue = timeSinceLastSendSeconds > 5 ? rate : (float)MAGIC_NUMBER_INVALID;
-          returnValueStruct.unClippedValue = copyUnClippedValue;                              
-      }
-      break;
-      case 3:
-      {
-
-          // in the forth graph show Viessmann Vorlauftemperatur
-          
-          //SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
-          //returnValueStruct.displayValue = featureValueSet.SampleValues[1].Value;
-          //returnValueStruct.unClippedValue = returnValueStruct.displayValue;
-                     
-          // This is an alternative way to get a Viessmann Api Sensor valu                      
-          
-          //SampleValueSet featureValueSet = dataContainerAnalogViessmann01.getCheckedSampleValues(dateTimeUTCNow, false);         
-          //theRead = featureValueSet.SampleValues[1].Value;
-          
-                      
-          //theRead = atoi((char *)sSwiThresholdStr) / 10; // dummy
-          //Show ascending lines from 0 to 5, so re-boots of the board are indicated                                                
-          //theRead = ((double)(insertCounterAnalogTable % 50)) / 10;
-          returnValueStruct.displayValue = ((float)(insertCounterAnalogTable % 50)) / 10;
-          returnValueStruct.unClippedValue = 0.0;                      
-      }                   
-      break;
-    }
-  //}
-    //Serial.printf("The Vi-Lastreadtime (2): %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
-    //Serial.printf("Returning returnValueStruct %.1f %.1f\n", returnValueStruct.displayValue, returnValueStruct.unClippedValue);
-    return returnValueStruct;
 }
 #pragma endregion
 
@@ -3359,198 +3569,6 @@ t_httpCode setAiPreValueViaRestApi(X509Certificate pCaCert, RestApiAccount * pRe
 return responseCode;
 }
 #pragma endregion  
-
-#pragma region Routine readJsonFromRestApi(pCaCert, *pRestApiAccount, *apiSelectionPtr)
-t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestApiAccount , AiOnTheEdgeApiSelection * apiSelectionPtr)
-{
-  WiFiClient * selectedClient = pRestApiAccount ->UseHttps ? &secure_wifi_client : &plain_wifi_client;
-  
-  if (pRestApiAccount -> UseHttps && !(pRestApiAccount -> UseCaCert))
-  {
-    secure_wifi_client.setInsecure();
-  }
-
-  int64_t tempLastReadTimeSeconds = apiSelectionPtr ->lastReadTimeSeconds;
-  int32_t tempReadIntervalSeconds = apiSelectionPtr ->readIntervalSeconds;
-
-  #if WORK_WITH_WATCHDOG == 1
-      esp_task_wdt_reset();
-  #endif
-
-  memset(bufferStorePtr, '\0', bufferStoreLength);
-
-  char url[70] = {'\0'};
-  strncpy(url, (const char *)((pRestApiAccount -> UriEndPointJson).c_str()), sizeof(url) - 1);
-  Serial.printf("readJsonFromRestApi: %s\n", (const char *)url);
-  
-  AiOnTheEdgeClient aiOnTheEdgeClient(pRestApiAccount, (const char*)"dummyCaCert", httpPtr, selectedClient);
-
-  Serial.printf("\r\n(%u) ", loadGasMeterJsonCount);
-  Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
-                                        localTime.month() , localTime.day(),
-                                        localTime.hour() , localTime.minute());
-   
-  
-  t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures((const char *)url, bufferStorePtr, bufferStoreLength, apiSelectionPtr);
-
-  Serial.println("Back from aiOnTheEdgeClient.GetFeatures");
-  
-  loadGasMeterJsonCount++;
-  
-  if (responseCode == t_http_codes::HTTP_CODE_OK)
-  {
-    // Populate features array and replace the name read from Api
-    // with the special names used in this Application
-    
-    ai_features[0] = apiSelectionPtr ->_0_value;
-    ai_features[1] = apiSelectionPtr ->_1_raw;
-    ai_features[2] = apiSelectionPtr ->_2_pre;
-    ai_features[3] = apiSelectionPtr ->_3_error;
-    ai_features[4] = apiSelectionPtr ->_4_rate;
-    ai_features[5] = apiSelectionPtr ->_5_timestamp;
-  }
-  else
-  {
-    
-    ai_features[0] = apiSelectionPtr ->_0_value;
-    ai_features[1] = apiSelectionPtr ->_1_raw;
-    ai_features[2] = apiSelectionPtr ->_2_pre;
-    ai_features[3] = apiSelectionPtr ->_3_error;
-    ai_features[4] = apiSelectionPtr ->_4_rate;
-    ai_features[5] = apiSelectionPtr ->_5_timestamp;
-    
-    Serial.printf("Request from REST-Api failed: Code: %d Substitution: %s \n", responseCode, ai_features[0].value);
-  }
-  return responseCode;
-}
-#pragma endregion
-
-#pragma region Routine read_Vi_FeaturesFromApi(...)
-t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * pViessmannApiAccountPtr, const uint32_t data_0_id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * pApiSelectionPtr)
-{
-  WiFiClient * selectedClient = (pViessmannApiAccountPtr -> UseHttps) ? &secure_wifi_client : &plain_wifi_client;
-  //Serial.printf("Have selected Client \n");
-  if ((pViessmannApiAccountPtr -> UseHttps) && !(pViessmannApiAccountPtr -> UseCaCert))
-  {
-    secure_wifi_client.setInsecure();
-    //Serial.println("Setting Viessmann Client insecure\n");
-  }
-
-  
-
-  #if WORK_WITH_WATCHDOG == 1
-      esp_task_wdt_reset();
-  #endif
-
-  int64_t tempLastReadTimeSeconds = pApiSelectionPtr -> lastReadTimeSeconds;
-  int32_t tempReadIntervalSeconds = pApiSelectionPtr ->readIntervalSeconds;
-  ViessmannApiSelection tempViessmannApiSelection(tempLastReadTimeSeconds, tempReadIntervalSeconds);
-  
-  ViessmannApiSelection * apiSelectionPtr = &tempViessmannApiSelection;
-  
-  memset(bufferStorePtr, '\0', bufferStoreLength);
-  
-  //ViessmannClient * viessmannClient = new ViessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, selectedClient, bufferStorePtr);
-  ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, selectedClient, bufferStorePtr);
-  
-
-
-  Serial.printf("\r\n(%u) ",loadViFeaturesCount);
-  Serial.printf("%i/%02d/%02d %02d:%02d ", localTime.year(), 
-                                        localTime.month() , localTime.day(),
-                                        localTime.hour() , localTime.minute());
-  
-  //t_httpCode responseCode = viessmannClient ->GetFeatures(bufferStorePtr, bufferStoreLength, data_0_id, Gateways_0_Serial, Gateways_0_Devices_0_Id, apiSelectionPtr);
-  
-  
-  
-  
-  t_httpCode responseCode = viessmannClient.GetFeatures(bufferStorePtr, bufferStoreLength, data_0_id, Gateways_0_Serial, Gateways_0_Devices_0_Id, apiSelectionPtr);
-
-  
-  
-  Serial.printf("(%u) Viessmann Features: httpResponseCode is: %d\r\n", loadViFeaturesCount, responseCode);
-  if (responseCode == t_http_codes::HTTP_CODE_OK)
-  {
-    //pApiSelectionPtr ->lastReadTimeSeconds = dateTimeUTCNow.secondstime();
-    
-    loadViFeaturesCount++;
-    // After each successful request error counters are reset
-    loadViFeaturesResp400Count = 0;
-    loadViFeaturesRespOtherCount = 0;
-
-    // Populate features array and replace the name read from Api
-    // with the name used in this Application
-    features[0] = apiSelectionPtr ->_2_temperature_main;
-    strcpy(features[0].name, (const char *)"_2_temperature_main");
-    features[1] = apiSelectionPtr ->_5_boiler_temperature;
-    strcpy(features[1].name, (const char *)"_5_boiler_temperature");
-    features[2] = apiSelectionPtr ->_7_burner_modulation;
-    strcpy(features[2].name, (const char *)"_7_burner_modulation");
-    features[3] = apiSelectionPtr ->_8_burner_hours;
-    strcpy(features[3].name, (const char *)"_8_burner_hours");
-    features[4] = apiSelectionPtr ->_8_burner_starts;
-    strcpy(features[4].name, (const char *)"_8_burner_starts");
-    features[5] = apiSelectionPtr ->_9_burner_is_active;
-    strcpy(features[5].name, (const char *)"_9_burner_is_active");
-    features[6] = apiSelectionPtr ->_23_heating_curve_shift;
-    strcpy(features[6].name, (const char *)"_23_heating_curve_shift");
-    features[7] = apiSelectionPtr ->_23_heating_curve_slope;
-    strcpy(features[7].name, (const char *)"_23_heating_curve_slope");
-    features[8] = apiSelectionPtr ->_77_temperature_supply;
-    strcpy(features[8].name, (const char *)"_77_temperature_supply");
-    features[9] = apiSelectionPtr ->_84_heating_dhw_charging;
-    strcpy(features[9].name, (const char *)"_84_heating_dhw_charging");
-    features[10] = apiSelectionPtr ->_85_heating_dhw_pump_status;
-    strcpy(features[10].name, (const char *)"_85_heating_dhw_pump_status");
-    features[11] = apiSelectionPtr ->_87_heating_dhw_pump_primary_status;
-    strcpy(features[11].name, (const char *)"_87_heating_dhw_pump_primary_status");
-    features[12] = apiSelectionPtr ->_89_heating_dhw_cylinder_temperature;
-    strcpy(features[12].name, (const char *)"_89_heating_dhw_cylinder_temperature");
-    features[13] = apiSelectionPtr ->_91_heating_dhw_outlet_temperature;
-    strcpy(features[13].name, (const char *)"_91_heating_dhw_outlet_temperature");
-    features[14] = apiSelectionPtr ->_92_heating_dhw_main_temperature;
-    strcpy(features[14].name, (const char *)"_92_heating_dhw_main_temperature");
-    features[15] = apiSelectionPtr ->_94_heating_temperature_outside;
-    strcpy(features[15].name, (const char *)"_94_heating_temperature_outside");
-    
-    // Get 4 On/Off sensor values which were read from the Viessmann Api
-    // and store them in a 'twin' of the sensor, reflecting its state 
-    OnOffBurnerStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_9_burner_is_active.value), (const char *)"true") == 0, dateTimeUTCNow);
-    OnOffCirculationPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_10_circulation_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
-    OnOffHotWaterCircualtionPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_85_heating_dhw_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
-    OnOffHotWaterPrimaryPumpStatus.Feed(strcmp((apiSelectionPtr -> _87_heating_dhw_pump_primary_status.value), (const char *)"on") == 0, dateTimeUTCNow);   
-  }
-  else
-  {
-    
-    if (responseCode == 400)
-    {
-      loadViFeaturesResp400Count++;
-    }
-    else
-    {
-      loadViFeaturesRespOtherCount++;
-    }
-    Serial.printf("Bad httpResponses, Code 400: %d, Others: %d\n", loadViFeaturesResp400Count, loadViFeaturesRespOtherCount);
-  
-    if (loadViFeaturesResp400Count > 50 || loadViFeaturesRespOtherCount > 50)
-    {
-      Serial.printf("Rebooting, failed Vi-Requests. 400: %d, others: %d\n", loadViFeaturesResp400Count, loadViFeaturesRespOtherCount);
-      ESP.restart();
-      while(true)
-      {
-        delay(500); //Wait for ever
-      }
-    }
-
-    bufferStorePtr[bufferStoreLength - 1] = '\0';
-    Serial.println((char *)bufferStorePtr);
-  }
-  
-  return responseCode;
-}
-#pragma endregion
 
 #pragma region Routine read_Vi_UserFromApi(...)
 t_httpCode read_Vi_UserFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr)
