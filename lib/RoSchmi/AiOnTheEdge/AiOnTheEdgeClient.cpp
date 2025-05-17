@@ -92,7 +92,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
                 aiApiSelectionPtr -> _3_error.idx = 3;               
                 strncpy(aiApiSelectionPtr -> _3_error.name, "error", nameLen - 1);
                 strncpy(aiApiSelectionPtr-> _3_error.timestamp, doc["main"]["timestamp"], stampLen - 1);
-                strncpy(aiApiSelectionPtr-> _3_error.value, doc["main"]["error"], nameLen - 1);
+                strncpy(aiApiSelectionPtr-> _3_error.value, doc["main"]["error"], valLen - 1);
 
                 aiApiSelectionPtr -> _4_rate.idx = 4;               
                 strncpy(aiApiSelectionPtr -> _4_rate.name, "rate", nameLen - 1);
@@ -100,10 +100,11 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
                 snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["main"]["rate"]); 
                 snprintf(aiApiSelectionPtr -> _4_rate.value, valLen - 1, (const char*)tempVal);
                 
-                aiApiSelectionPtr -> _5_timestamp.idx = 3;               
+                aiApiSelectionPtr -> _5_timestamp.idx = 5;               
                 strncpy(aiApiSelectionPtr -> _5_timestamp.name, "timestamp", nameLen - 1);
                 strncpy(aiApiSelectionPtr-> _5_timestamp.timestamp, doc["main"]["timestamp"], stampLen - 1);
-                strncpy(aiApiSelectionPtr-> _5_timestamp.value, doc["main"]["timestamp"], nameLen - 1);
+                strncpy(aiApiSelectionPtr-> _5_timestamp.value, doc["main"]["timestamp"], valLen - 1);
+                
             }
             else
             {

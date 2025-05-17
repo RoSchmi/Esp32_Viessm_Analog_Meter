@@ -188,7 +188,7 @@ TimeSpan AccessTokenRefreshInterval = TimeSpan(VIESSMANN_TOKEN_REFRESH_INTERVAL_
 ViessmannApiAccount myViessmannApiAccount(viessmannClientId, viessmannAccessToken, viessmannIotBaseUri, viessmannUserBaseUri, viessmannTokenBaseUri, true, false); 
 ViessmannApiAccount * myViessmannApiAccountPtr = &myViessmannApiAccount;
 
-ViessmannApiSelection viessmannApiSelection_01( 0, VIESSMANN_API_READ_INTERVAL_SECONDS);
+ViessmannApiSelection viessmannApiSelection_01( "Heizung", 0, VIESSMANN_API_READ_INTERVAL_SECONDS);
 ViessmannApiSelection * viessmannApiSelectionPtr_01 = &viessmannApiSelection_01;
  
 
@@ -198,7 +198,7 @@ ViessmannApiSelection * viessmannApiSelectionPtr_01 = &viessmannApiSelection_01;
 //RestApiAccount gasmeterApiAccount("gasmeter", "","gasmeter", false, false);
 //RestApiAccount * gasmeterApiAccountPtr = &gasmeterApiAccount;
 
-AiOnTheEdgeApiSelection gasmeterApiSelection(0, (int32_t)GASMETER_AI_API_READ_INTERVAL_SECONDS);
+AiOnTheEdgeApiSelection gasmeterApiSelection("Gasmeter", 0, (int32_t)GASMETER_AI_API_READ_INTERVAL_SECONDS);
 AiOnTheEdgeApiSelection * gasmeterApiSelectionPtr = &gasmeterApiSelection;
 
 bool viessmannUserId_is_read = false;
@@ -1112,7 +1112,6 @@ void setup()
   // stack, heap and watchdog
 
   // Get Stackptr at start of setup()
-  //void* SpStart = NULL;
   UBaseType_t * SpStart = NULL;
   //StackPtrAtStart = (void *)&SpStart;
   StackPtrAtStart = (UBaseType_t *)&SpStart;
@@ -2683,18 +2682,50 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestAp
                                         localTime.hour() , localTime.minute());
    
   
-  Serial.printf("The Vi-Lastreadtime (vor GetFeatures) %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
   int64_t tempLast_Vi_ReadTimeSeconds = viessmannApiSelectionPtr_01 ->lastReadTimeSeconds;
   int32_t temp_Vi_ReadIntervalSeconds = viessmannApiSelectionPtr_01 ->readIntervalSeconds;
+  
+  volatile unsigned int adrBefore = (uintptr_t)viessmannApiSelectionPtr_01;
+
+  char priBuffer[300] = {'\0'};
+  char * priBufferPtr = &priBuffer[0];
+  memcpy(priBuffer, (const void *)adrBefore, 298);
+
+  Serial.printf("Vi-ApiSelctionPtr Address before: %d\n\n", adrBefore);
+  Serial.println(adrBefore, HEX );
+  Serial.printf("The Vi-Lastreadtime (vor GetFeatures) %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds); 
+  Serial.printf("LastReadTime in Hex: %x\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
+  
+  //Serial.printf("LastReadTime in Hex: %x\n", (const char *)priBuffer);
+  
+  printf("Zeichenweise Ausgabe:\n");
+    for (int i = 0; priBuffer[i] != '\0'; i++) {
+        printf("Zeichen %d: %c (ASCII: %d)\n", i, priBuffer[i], priBuffer[i]);
+    }
 
   t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures((const char *)url, bufferStorePtr, bufferStoreLength, apiSelectionPtr);
   
-  viessmannApiSelectionPtr_01 ->lastReadTimeSeconds = tempLast_Vi_ReadTimeSeconds;
-  viessmannApiSelectionPtr_01 ->readIntervalSeconds = temp_Vi_ReadIntervalSeconds;
-  
+  volatile unsigned int adrAfter = (uintptr_t)viessmannApiSelectionPtr_01;
+
+  Serial.printf("Vi-ApiSelctionPtr Address after: %d\n\n", adrAfter);
+  Serial.println(adrAfter, HEX );
+
   Serial.println("Back from aiOnTheEdgeClient.GetFeatures");
-  Serial.printf("The ViLastreadtime (nach GetFeatures) %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
+  Serial.printf("The Vi-Lastreadtime (nach GetFeatures) %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
   
+
+
+  memset(priBuffer, '\0', sizeof(priBuffer) - 1);
+  memcpy(priBuffer, (const void *)adrAfter, 298);
+  Serial.printf("LastReadTime in Hex: %x\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
+  printf("Zeichenweise Ausgabe:\n");
+    for (int i = 0; priBuffer[i] != '\0'; i++) {
+        printf("Zeichen %d: %c (ASCII: %d)\n", i, priBuffer[i], priBuffer[i]);
+    }
+
+  //Restore
+  //viessmannApiSelectionPtr_01 ->lastReadTimeSeconds = tempLast_Vi_ReadTimeSeconds;
+  //viessmannApiSelectionPtr_01 ->readIntervalSeconds = temp_Vi_ReadIntervalSeconds;
   
   loadGasMeterJsonCount++;
   
@@ -2772,6 +2803,8 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
       // Restore lastReadTimeSeconds and readIntervalSeconds
       pViessmannApiSelectionPtr->lastReadTimeSeconds = tempLastReadTimeSeconds;
       pViessmannApiSelectionPtr->readIntervalSeconds = tempReadIntervalSeconds;
+      
+      
       if (httpCode == t_http_codes::HTTP_CODE_OK)
       {
         pViessmannApiSelectionPtr ->lastReadTimeSeconds = utcNowSecondsTime;
@@ -2836,7 +2869,7 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
   
   memset(bufferStorePtr, '\0', bufferStoreLength);
   
-  //ViessmannClient * viessmannClient = new ViessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, selectedClient, bufferStorePtr);
+  
   ViessmannClient viessmannClient(myViessmannApiAccountPtr, pCaCert,  httpPtr, selectedClient, bufferStorePtr);
   
 

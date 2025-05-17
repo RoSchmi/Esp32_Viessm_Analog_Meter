@@ -10,6 +10,10 @@
 
 class ViessmannApiSelection
 {
+    private:   
+    char classLabel[11] = "Vi-Api-Sel";
+    char objLabel[11] = "none";
+    char endLabel[9] = "Endlabel";
 
     public:
     /*
@@ -36,7 +40,7 @@ class ViessmannApiSelection
     }Feature;
 
     ViessmannApiSelection();
-    ViessmannApiSelection(int64_t pLastReadTimeSeconds, int32_t pReadIntervalSeconds);
+    ViessmannApiSelection(const char * pObjLabel, int64_t pLastReadTimeSeconds, int32_t pReadIntervalSeconds);
     
     
     //static Feature featureEmpty;

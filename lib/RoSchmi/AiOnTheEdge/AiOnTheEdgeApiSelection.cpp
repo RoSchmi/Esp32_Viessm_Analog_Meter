@@ -7,8 +7,9 @@ AiOnTheEdgeApiSelection::AiOnTheEdgeApiSelection()
     readIntervalSeconds = 0;    
 };
 
-AiOnTheEdgeApiSelection::AiOnTheEdgeApiSelection(int64_t pLastReadTimeSeconds, int32_t pReadIntervalSeconds)
+AiOnTheEdgeApiSelection::AiOnTheEdgeApiSelection(const char * pObjLabel, int64_t pLastReadTimeSeconds, int32_t pReadIntervalSeconds)
 {
+    strncpy(objLabel, pObjLabel, sizeof(objLabel) - 1);
     lastReadTimeSeconds = pLastReadTimeSeconds;
     readIntervalSeconds = pReadIntervalSeconds;   
 }
