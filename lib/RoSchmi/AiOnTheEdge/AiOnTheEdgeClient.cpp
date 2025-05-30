@@ -65,7 +65,7 @@ t_httpCode AiOnTheEdgeClient::GetFeatures(const char * url, uint8_t* responseBuf
    
             //Serial.printf("The Vi-Lastreadtime (nach deserializeJson) %u\n", apiSelectionPtr ->lastReadTime);
             
-            char tempVal[valLen] = {"\0"};
+            char tempVal[valLen] = {'\0'};
             
             if (!doc.overflowed())
             {               

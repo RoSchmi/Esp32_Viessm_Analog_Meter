@@ -15,14 +15,17 @@ class AiOnTheEdgeApiSelection
     char objLabel[11] = "none";
     char endLabel[9] = "Endlabel";
 
-    public:     
-    static const int valueLength = 12;
-    static const int nameLenght = 60;
-    static const int stampLength = 30;
-       
+    public:
+      
     int64_t lastReadTimeSeconds;
     int32_t readIntervalSeconds;
-      
+    
+    /*
+    const int  valueLength = AI_FEATUREVALUELENGTH;
+    const int nameLenght = AI_FEATURENAMELENGTH;
+    const int stampLength = AI_FEATURESTAMPLENGTH;
+    */
+
     typedef struct Feature
     { 
         int  idx = 0;    

@@ -4,7 +4,7 @@
 #ifndef _VIESSMANNAPISELECTION_H_
 #define _VIESSMANNAPISELECTION_H_
 
-#define VI_FEATUREVALUELENGTH 12
+#define VI_FEATUREVALUELENGTH 30
 #define VI_FEATURENAMELENGTH 60
 #define VI_FEATURESTAMPLENGTH 30
 
@@ -16,21 +16,15 @@ class ViessmannApiSelection
     char endLabel[9] = "Endlabel";
 
     public:
-    /*
-    static const int valueLength = 12;
-    static const int nameLenght = 60;
-    static const int stampLength = 30;
-    */
-
-    public:
     int64_t lastReadTimeSeconds;
     int32_t readIntervalSeconds;
-
- 
-    int  valueLength = VI_FEATUREVALUELENGTH;
-    int nameLenght = VI_FEATURENAMELENGTH;
-    int stampLength = VI_FEATURESTAMPLENGTH;
     
+    /*
+    const int  valueLength = VI_FEATUREVALUELENGTH;
+    const int nameLenght = VI_FEATURENAMELENGTH;
+    const int stampLength = VI_FEATURESTAMPLENGTH;
+    */
+
     typedef struct Feature
     { 
         int  idx = 0;    
@@ -46,15 +40,15 @@ class ViessmannApiSelection
     //static Feature featureEmpty;
 
     Feature _2_temperature_main;
-    Feature _5_boiler_temperature;
-    Feature _7_burner_modulation;
-    Feature _8_burner_hours;
-    Feature _8_burner_starts;
-    Feature _9_burner_is_active;
+    Feature _4_boiler_temperature;
+    Feature _6_burner_modulation;
+    Feature _7_burner_hours;
+    Feature _7_burner_starts;
+    Feature _8_burner_is_active;
     Feature _10_circulation_pump_status;
-    Feature _23_heating_curve_shift;
-    Feature _23_heating_curve_slope;
-    Feature _77_temperature_supply;
+    Feature _22_heating_curve_shift;
+    Feature _22_heating_curve_slope;
+    Feature _76_temperature_supply;
     Feature _84_heating_dhw_charging;
     Feature _85_heating_dhw_pump_status;
     Feature _87_heating_dhw_pump_primary_status;

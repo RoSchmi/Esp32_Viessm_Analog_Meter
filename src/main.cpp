@@ -2685,43 +2685,15 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestAp
   int64_t tempLast_Vi_ReadTimeSeconds = viessmannApiSelectionPtr_01 ->lastReadTimeSeconds;
   int32_t temp_Vi_ReadIntervalSeconds = viessmannApiSelectionPtr_01 ->readIntervalSeconds;
   
-  volatile unsigned int adrBefore = (uintptr_t)viessmannApiSelectionPtr_01;
-
-  char priBuffer[300] = {'\0'};
-  char * priBufferPtr = &priBuffer[0];
-  memcpy(priBuffer, (const void *)adrBefore, 298);
-
-  Serial.printf("Vi-ApiSelctionPtr Address before: %d\n\n", adrBefore);
-  Serial.println(adrBefore, HEX );
-  Serial.printf("The Vi-Lastreadtime (vor GetFeatures) %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds); 
-  Serial.printf("LastReadTime in Hex: %x\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
   
-  //Serial.printf("LastReadTime in Hex: %x\n", (const char *)priBuffer);
+
   
-  printf("Zeichenweise Ausgabe:\n");
-    for (int i = 0; priBuffer[i] != '\0'; i++) {
-        printf("Zeichen %d: %c (ASCII: %d)\n", i, priBuffer[i], priBuffer[i]);
-    }
 
   t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures((const char *)url, bufferStorePtr, bufferStoreLength, apiSelectionPtr);
   
-  volatile unsigned int adrAfter = (uintptr_t)viessmannApiSelectionPtr_01;
-
-  Serial.printf("Vi-ApiSelctionPtr Address after: %d\n\n", adrAfter);
-  Serial.println(adrAfter, HEX );
-
-  Serial.println("Back from aiOnTheEdgeClient.GetFeatures");
-  Serial.printf("The Vi-Lastreadtime (nach GetFeatures) %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
   
-
-
-  memset(priBuffer, '\0', sizeof(priBuffer) - 1);
-  memcpy(priBuffer, (const void *)adrAfter, 298);
   Serial.printf("LastReadTime in Hex: %x\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
-  printf("Zeichenweise Ausgabe:\n");
-    for (int i = 0; priBuffer[i] != '\0'; i++) {
-        printf("Zeichen %d: %c (ASCII: %d)\n", i, priBuffer[i], priBuffer[i]);
-    }
+  
 
   //Restore
   //viessmannApiSelectionPtr_01 ->lastReadTimeSeconds = tempLast_Vi_ReadTimeSeconds;
@@ -2902,22 +2874,22 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     // with the name used in this Application
     features[0] = apiSelectionPtr ->_2_temperature_main;
     strcpy(features[0].name, (const char *)"_2_temperature_main");
-    features[1] = apiSelectionPtr ->_5_boiler_temperature;
-    strcpy(features[1].name, (const char *)"_5_boiler_temperature");
-    features[2] = apiSelectionPtr ->_7_burner_modulation;
-    strcpy(features[2].name, (const char *)"_7_burner_modulation");
-    features[3] = apiSelectionPtr ->_8_burner_hours;
-    strcpy(features[3].name, (const char *)"_8_burner_hours");
-    features[4] = apiSelectionPtr ->_8_burner_starts;
-    strcpy(features[4].name, (const char *)"_8_burner_starts");
-    features[5] = apiSelectionPtr ->_9_burner_is_active;
-    strcpy(features[5].name, (const char *)"_9_burner_is_active");
-    features[6] = apiSelectionPtr ->_23_heating_curve_shift;
-    strcpy(features[6].name, (const char *)"_23_heating_curve_shift");
-    features[7] = apiSelectionPtr ->_23_heating_curve_slope;
-    strcpy(features[7].name, (const char *)"_23_heating_curve_slope");
-    features[8] = apiSelectionPtr ->_77_temperature_supply;
-    strcpy(features[8].name, (const char *)"_77_temperature_supply");
+    features[1] = apiSelectionPtr ->_4_boiler_temperature;
+    strcpy(features[1].name, (const char *)"_4_boiler_temperature");
+    features[2] = apiSelectionPtr ->_6_burner_modulation;
+    strcpy(features[2].name, (const char *)"_6_burner_modulation");
+    features[3] = apiSelectionPtr ->_7_burner_hours;
+    strcpy(features[3].name, (const char *)"_7_burner_hours");
+    features[4] = apiSelectionPtr ->_7_burner_starts;
+    strcpy(features[4].name, (const char *)"_7_burner_starts");
+    features[5] = apiSelectionPtr ->_8_burner_is_active;
+    strcpy(features[5].name, (const char *)"_8_burner_is_active");
+    features[6] = apiSelectionPtr ->_22_heating_curve_shift;
+    strcpy(features[6].name, (const char *)"_22_heating_curve_shift");
+    features[7] = apiSelectionPtr ->_22_heating_curve_slope;
+    strcpy(features[7].name, (const char *)"_22_heating_curve_slope");
+    features[8] = apiSelectionPtr ->_76_temperature_supply;
+    strcpy(features[8].name, (const char *)"_76_temperature_supply");
     features[9] = apiSelectionPtr ->_84_heating_dhw_charging;
     strcpy(features[9].name, (const char *)"_84_heating_dhw_charging");
     features[10] = apiSelectionPtr ->_85_heating_dhw_pump_status;
@@ -2935,7 +2907,7 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     
     // Get 4 On/Off sensor values which were read from the Viessmann Api
     // and store them in a 'twin' of the sensor, reflecting its state 
-    OnOffBurnerStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_9_burner_is_active.value), (const char *)"true") == 0, dateTimeUTCNow);
+    OnOffBurnerStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_8_burner_is_active.value), (const char *)"true") == 0, dateTimeUTCNow);
     OnOffCirculationPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_10_circulation_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
     OnOffHotWaterCircualtionPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_85_heating_dhw_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
     OnOffHotWaterPrimaryPumpStatus.Feed(strcmp((apiSelectionPtr -> _87_heating_dhw_pump_primary_status.value), (const char *)"on") == 0, dateTimeUTCNow);   
