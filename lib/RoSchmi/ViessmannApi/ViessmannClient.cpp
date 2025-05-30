@@ -218,17 +218,11 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                 //Serial.printf("%s   %s   %s\n", apiSelectionPtr -> _23_heating_curve_slope.name, apiSelectionPtr -> _23_heating_curve_slope.timestamp, apiSelectionPtr -> _23_heating_curve_slope.value);
         
                 apiSelectionPtr -> _76_temperature_supply.idx = 76;
-                // I don't know, why use of a tmeporary string is needed,
+                // I don't know, why use of a tmeporary string is needed here,
                 // otherweise it throws an exception
                 char tempString[60] = {'\0'};
-                //char * testStringPtr = &testString[0];
-                //strncpy(testStringPtr, "Roland", sizeof(testString) - 1);
-                //strncpy(apiSelectionPtr -> _76_temperature_supply.name, testStringPtr, strlen(testStringPtr));
                 strncpy(tempString, doc["data"][76]["feature"], sizeof(tempString) -1);
-                
-                strncpy(apiSelectionPtr -> _76_temperature_supply.name, (const char *)tempString, strlen(tempString));
-                
-                //strncpy(apiSelectionPtr -> _76_temperature_supply.name, (const char *)doc["data"][76]["feature"], nameLen - 1);
+                strncpy(apiSelectionPtr -> _76_temperature_supply.name, (const char *)tempString, strlen(tempString));               
                 strncpy(apiSelectionPtr-> _76_temperature_supply.timestamp, (const char *)doc["data"][76]["timestamp"], stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][76]["properties"]["value"]["value"]);
                 snprintf(apiSelectionPtr -> _76_temperature_supply.value, valLen - 1, (const char*)tempVal);

@@ -2565,41 +2565,27 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
   // pRestApiAccount contains the url and the scheme to be used in the http-request to get the desired data
   // pSensorName is the name of the feature to be selected (value, raw, error etc.) (see AiOnTheEdgeSelection.h)
 
-  
   AiOnTheEdgeApiSelection::Feature returnFeature;
   returnFeature.idx = 0;
   strncpy(returnFeature.name, (const char *)"", sizeof(returnFeature.name) -1);
   strncpy(returnFeature.timestamp, (const char *)"", sizeof(returnFeature.timestamp) -1);
 
-   
-  
   // Set value to MAGIC_NUMBER_INVALID. This value is ignored in the following process
   strncpy(returnFeature.value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.value) - 1);
   
-  // Save lastReadTimeSeconds and readIntervalSeconds (are restored later)
+  // Save lastReadTimeSeconds and readIntervalSeconds
   int64_t tempLastReadTimeSeconds = pAiOnTheEdgeApiSelectionPtr -> lastReadTimeSeconds;
   int32_t tempReadIntervalSeconds = pAiOnTheEdgeApiSelectionPtr ->readIntervalSeconds;
   
-  //AiOnTheEdgeApiSelection tempAiOnTheEdgeApiSelection(tempLastReadTimeSeconds, tempReadIntervalSeconds);
-  //AiOnTheEdgeApiSelection::Feature initFeature;
-  //initFeature.idx = 0;
-  //strncpy(initFeature.name, (const char *)"", sizeof(initFeature.name)) ;
-  
-  //RoSchmi
-  //AiOnTheEdgeApiSelection * tempAiOnTheEdgeApiSelectionPtr = &tempAiOnTheEdgeApiSelection;
-
   // Only read features from AiOnTheEdgeDevice when readInterval has expired
-  
-  //int64_t remainigSeconds = pAiOnTheEdgeApiSelectionPtr ->lastReadTimeSeconds + pAiOnTheEdgeApiSelectionPtr ->readIntervalSeconds - dateTimeUTCNow.secondstime();
   
   int64_t utcNowSecondsTime = (int64_t)dateTimeUTCNow.secondstime();
    
   int64_t remaining_Ai_Seconds = ((tempLastReadTimeSeconds + tempReadIntervalSeconds) - utcNowSecondsTime);
   
-  Serial.printf("(Ai) LastReadTime: %d Interval: %d Now: %d\n", (int32_t)tempLastReadTimeSeconds, tempReadIntervalSeconds,  (int32_t)utcNowSecondsTime);
+  //Serial.printf("(Ai) LastReadTime: %d Interval: %d Now: %d\n", (int32_t)tempLastReadTimeSeconds, tempReadIntervalSeconds,  (int32_t)utcNowSecondsTime);
 
   Serial.printf("Remaining seconds (Ai): %d\n", (int32_t)remaining_Ai_Seconds);
-  //if ((pAiOnTheEdgeApiSelectionPtr ->lastReadTime.operator+(pAiOnTheEdgeApiSelectionPtr -> readInterval)).operator<(dateTimeUTCNow))
   
   if ((tempLastReadTimeSeconds + tempReadIntervalSeconds) < utcNowSecondsTime)  
   {
@@ -2609,8 +2595,8 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
     t_httpCode httpResponseCode = readJsonFromRestApi(myX509Certificate, pRestApiAccount, pAiOnTheEdgeApiSelectionPtr);   
     
     // Restore lastReadTimeSeconds and readIntervalSeconds
-    pAiOnTheEdgeApiSelectionPtr->lastReadTimeSeconds = tempLastReadTimeSeconds;
-    pAiOnTheEdgeApiSelectionPtr->readIntervalSeconds = tempReadIntervalSeconds;
+    //pAiOnTheEdgeApiSelectionPtr->lastReadTimeSeconds = tempLastReadTimeSeconds;
+    //pAiOnTheEdgeApiSelectionPtr->readIntervalSeconds = tempReadIntervalSeconds;
 
     if (httpResponseCode > 0)
     {
@@ -2738,7 +2724,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   // pSensorIndex determins the position (from 4). pSensorName is the name of the feature (see ViessmannApiSelection.h)
   
   // preset a 'returnFeature' with value = MAGIC_NUMBER_INVALID (999.9)
-
+  // Save lastReadTimeSeconds and readIntervalSeconds
   int64_t tempLastReadTimeSeconds = pViessmannApiSelectionPtr -> lastReadTimeSeconds;
   int32_t tempReadIntervalSeconds = pViessmannApiSelectionPtr ->readIntervalSeconds;
   //ViessmannApiSelection tempViessmannApiSelection(tempLastReadTimeSeconds, tempReadIntervalSeconds);
@@ -2773,8 +2759,8 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
       //int httpCode = t_http_codes::HTTP_CODE_OK;
 
       // Restore lastReadTimeSeconds and readIntervalSeconds
-      pViessmannApiSelectionPtr->lastReadTimeSeconds = tempLastReadTimeSeconds;
-      pViessmannApiSelectionPtr->readIntervalSeconds = tempReadIntervalSeconds;
+      //pViessmannApiSelectionPtr->lastReadTimeSeconds = tempLastReadTimeSeconds;
+      //pViessmannApiSelectionPtr->readIntervalSeconds = tempReadIntervalSeconds;
       
       
       if (httpCode == t_http_codes::HTTP_CODE_OK)
