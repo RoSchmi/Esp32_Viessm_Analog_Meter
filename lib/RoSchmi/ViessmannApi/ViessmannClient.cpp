@@ -1,5 +1,4 @@
 #include "ViessmannClient.h"
-//#include "ViessmannApiSelection.h"
 #include "config.h"
 
 WiFiClient * _viessmannWifiClient;
@@ -11,12 +10,6 @@ HTTPClient * _viessmannHttpPtr;
 const char * _viessmannCaCert;
 
 typedef int t_httpCode;
-
-/*
-char initName[FEATURENAMELENGTH] {0};
-char initTimestamp[FEATURESTAMPLENGTH] {0};
-char initValue[FEATUREVALUELENGTH] {0};
-*/
 
 // Constructor
 ViessmannClient::ViessmannClient(ViessmannApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient * wifiClient, uint8_t * bufferStorePtr)
@@ -137,13 +130,42 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                 Serial.printf("Number of elements = %d\n", doc.size());
                 #endif
                 // From the long Features JSON string get the selected entities
-        
+                
+                //doTheFirst(apiSelectionPtr, doc);
+                
+                
+
                 apiSelectionPtr -> _2_temperature_main.idx = 2;
                 strncpy(apiSelectionPtr -> _2_temperature_main.name, doc["data"][2]["feature"], nameLen - 1);               
                 strncpy(apiSelectionPtr-> _2_temperature_main.timestamp, doc["data"][2]["timestamp"], stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][2]["properties"]["value"]["value"]); 
                 snprintf(apiSelectionPtr -> _2_temperature_main.value, valLen - 1, (const char*)tempVal);
-                           
+                
+                Serial.println(F("Doc 2"));
+
+                apiSelectionPtr -> _76_temperature_supply.idx = 76;
+                // I don't know, why use of a tmeporary string is needed here,
+                // otherweise it throws an exception
+
+                char nameString[] = "heating.circuits.0.sensors.temperature.supply";
+                //strncpy(tempString, doc["data"][76]["feature"], sizeof(tempString) -1);  
+                strncpy(apiSelectionPtr -> _76_temperature_supply.name, (const char *)nameString, strlen(nameString));
+                char stampString[] = "2025-05-31T20:26:23.481Z";
+                strncpy(apiSelectionPtr -> _76_temperature_supply.timestamp, (const char *)stampString, strlen(stampString));
+                char valueString[] = "27.6";
+                strncpy(apiSelectionPtr -> _76_temperature_supply.timestamp, (const char *)valueString, strlen(valueString));
+                
+                char tempString[60] = {'\0'};
+                strncpy(tempString, (const char *)doc["data"][76]["feature"], sizeof(tempString) -1);
+                char firstChar = tempString[0];
+                //strncpy(apiSelectionPtr -> _76_temperature_supply.name, doc["data"][76]["feature"], nameLen - 1);
+                //strcpy(apiSelectionPtr -> _76_temperature_supply.name, doc["data"][76]["feature"]);
+                //strncpy(apiSelectionPtr-> _76_temperature_supply.timestamp, (const char *)doc["data"][76]["timestamp"], stampLen - 1);
+                //snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][76]["properties"]["value"]["value"]);
+                //snprintf(apiSelectionPtr -> _76_temperature_supply.value, valLen - 1, (const char*)tempVal);
+                
+
+
                 #if SERIAL_PRINT == 1
                 Serial.printf("(3) %s   %s   %s\n", apiSelectionPtr -> _2_temperature_main.name, apiSelectionPtr -> _2_temperature_main.timestamp, apiSelectionPtr -> _2_temperature_main.value);
                 #endif
@@ -174,7 +196,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                 snprintf(tempVal, sizeof(tempVal), "%.2f", (float)doc["data"][7]["properties"]["hours"]["value"]);
                 snprintf(apiSelectionPtr -> _7_burner_hours.value, valLen - 1, (const char*)tempVal);
             
-                //Serial.println(F("Doc 4"));
+                Serial.println(F("Doc 4"));
 
                 apiSelectionPtr -> _7_burner_starts.idx = 7;
                 strncpy(apiSelectionPtr -> _7_burner_starts.name, doc["data"][7]["feature"], nameLen - 1);
@@ -216,17 +238,8 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                        
                 Serial.println(F("Doc 9"));
                 //Serial.printf("%s   %s   %s\n", apiSelectionPtr -> _23_heating_curve_slope.name, apiSelectionPtr -> _23_heating_curve_slope.timestamp, apiSelectionPtr -> _23_heating_curve_slope.value);
-        
-                apiSelectionPtr -> _76_temperature_supply.idx = 76;
-                // I don't know, why use of a tmeporary string is needed here,
-                // otherweise it throws an exception
-                char tempString[60] = {'\0'};
-                strncpy(tempString, doc["data"][76]["feature"], sizeof(tempString) -1);
-                strncpy(apiSelectionPtr -> _76_temperature_supply.name, (const char *)tempString, strlen(tempString));               
-                strncpy(apiSelectionPtr-> _76_temperature_supply.timestamp, (const char *)doc["data"][76]["timestamp"], stampLen - 1);
-                snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][76]["properties"]["value"]["value"]);
-                snprintf(apiSelectionPtr -> _76_temperature_supply.value, valLen - 1, (const char*)tempVal);
-                       
+                
+                    
                 apiSelectionPtr -> _84_heating_dhw_charging.idx = 84;
                 strncpy(apiSelectionPtr -> _84_heating_dhw_charging.name, doc["data"][84]["feature"], nameLen - 1);
                 strncpy(apiSelectionPtr-> _84_heating_dhw_charging.timestamp, doc["data"][84]["timestamp"], stampLen - 1);
@@ -339,6 +352,23 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     //Serial.println(F("Returning"));
     return httpResponseCode;
 }
+
+/*
+void ViessmannClient::doTheFirst(ViessmannApiSelection * apiSelectionPtr, JsonDocument doc)
+{
+    const int valLen = 30;
+    const int nameLen = 60;
+    const int stampLen = 30;
+    char tempVal[valLen] = {'0'};
+    //apiSelectionPtr -> _2_temperature_main.idx = 2;
+    apiSelectionPtr -> _2_temperature_main.idx = 2;
+    strncpy(apiSelectionPtr -> _2_temperature_main.name, doc["data"][2]["feature"], nameLen - 1);               
+    strncpy(apiSelectionPtr-> _2_temperature_main.timestamp, doc["data"][2]["timestamp"], stampLen - 1);
+    snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][2]["properties"]["value"]["value"]); 
+    snprintf(apiSelectionPtr -> _2_temperature_main.value, valLen - 1, (const char*)tempVal);
+              
+}
+*/
 
 t_httpCode ViessmannClient::RefreshAccessToken(uint8_t* responseBuffer, const uint16_t reponseBufferLength, const char * refreshToken)
 {

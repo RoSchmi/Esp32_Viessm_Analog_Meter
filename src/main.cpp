@@ -159,7 +159,7 @@
 // --> configure stack size dynamically from code to 16384
 // https://community.platformio.org/t/esp32-stack-configuration-reloaded/20994/4
 
-SET_LOOP_TASK_STACK_SIZE ( 14*1024 ); // 14KB
+SET_LOOP_TASK_STACK_SIZE ( 16*1024 ); // 16KB
 //SET_LOOP_TASK_STACK_SIZE ( 16*1024 ); // 16KB
 
 //SET_LOOP_TASK_STACK_SIZE ( 32*1024 ); // 32KB  used this
@@ -2727,46 +2727,26 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   // Save lastReadTimeSeconds and readIntervalSeconds
   int64_t tempLastReadTimeSeconds = pViessmannApiSelectionPtr -> lastReadTimeSeconds;
   int32_t tempReadIntervalSeconds = pViessmannApiSelectionPtr ->readIntervalSeconds;
-  //ViessmannApiSelection tempViessmannApiSelection(tempLastReadTimeSeconds, tempReadIntervalSeconds);
-  
+ 
   ViessmannApiSelection::Feature returnFeature;
   strncpy(returnFeature.value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.value) - 1);
   
   // Only read features from the cloud when readInterval has expired
-  
    
-  //int64_t remaining_Vi_seconds = pViessmannApiSelectionPtr ->lastReadTimeSeconds + pViessmannApiSelectionPtr ->readIntervalSeconds - dateTimeUTCNow.secondstime();
   int64_t utcNowSecondsTime = (int64_t)dateTimeUTCNow.secondstime();
   int64_t remaining_Vi_seconds = tempLastReadTimeSeconds + tempReadIntervalSeconds - utcNowSecondsTime;
   
-  //if (remaining_Vi_seconds < 2)
-  //{
-  //Serial.printf("Vi-LastReadTimeSeconds: %u dateTimeUTCNow: %u ReadInterval: %u\n", (uint32_t)pViessmannApiSelectionPtr -> lastReadTimeSeconds, dateTimeUTCNow.secondstime(), pViessmannApiSelectionPtr ->readIntervalSeconds);
-  //Serial.printf("Remaining seconds to read (Vi): %d\n", pViessmannApiSelectionPtr ->lastReadTimeSeconds + pViessmannApiSelectionPtr ->readIntervalSeconds - dateTimeUTCNow.secondstime());
-  Serial.printf("Remaining seconds to read (Vi): %d\n",  (int32_t)remaining_Vi_seconds);
+   Serial.printf("Remaining seconds to read (Vi): %d\n",  (int32_t)remaining_Vi_seconds);
   
-//}
-
-
-  //if ((pViessmannApiSelectionPtr ->lastReadTimeSeconds + pViessmannApiSelectionPtr ->readIntervalSeconds) < dateTimeUTCNow.secondstime())
-  if ((tempLastReadTimeSeconds + tempReadIntervalSeconds) < utcNowSecondsTime)
-  
+  if ((tempLastReadTimeSeconds + tempReadIntervalSeconds) < utcNowSecondsTime) 
   { 
       Serial.println(F("########## Have to read Vi-Features #########\n"));
       
       t_httpCode httpCode = read_Vi_FeaturesFromApi(myX509Certificate, myViessmannApiAccountPtr, Data_0_Id, Gateways_0_Serial, Gateways_0_Devices_0_Id, pViessmannApiSelectionPtr);
-      
-      //int httpCode = t_http_codes::HTTP_CODE_OK;
-
-      // Restore lastReadTimeSeconds and readIntervalSeconds
-      //pViessmannApiSelectionPtr->lastReadTimeSeconds = tempLastReadTimeSeconds;
-      //pViessmannApiSelectionPtr->readIntervalSeconds = tempReadIntervalSeconds;
-      
-      
+         
       if (httpCode == t_http_codes::HTTP_CODE_OK)
       {
         pViessmannApiSelectionPtr ->lastReadTimeSeconds = utcNowSecondsTime;
-        //viessmannApiSelection_01.lastReadTimeSeconds = dateTimeUTCNow.secondstime();
         
         Serial.println(F("Succeeded to read Features from Viessmann Cloud\n"));
         
@@ -2775,9 +2755,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
       else
       {
         pViessmannApiSelectionPtr ->lastReadTimeSeconds = utcNowSecondsTime;
-        //viessmannApiSelection_01.lastReadTimeSeconds = dateTimeUTCNow.secondstime();
-        
-        //viessmannApiSelection_01.lastReadTime = dateTimeUTCNow;
+         
         Serial.println(F("Failed to read Features from Viessmann Cloud"));
         Serial.printf("Else-LastReadTime: %u dateTimeUTCNow: %u, Interval: %u\n", (uint32_t)viessmannApiSelection_01.lastReadTimeSeconds, dateTimeUTCNow.secondstime(), (uint32_t)viessmannApiSelection_01.readIntervalSeconds); 
         //Serial.println((char*)bufferStorePtr);
@@ -2785,9 +2763,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   }
   
   if (analogSensorMgr_Vi_01.HasToBeRead(pSensorIndex, dateTimeUTCNow))
-  {
-    //Serial.printf("\nanalogSensorMgr_Vi_01: Value is used %d\n", pSensorIndex); 
-      
+  {     
     for (int i = 0; i < VI_FEATURES_COUNT; i++)
     {       
       if (strcmp((const char *)features[i].name, pSensorName) == 0)

@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <string.h>
 #include "config.h"
 #include "WiFiClientSecure.h"
 #include "HTTPClient.h"
@@ -24,8 +25,6 @@ class ViessmannClient
 
     
    private:
-   //char initName[FEATURENAMELENGTH] {0};
-   //char initTimestamp[FEATURESTAMPLENGTH] {0};
-   //char initValue[FEATUREVALUELENGTH] {0};
+      //void doTheFirst(ViessmannApiSelection * pViessmannApiSelectionPtr, JsonDocument pDoc);  
 };
 #endif

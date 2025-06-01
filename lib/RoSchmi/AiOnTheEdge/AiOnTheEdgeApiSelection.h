@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "DateTime.h"
+//#include "DateTime.h"
 
 #ifndef AIONTHEEDGEAPISELECTION_H_
 #define AIONTHEEDGEAPISELECTION_H_
@@ -10,7 +10,8 @@
 
 class AiOnTheEdgeApiSelection
 {
-    private:   
+    private:
+    //classLabel is used to find instance in memory   
     char classLabel[11] = "Ai-Api-Sel";
     char objLabel[11] = "none";
     char endLabel[9] = "Endlabel";
@@ -20,12 +21,6 @@ class AiOnTheEdgeApiSelection
     int64_t lastReadTimeSeconds;
     int32_t readIntervalSeconds;
     
-    /*
-    const int  valueLength = AI_FEATUREVALUELENGTH;
-    const int nameLenght = AI_FEATURENAMELENGTH;
-    const int stampLength = AI_FEATURESTAMPLENGTH;
-    */
-
     typedef struct Feature
     { 
         int  idx = 0;    

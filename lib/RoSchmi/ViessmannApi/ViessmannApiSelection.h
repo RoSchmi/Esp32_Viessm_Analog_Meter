@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "DateTime.h"
+//#include "DateTime.h"
 
 #ifndef _VIESSMANNAPISELECTION_H_
 #define _VIESSMANNAPISELECTION_H_
@@ -10,7 +10,8 @@
 
 class ViessmannApiSelection
 {
-    private:   
+    private:
+    //classLabel is used to find instance in memory   
     char classLabel[11] = "Vi-Api-Sel";
     char objLabel[11] = "none";
     char endLabel[9] = "Endlabel";
@@ -19,26 +20,17 @@ class ViessmannApiSelection
     int64_t lastReadTimeSeconds;
     int32_t readIntervalSeconds;
     
-    /*
-    const int  valueLength = VI_FEATUREVALUELENGTH;
-    const int nameLenght = VI_FEATURENAMELENGTH;
-    const int stampLength = VI_FEATURESTAMPLENGTH;
-    */
-
     typedef struct Feature
     { 
         int  idx = 0;    
-        char name[VI_FEATURENAMELENGTH] = {0};
-        char timestamp[VI_FEATURESTAMPLENGTH] = {0};     
-        char value[VI_FEATUREVALUELENGTH] = {0};       
+        char name[VI_FEATURENAMELENGTH] = {'\0'};
+        char timestamp[VI_FEATURESTAMPLENGTH] = {'\0'};     
+        char value[VI_FEATUREVALUELENGTH] = {'\0'};       
     }Feature;
 
     ViessmannApiSelection();
     ViessmannApiSelection(const char * pObjLabel, int64_t pLastReadTimeSeconds, int32_t pReadIntervalSeconds);
     
-    
-    //static Feature featureEmpty;
-
     Feature _2_temperature_main;
     Feature _4_boiler_temperature;
     Feature _6_burner_modulation;
