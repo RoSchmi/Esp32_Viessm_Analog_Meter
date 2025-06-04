@@ -20,6 +20,8 @@ class AiOnTheEdgeApiSelection
       
     int64_t lastReadTimeSeconds;
     int32_t readIntervalSeconds;
+
+    uint32_t baseValueOffset = 0;
     
     typedef struct Feature
     { 
@@ -30,7 +32,7 @@ class AiOnTheEdgeApiSelection
     }Feature;
 
     AiOnTheEdgeApiSelection();
-    AiOnTheEdgeApiSelection(const char * pObjLabel, int64_t pLastReadTimeSeconds, int32_t pReadIntervalSeconds);
+    AiOnTheEdgeApiSelection(const char * pObjLabel, int64_t pLastReadTimeSeconds, int32_t pReadIntervalSeconds, uint32_t pBaseValueOffset );
     
     Feature _0_value;
     Feature _1_raw;

@@ -182,6 +182,9 @@ char viessmannUserBaseUri[60] = VIESSMANN_USER_BASE_URI;
 char viessmannIotBaseUri[60] = VIESSMANN_IOT_BASE_URI;
 char viessmannTokenBaseUri[60] = VIESSMANN_TOKEN_BASE_URI;
 
+char gasmeterBaseValueOffsetStr[10] = GASMETER_AI_API_BASEVALUE_OFFSET;
+uint32_t gasmeterBaseValueOffsetInt =  strtoul(GASMETER_AI_API_BASEVALUE_OFFSET, NULL, 10);
+
 DateTime AccessTokenRefreshTime = DateTime();
 TimeSpan AccessTokenRefreshInterval = TimeSpan(VIESSMANN_TOKEN_REFRESH_INTERVAL_SECONDS);
 
@@ -191,14 +194,7 @@ ViessmannApiAccount * myViessmannApiAccountPtr = &myViessmannApiAccount;
 ViessmannApiSelection viessmannApiSelection_01( "Heizung", 0, VIESSMANN_API_READ_INTERVAL_SECONDS);
 ViessmannApiSelection * viessmannApiSelectionPtr_01 = &viessmannApiSelection_01;
  
-
-
-
-
-//RestApiAccount gasmeterApiAccount("gasmeter", "","gasmeter", false, false);
-//RestApiAccount * gasmeterApiAccountPtr = &gasmeterApiAccount;
-
-AiOnTheEdgeApiSelection gasmeterApiSelection("Gasmeter", 0, (int32_t)GASMETER_AI_API_READ_INTERVAL_SECONDS);
+AiOnTheEdgeApiSelection gasmeterApiSelection("Gasmeter", 0, (int32_t)GASMETER_AI_API_READ_INTERVAL_SECONDS, gasmeterBaseValueOffsetInt);
 AiOnTheEdgeApiSelection * gasmeterApiSelectionPtr = &gasmeterApiSelection;
 
 bool viessmannUserId_is_read = false;
@@ -400,6 +396,8 @@ char sSwiThresholdStr[6] = SOUNDSWITCHER_THRESHOLD;
 #define ViessmannClientId_Label "viessmannClientId"
 #define ViessmannRefreshToken_Label "viessmannRefreshToken"
 #define SoundSwitcherThresholdString_Label "sSwiThresholdStr"
+
+#define GasmeterBaseValueOffset_Label "gasmeterBaseValueOffsetStr"
 
 // for Ai-on-the-edge-devices
 char GasMeterAccountName[20] =  "gasmeter";
@@ -1022,6 +1020,11 @@ bool loadApplConfigData()    // Config parameter for Azure credentials, Viessman
         strcpy(viessmannRefreshToken, json[ViessmannRefreshToken_Label]);
       }      
     }
+    if (json.containsKey(GasmeterBaseValueOffset_Label))
+    {
+      strcpy(gasmeterBaseValueOffsetStr, json[GasmeterBaseValueOffset_Label]);
+      gasmeterBaseValueOffsetInt = strtoul((const char *)gasmeterBaseValueOffsetStr, NULL, 10);
+    }
     if (json.containsKey(SoundSwitcherThresholdString_Label))
     {
       strcpy(sSwiThresholdStr, json[SoundSwitcherThresholdString_Label]);      
@@ -1048,6 +1051,7 @@ bool saveApplConfigData()
   trimLeadingSpaces((char *)azureAccountKey);
   trimLeadingSpaces((char *)viessmannClientId);
   trimLeadingSpaces((char *)viessmannRefreshToken);
+  trimLeadingSpaces((char *)gasmeterBaseValueOffsetStr);
 
   // JSONify local configuration parameters 
   json[AzureAccountName_Label] = azureAccountName;
@@ -1058,6 +1062,7 @@ bool saveApplConfigData()
   //json[AzureAccountKey_Label] = azureAccountKey;
   //json[ViessmannClientId_Label] = viessmannClientId;
   //json[ViessmannRefreshToken_Label] = viessmannRefreshToken;
+  json[GasmeterBaseValueOffset_Label] = gasmeterBaseValueOffsetStr;
   json[SoundSwitcherThresholdString_Label] = sSwiThresholdStr;
   // Open file for writing
   File f = FileFS.open(CONFIG_FILE, "w");
@@ -1350,6 +1355,7 @@ void setup()
   ESPAsync_WMParameter p_azureAccountKey(AzureAccountKey_Label, "Azure Storage Account Key", "", 90);
   ESPAsync_WMParameter p_viessmannClientId(ViessmannClientId_Label, "Viessmann Client Id", viessmannClientId, 50);
   ESPAsync_WMParameter p_viessmannRefreshToken(ViessmannRefreshToken_Label, "Viessmann Refresh Token", "", 60);
+  ESPAsync_WMParameter p_gasmeterBaseValueOffset(GasmeterBaseValueOffset_Label, "Gasmeter Base Offset",gasmeterBaseValueOffsetStr, 10);
   ESPAsync_WMParameter p_soundSwitcherThreshold(SoundSwitcherThresholdString_Label, "Noise Threshold", sSwiThresholdStr, 6);
   // Just a quick hint
   ESPAsync_WMParameter p_hint("<small>*Hint: if you want to reuse the currently active WiFi credentials, leave SSID and Password fields empty. <br/>*Portal Password = MyESP_'hexnumber'</small>");
@@ -1362,6 +1368,7 @@ void setup()
   ESPAsync_wifiManager.addParameter(&p_azureAccountKey);
   ESPAsync_wifiManager.addParameter(&p_viessmannClientId);
   ESPAsync_wifiManager.addParameter(&p_viessmannRefreshToken);
+  ESPAsync_wifiManager.addParameter(&p_gasmeterBaseValueOffset);
   ESPAsync_wifiManager.addParameter(&p_soundSwitcherThreshold);
 
   // Check if there are stored WiFi router/password credentials.
@@ -1566,6 +1573,13 @@ void setup()
   if (strlen(p_viessmannRefreshToken.getValue()) > 1)
   {
     strcpy(viessmannRefreshToken, p_viessmannRefreshToken.getValue());
+  }
+  if (strlen(p_gasmeterBaseValueOffset.getValue()) > 1)
+  {
+    strcpy(gasmeterBaseValueOffsetStr, p_gasmeterBaseValueOffset.getValue());
+    gasmeterBaseValueOffsetInt = gasmeterBaseValueOffsetInt = strtoul((const char *)gasmeterBaseValueOffsetStr, NULL, 10);
+    sprintf(gasmeterBaseValueOffsetStr, "%u", gasmeterBaseValueOffsetInt);
+    gasmeterApiSelection.baseValueOffset = gasmeterBaseValueOffsetInt;
   }
   strcpy(sSwiThresholdStr, p_soundSwitcherThreshold.getValue());
     
@@ -2324,7 +2338,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
       .displayValue = (float)MAGIC_NUMBER_INVALID,
       .unClippedValue = (float)MAGIC_NUMBER_INVALID};
 
-  char consumption[12] = {0};
+  char consumption[12] = {'\0'};
 
   switch(pSensorIndex)
   {
@@ -2365,10 +2379,8 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         }
         else
         {
-          selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, &gasmeterApiAccount,(const char *)"value", gasmeterApiSelectionPtr);
-          
+          selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, &gasmeterApiAccount,(const char *)"value", gasmeterApiSelectionPtr);       
         }
-        //Serial.printf("The Vi-Lastreadtime (danach): %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
         
         Serial.println("Read value (1)");
        
@@ -2510,7 +2522,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         {
             if (timeSinceLastSendSeconds > 1.0)
             {             
-              rate = valueDiffOverflowCorrected * 50.0f / ((float)timeSinceLastSendSeconds / 60.0f); // *50 gives reasonable size in         
+              rate = valueDiffOverflowCorrected * 10.0f / ((float)timeSinceLastSendSeconds / 60.0f); // *10 gives reasonable size in graph        
             }
         }
           // RoSchmi

@@ -89,6 +89,8 @@
 
 #define GASMETER_AI_API_READ_INTERVAL_SECONDS 60 //Values from the AiOnTheEdge gasmeter are read with this timeinterval
 
+#define GASMETER_AI_API_BASEVALUE_OFFSET "2000"  // Offset for the basevalue, holds the not evaluated left digits
+
 #define API_ANALOG_SENSOR_READ_INTERVAL_SECONDS 77  // Analog Sensor values from the Viessmann Api (seconds, can be 0)
 
 #define VIESSMANN_API_READ_INTERVAL_SECONDS 75  //Values from the Viessmann Cloud Api are read with this timeinterval
