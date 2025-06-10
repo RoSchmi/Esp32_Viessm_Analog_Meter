@@ -10,6 +10,7 @@ typedef struct
 {
   float displayValue;
   float unClippedValue;
+  float thisDayBaseValue;
 }  ValueStruct;
 
 typedef struct
@@ -22,8 +23,7 @@ typedef struct
     float UnClippedValue = 0.0;
     float LastValue = 999.9;
     float UnClippedLastValue = 0.0;
-    float LastSendUnClippedValue = 0;
-    //float LastLastSendUnClippedValue = 0;
+    float LastSendUnClippedValue = 0; 
     DateTime LastUpdateValueTime = DateTime();   
     DateTime LastSendTime;  
 }

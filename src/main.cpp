@@ -379,8 +379,9 @@ int32_t sysTimeNtpDelta = 0;
 static bool UseHttps_State = AZURE_TRANSPORT_PROTOKOL == 0 ? false : true;
 static bool UseCaCert_State = AZURE_TRANSPORT_PROTOKOL == 0 ? false : true;
 
-const char * CONFIG_FILE = "/ConfigSW.json";    // Configuration for Azure and threshold
-                                                // 'CONFIG_FILENAME' is used for Router Credentials
+const char * PERSIST_FILE = "/PersistantData.json";  // For values that shoult persist after reset
+const char * CONFIG_FILE = "/ConfigSW.json";         // Configuration for Azure and threshold
+                                                     // 'CONFIG_FILENAME' is used for Router Credentials
 
 #define AZURE_CONFIG_ACCOUNT_NAME "AzureStorageAccName"
 
@@ -571,6 +572,21 @@ typedef struct
   float unClippedValue;
 }  ValueSet;
 */
+
+typedef struct 
+{
+  char localTimestamp[30] = {'\0'};
+  int timeZoneOffsetUTC = 0; //myTimezone.utcIsDST(dateTimeUTCNow.unixtime()) ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;
+  float gas_DayBaseValue = 0.0;
+  int gas_overflowCount = 0; 
+  float water_DayBaseValue = 0.0;
+  int water_overflowCount = 0;
+  uint16_t checksum = 0;
+} First_Reading;
+
+First_Reading first_Reading;
+First_Reading loaded_First_Reading;
+
 typedef struct
 {
   char wifi_ssid[SSID_MAX_LEN];
@@ -598,7 +614,8 @@ WM_Config         Loaded_WM_config;
 
 // Name of file for Router Credentials
 #define  CONFIG_FILENAME              F("/wifi_cred.dat")
-//////
+
+/////
 
 // Indicates whether ESP has WiFi credentials saved from previous session
 // Is set to true if WiFi-Credentials could be read from SPIFFS/LittleFS
@@ -884,7 +901,7 @@ bool loadWiFiConfigData()    // Load configuration to access Router WiFi Credent
   File file = FileFS.open(CONFIG_FILENAME, "r");
   LOGERROR(F("LoadWiFiCfgFile "));
   
-  // Set content of the structs to 0
+    // Set content of the structs to 0
   memset((void *) &WM_config,       0, sizeof(WM_config));
   memset((void *) &WM_STA_IPconfig, 0, sizeof(WM_STA_IPconfig));
   
@@ -913,7 +930,6 @@ bool loadWiFiConfigData()    // Load configuration to access Router WiFi Credent
       LOGERROR(F("WM_config checksum wrong"));  
       return false;
     }
-    
     displayIPConfigStruct(WM_STA_IPconfig);
    
     return true;
@@ -947,6 +963,29 @@ void saveWiFiConfigData()   // Save Router WiFi-Credentials to file
     LOGERROR(F("failed"));
   }
 }   // end saveWiFiConfigData
+
+bool loadPermanentData()
+{
+  File f = FileFS.open(PERSIST_FILE, "r");
+  if (!f)
+  {
+    Serial.println(F("Persistent Data file not found"));
+    return false;
+  }
+  else
+  {
+    // we could open the file
+    size_t size = f.size();
+    // Allocate a buffer to store contents of the file.
+    std::unique_ptr<char[]> buf(new char[size + 1]);
+
+    // Read and store file contents in buf
+    f.readBytes(buf.get(), size);
+    // Closing file
+    f.close();
+    return false;
+  }
+}
 
 bool loadApplConfigData()    // Config parameter for Azure credentials, Viessmann Refresh-Token and threshold
 {
@@ -1034,7 +1073,7 @@ bool loadApplConfigData()    // Config parameter for Azure credentials, Viessman
   return true;
 }
 
-bool saveApplConfigData()
+bool saveApplConfigData() // Config parameter for Azure credentials, Viessmann Refresh-Token and threshold
 {
   LOGERROR(F("Saving additional configuration to file"));
   
@@ -1288,6 +1327,11 @@ void setup()
   if (!loadApplConfigData())   // For Azure Credentials, Viessman Refresh-Token and threshold
   {
     Serial.println(F("Failed to read ConfigFile, using default values"));
+  }
+
+  if (!loadPermanentData())   // e.g. for first value of this day
+  {
+    Serial.println("Failed to read permanent data from file, using default values");
   }
 
   //Local intialization. Once its business is done, there is no need to keep it around
@@ -1776,6 +1820,8 @@ void setup()
   //DateTime localTime = myTimezone.toLocal(dateTimeUTCNow.unixtime());
   localTime = myTimezone.toLocal(dateTimeUTCNow.unixtime());
   timeDiffUtcToLocal = localTime.operator-(dateTimeUTCNow);
+
+  
 
   
   Serial.printf("%s %i %02d %02d %02d %02d", (char *)"Local-Time is:", localTime.year(), 
@@ -2336,7 +2382,8 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
 {
   ValueStruct returnValueStruct = { 
       .displayValue = (float)MAGIC_NUMBER_INVALID,
-      .unClippedValue = (float)MAGIC_NUMBER_INVALID};
+      .unClippedValue = (float)MAGIC_NUMBER_INVALID,
+      .thisDayBaseValue = (float)MAGIC_NUMBER_INVALID};
 
   char consumption[12] = {'\0'};
 
@@ -2346,7 +2393,11 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
       { 
         // Total Consumption, DisplayValue and UnClippedValue 
         //AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;
-                             
+            
+        //gasmeterApiSelection.baseValueOffset
+
+        //uint32_t theOffset = gasmeterBaseValueOffsetInt;
+
         // select Feature by its name (pSensorName value, raw, pre, error, rate, timestamp)
         
         //Serial.printf("The Vi-Lastreadtime (0): %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
@@ -2374,8 +2425,64 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
             if (httpResponse == t_http_codes::HTTP_CODE_OK)
             {
               isFirstGasmeterRead = false;
-            }
-          }         
+              if (!LittleFS.exists(PERSIST_FILE)) 
+              {
+                // Create file if not existing               
+                strcpy(first_Reading.localTimestamp, (const char*)localTime.timestamp().c_str());
+                first_Reading.timeZoneOffsetUTC = myTimezone.utcIsDST(dateTimeUTCNow.unixtime()) ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;                
+                first_Reading.gas_DayBaseValue = preValueFloat;
+                first_Reading.gas_overflowCount = 0;
+                first_Reading.water_DayBaseValue = 0;
+                first_Reading.water_overflowCount = 0;
+                first_Reading.checksum = calcChecksum( (uint8_t*) &first_Reading, sizeof(first_Reading) - sizeof(first_Reading.checksum) );                   
+                File file = FileFS.open(PERSIST_FILE, "w");
+                if (file)
+                {
+                  file.write((uint8_t*) &first_Reading, sizeof(first_Reading));
+                  file.close();
+                }                
+              }  // End of creating not existing PERSIST_FILE
+
+              File file = FileFS.open(PERSIST_FILE, "r");
+              // Set content of the struct to 0
+              memset((void *) &loaded_First_Reading,       0, sizeof(loaded_First_Reading));
+              if (file)
+              {
+                file.readBytes((char *) &loaded_First_Reading, sizeof(loaded_First_Reading));
+                file.close();
+                DateTime firstReadingDateTime((const char *)loaded_First_Reading.localTimestamp);
+                
+                // if we have a new day --> write first_Reading, otherwise -->leave the old one
+                if (firstReadingDateTime.timestamp(DateTime::TIMESTAMP_DATE) != localTime.timestamp(DateTime::TIMESTAMP_DATE))
+                {
+                  strcpy(first_Reading.localTimestamp, (const char*)localTime.timestamp().c_str());
+                  first_Reading.timeZoneOffsetUTC = myTimezone.utcIsDST(dateTimeUTCNow.unixtime()) ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;
+                  first_Reading.gas_DayBaseValue = preValueFloat;
+                  first_Reading.gas_overflowCount = 0;
+                  first_Reading.water_DayBaseValue = 0;
+                  first_Reading.water_overflowCount = 0;
+                  first_Reading.checksum = calcChecksum( (uint8_t*) &first_Reading, sizeof(first_Reading) - sizeof(first_Reading.checksum) );                   
+                  
+                  File file = FileFS.open(PERSIST_FILE, "w");
+                  if (file)
+                  {
+                    file.write((uint8_t*) &first_Reading, sizeof(first_Reading));
+                    file.close();
+                  }
+                  file = FileFS.open(PERSIST_FILE, "r");
+                  if (file)
+                  {
+                    file.write((uint8_t*) &first_Reading, sizeof(first_Reading));
+                    file.close();
+                  }
+                }            
+              }
+              else
+              {
+                Serial.println("Error reading PERSIST_FILE");
+              }
+            }   // (httpResponse == t_http_codes::HTTP_CODE_OK)
+          }   
         }
         else
         {
@@ -2384,7 +2491,6 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         
         Serial.println("Read value (1)");
        
-
         strncpy(consumption, selectedFeature.value, sizeof(consumption));                                          
      
         float tempNumber = (float)MAGIC_NUMBER_INVALID;
@@ -2404,14 +2510,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
           Serial.printf("Value invalid (0.00) or could not be parsed to float: %s\n", consumption);
           tempNumber = (float)MAGIC_NUMBER_INVALID;
 
-          Serial.println("Read value (2)");
-          // RoSchmi
-          /*
-          while (true)
-          {
-            delay(500);
-          }
-          */
+          Serial.println("Read value (2)");    
         }
         
         // convert values near MAGIC_NUMBER_INVALID to MAGIC_NUMBER_INVALID  
@@ -2422,7 +2521,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         if (tempNumber > (MAGIC_NUMBER_INVALID - 0.01) && tempNumber < (MAGIC_NUMBER_INVALID + 0.01))
         {
           // if tempNumber = MAGIC_NUMBER_INVALID return both with MAGIC_NUMBER_INVALID
-          // was preset at the beginning
+          // (was preset at the beginning)
           // this means, that the values are ignored in further process
           return returnValueStruct;
         }
@@ -2441,6 +2540,18 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         }
         returnValueStruct.displayValue = atof((const char *)consumption);
         
+        returnValueStruct.thisDayBaseValue = loaded_First_Reading.gas_DayBaseValue;
+        
+        /*
+        DateTime loadedTime = DateTime((const char *)loaded_First_Reading.localTimestamp);
+        
+        if (loadedTime.timestamp(DateTime::TIMESTAMP_DATE) = localTime.timestamp(DateTime::TIMESTAMP_DATE))
+        {
+
+        }
+        */
+        
+
         Serial.println("Read value (5)");
 
         //#if SERIAL_PRINT == 1

@@ -53,11 +53,14 @@ void DataContainerWio::SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime,
         
         bool isNewDay = pActDateTime.operator+(timeDiffUtcToLocal).day() != SampleValues[pIndex].LastUpdateValueTime.operator+(timeDiffUtcToLocal).day(); 
         
+        SampleValues[pIndex].BaseValue = pValueStruct.thisDayBaseValue;
+        /*
         if (_isFirstTransmission || isNewDay)
         {
             //Serial.printf("Setting BaseValueStruct pSampleValue: %.2f\n", pValueStruct.unClippedValue);
             SampleValues[pIndex].BaseValue = pValueStruct.unClippedValue;
         }
+        */
 
         SampleValues[pIndex].LastValue = SampleValues[pIndex].Value;
         SampleValues[pIndex].UnClippedLastValue = SampleValues[pIndex].UnClippedValue;
