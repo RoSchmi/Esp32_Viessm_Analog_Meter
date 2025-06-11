@@ -585,7 +585,9 @@ typedef struct
 } First_Reading;
 
 First_Reading first_Reading;
-First_Reading loaded_First_Reading;
+
+
+//First_Reading loaded_First_Reading;
 
 typedef struct
 {
@@ -2419,18 +2421,24 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
           if (strcmp((char *)preValue, (char *)"999.9") != 0)
           {
             float preValueFloat = atof(preValue);
-            preValueFloat = preValueFloat - 0.1f;
-            snprintf(preValue, sizeof(preValue), "%.2f", preValueFloat);             
+            float preValueFloatMinus = preValueFloat - 0.1f;
+            snprintf(preValue, sizeof(preValue), "%.2f", preValueFloatMinus);             
             t_httpCode httpResponse = setAiPreValueViaRestApi((const char*)"dummyCaCert", &gasmeterApiAccount, (const char *)preValue);
             if (httpResponse == t_http_codes::HTTP_CODE_OK)
             {
               isFirstGasmeterRead = false;
-              if (!LittleFS.exists(PERSIST_FILE)) 
+
+
+              
+             
+
+              //if (true)
+              if (!LittleFS.exists(PERSIST_FILE))
               {
                 // Create file if not existing               
                 strcpy(first_Reading.localTimestamp, (const char*)localTime.timestamp().c_str());
                 first_Reading.timeZoneOffsetUTC = myTimezone.utcIsDST(dateTimeUTCNow.unixtime()) ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;                
-                first_Reading.gas_DayBaseValue = preValueFloat;
+                first_Reading.gas_DayBaseValue = preValueFloat * 10;
                 first_Reading.gas_overflowCount = 0;
                 first_Reading.water_DayBaseValue = 0;
                 first_Reading.water_overflowCount = 0;
@@ -2445,19 +2453,19 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
 
               File file = FileFS.open(PERSIST_FILE, "r");
               // Set content of the struct to 0
-              memset((void *) &loaded_First_Reading,       0, sizeof(loaded_First_Reading));
+              memset((void *) &first_Reading,       0, sizeof(first_Reading));
               if (file)
               {
-                file.readBytes((char *) &loaded_First_Reading, sizeof(loaded_First_Reading));
+                file.readBytes((char *) &first_Reading, sizeof(first_Reading));
                 file.close();
-                DateTime firstReadingDateTime((const char *)loaded_First_Reading.localTimestamp);
+                DateTime firstReadingDateTime((const char *)first_Reading.localTimestamp);
                 
                 // if we have a new day --> write first_Reading, otherwise -->leave the old one
                 if (firstReadingDateTime.timestamp(DateTime::TIMESTAMP_DATE) != localTime.timestamp(DateTime::TIMESTAMP_DATE))
                 {
                   strcpy(first_Reading.localTimestamp, (const char*)localTime.timestamp().c_str());
                   first_Reading.timeZoneOffsetUTC = myTimezone.utcIsDST(dateTimeUTCNow.unixtime()) ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;
-                  first_Reading.gas_DayBaseValue = preValueFloat;
+                  first_Reading.gas_DayBaseValue = preValueFloat * 10;
                   first_Reading.gas_overflowCount = 0;
                   first_Reading.water_DayBaseValue = 0;
                   first_Reading.water_overflowCount = 0;
@@ -2466,13 +2474,15 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
                   File file = FileFS.open(PERSIST_FILE, "w");
                   if (file)
                   {
-                    file.write((uint8_t*) &first_Reading, sizeof(first_Reading));
+                    file.write((uint8_t*) &first_Reading, sizeof(first_Reading));                                
                     file.close();
                   }
                   file = FileFS.open(PERSIST_FILE, "r");
+                  // Set content of the struct to 0
+                  memset((void *) &first_Reading,       0, sizeof(first_Reading));
                   if (file)
                   {
-                    file.write((uint8_t*) &first_Reading, sizeof(first_Reading));
+                    file.readBytes((char *) &first_Reading, sizeof(first_Reading));                   
                     file.close();
                   }
                 }            
@@ -2540,7 +2550,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         }
         returnValueStruct.displayValue = atof((const char *)consumption);
         
-        returnValueStruct.thisDayBaseValue = loaded_First_Reading.gas_DayBaseValue;
+        returnValueStruct.thisDayBaseValue = first_Reading.gas_DayBaseValue;
         
         /*
         DateTime loadedTime = DateTime((const char *)loaded_First_Reading.localTimestamp);

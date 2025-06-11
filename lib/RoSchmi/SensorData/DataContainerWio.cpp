@@ -27,7 +27,8 @@ void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float
 {
     ValueStruct transferValueStruct = {
         .displayValue = pSampleValue,
-        .unClippedValue = pSampleValue};
+        .unClippedValue = pSampleValue,
+        .thisDayBaseValue = 55.0 };
     SetNewValueStruct(pIndex, pActDateTime, transferValueStruct, false);
 }
 
@@ -53,7 +54,13 @@ void DataContainerWio::SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime,
         
         bool isNewDay = pActDateTime.operator+(timeDiffUtcToLocal).day() != SampleValues[pIndex].LastUpdateValueTime.operator+(timeDiffUtcToLocal).day(); 
         
-        SampleValues[pIndex].BaseValue = pValueStruct.thisDayBaseValue;
+        if (pIsConsumption)
+        {
+            SampleValues[pIndex].BaseValue = pValueStruct.thisDayBaseValue;
+            float copyBaseValue = SampleValues[0].BaseValue;
+            volatile int dummy1 = 22;
+            dummy1 =+ 1;
+        }
         /*
         if (_isFirstTransmission || isNewDay)
         {
