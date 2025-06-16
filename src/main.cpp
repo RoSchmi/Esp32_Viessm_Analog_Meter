@@ -1198,7 +1198,7 @@ void setup()
   // initialize the LED digital pin as an output.
   pinMode(LED_BUILTIN, OUTPUT);
   
-  Serial.begin(115200);
+   Serial.begin(115200);
   while (!Serial);
 
   delay(4000);
@@ -2403,7 +2403,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         // select Feature by its name (pSensorName value, raw, pre, error, rate, timestamp)
         
         //Serial.printf("The Vi-Lastreadtime (0): %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
-    
+        const int decShiftFactor = 10;
 
         AiOnTheEdgeApiSelection::Feature selectedFeature;
         
@@ -2428,17 +2428,13 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
             {
               isFirstGasmeterRead = false;
 
-
-              
-             
-
               //if (true)
               if (!LittleFS.exists(PERSIST_FILE))
               {
                 // Create file if not existing               
                 strcpy(first_Reading.localTimestamp, (const char*)localTime.timestamp().c_str());
                 first_Reading.timeZoneOffsetUTC = myTimezone.utcIsDST(dateTimeUTCNow.unixtime()) ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;                
-                first_Reading.gas_DayBaseValue = preValueFloat * 10;
+                first_Reading.gas_DayBaseValue = preValueFloat * decShiftFactor;
                 first_Reading.gas_overflowCount = 0;
                 first_Reading.water_DayBaseValue = 0;
                 first_Reading.water_overflowCount = 0;
@@ -2459,13 +2455,16 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
                 file.readBytes((char *) &first_Reading, sizeof(first_Reading));
                 file.close();
                 DateTime firstReadingDateTime((const char *)first_Reading.localTimestamp);
+                DateTime localTimeDateTime((const char *)localTime.timestamp().c_str());   // Created for debugging
                 
                 // if we have a new day --> write first_Reading, otherwise -->leave the old one
-                if (firstReadingDateTime.timestamp(DateTime::TIMESTAMP_DATE) != localTime.timestamp(DateTime::TIMESTAMP_DATE))
+                if (firstReadingDateTime.timestamp(DateTime::TIMESTAMP_DATE) != localTimeDateTime.timestamp(DateTime::TIMESTAMP_DATE))
+                
+                //if (firstReadingDateTime.timestamp(DateTime::TIMESTAMP_DATE) != localTime.timestamp(DateTime::TIMESTAMP_DATE))
                 {
                   strcpy(first_Reading.localTimestamp, (const char*)localTime.timestamp().c_str());
                   first_Reading.timeZoneOffsetUTC = myTimezone.utcIsDST(dateTimeUTCNow.unixtime()) ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;
-                  first_Reading.gas_DayBaseValue = preValueFloat * 10;
+                  first_Reading.gas_DayBaseValue = preValueFloat * decShiftFactor;
                   first_Reading.gas_overflowCount = 0;
                   first_Reading.water_DayBaseValue = 0;
                   first_Reading.water_overflowCount = 0;
@@ -2494,13 +2493,66 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
             }   // (httpResponse == t_http_codes::HTTP_CODE_OK)
           }   
         }
-        else
+        else   // not FirstGasmeterRead
         {
-          selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, &gasmeterApiAccount,(const char *)"value", gasmeterApiSelectionPtr);       
+          selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, &gasmeterApiAccount,(const char *)"value", gasmeterApiSelectionPtr);
+          // if we have a new day --> write first_Reading, otherwise -->leave the old one
+          DateTime storedFirstReadingDateTime((const char *)first_Reading.localTimestamp);
+          
+          //TimeSpan oneDay(1,0,0,0);
+          TimeSpan oneDay(0,0,0,0);   // for debugging
+          
+          DateTime firstReadingDateTime = storedFirstReadingDateTime.operator-(oneDay); // commented, only for debugging
+          DateTime localTimeDateTime((const char *)localTime.timestamp().c_str());   // Created for debugging               
+          
+          if (firstReadingDateTime.timestamp(DateTime::TIMESTAMP_DATE) != localTimeDateTime.timestamp(DateTime::TIMESTAMP_DATE))
+          {
+            strncpy(consumption, selectedFeature.value, sizeof(consumption));
+            //const char * magicNumberInvalidString =  MAGIC_NUMBER_INVALID;
+            //if ((const char *)consumption != MAGIC_NUMBER_INVALID)
+
+            float tempNumber = (float)MAGIC_NUMBER_INVALID;
+
+            if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
+            {
+              tempNumber = atof(consumption);
+              strcpy(first_Reading.localTimestamp, (const char*)localTime.timestamp().c_str());
+              first_Reading.timeZoneOffsetUTC = myTimezone.utcIsDST(dateTimeUTCNow.unixtime()) ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;
+              first_Reading.gas_DayBaseValue = tempNumber * decShiftFactor;
+              first_Reading.gas_overflowCount = 0;
+              first_Reading.water_DayBaseValue = 0;
+              first_Reading.water_overflowCount = 0;
+              first_Reading.checksum = calcChecksum( (uint8_t*) &first_Reading, sizeof(first_Reading) - sizeof(first_Reading.checksum) );                   
+              
+              if (tempNumber < (MAGIC_NUMBER_INVALID - 0.01) || tempNumber > (MAGIC_NUMBER_INVALID + 0.01))
+              //if (tempNumber != (float)MAGIC_NUMBER_INVALID)
+              {
+                Serial.printf("Setting gas_DayBaseValue to %.1f\n", tempNumber);
+                File file = FileFS.open(PERSIST_FILE, "w");
+                if (file)
+                {
+                  file.write((uint8_t*) &first_Reading, sizeof(first_Reading));                                
+                  file.close();
+                }
+                file = FileFS.open(PERSIST_FILE, "r");
+                // Set content of the struct to 0
+                memset((void *) &first_Reading,       0, sizeof(first_Reading));
+                if (file)
+                {
+                  file.readBytes((char *) &first_Reading, sizeof(first_Reading));                   
+                  file.close();
+                }
+              }
+              else
+              {
+                Serial.printf("Not setting: %.1f\n", tempNumber);
+              }
+            }         
+          }         
         }
         
         Serial.println("Read value (1)");
-       
+        memset((void *) &consumption,       '\0', sizeof(consumption));
         strncpy(consumption, selectedFeature.value, sizeof(consumption));                                          
      
         float tempNumber = (float)MAGIC_NUMBER_INVALID;
@@ -2539,7 +2591,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         Serial.println("Read value (4)");
 
         // multply by 10, so that there remains 1 significant digit after decimal point
-        sprintf(consumption, "%.1f", tempNumber * 10);
+        sprintf(consumption, "%.1f", tempNumber * decShiftFactor);
         returnValueStruct.unClippedValue = atof((const char *)consumption);
         
         // remove leading digits, so that there are maximal 2 digits 
@@ -2552,28 +2604,12 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         
         returnValueStruct.thisDayBaseValue = first_Reading.gas_DayBaseValue;
         
-        /*
-        DateTime loadedTime = DateTime((const char *)loaded_First_Reading.localTimestamp);
-        
-        if (loadedTime.timestamp(DateTime::TIMESTAMP_DATE) = localTime.timestamp(DateTime::TIMESTAMP_DATE))
-        {
-
-        }
-        */
-        
-
         Serial.println("Read value (5)");
 
         //#if SERIAL_PRINT == 1
-            Serial.printf("\nDisplayValue: %.1f  UnClippedValue: %.1f\n", returnValueStruct.displayValue, returnValueStruct.unClippedValue);
+           Serial.printf("\nDisplayValue: %.1f  UnClippedValue: %.1f\n", returnValueStruct.displayValue, returnValueStruct.unClippedValue);
         //#endif
-        //Serial.printf("The Vi-Lastreadtime (1): %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
-        /*
-        while (true)
-        {
-          delay (500);
-        }
-        */
+        
       }
       break;                   
       case 1:    // Consumption this day
