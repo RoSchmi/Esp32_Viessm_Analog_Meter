@@ -2399,19 +2399,9 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
       case 0:
       { 
         // Total Consumption, DisplayValue and UnClippedValue 
-        //AiOnTheEdgeApiSelection * aiOnTheEdgeApiSelectionPtr = gasmeterApiSelectionPtr;
-            
-        //gasmeterApiSelection.baseValueOffset
-
-        //uint32_t theOffset = gasmeterBaseValueOffsetInt;
-
         // select Feature by its name (pSensorName value, raw, pre, error, rate, timestamp)
-        
-        //Serial.printf("The Vi-Lastreadtime (0): %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
-        
-        
-
-        const int decShiftFactor = 10;
+              
+        const int decShiftFactor = 10;   // defines shift of decimal point (10 means 1 place)
 
         AiOnTheEdgeApiSelection::Feature selectedFeature;
         
