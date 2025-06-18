@@ -344,6 +344,9 @@ FeedResponse feedResult;
 int soundSwitcherUpdateInterval = SOUNDSWITCHER_UPDATEINTERVAL;
 uint32_t soundSwitcherReadDelayTime = SOUNDSWITCHER_READ_DELAYTIME;
 
+float LastGasmeterReading = 0.0f;
+uint32_t GasmeterReadCounter = 0; //only for debugging, should be deleted in future
+
 uint64_t loopCounter = 0;
 int insertCounterAnalogTable = 0;
 int insertCounterApiAnalogTable01 = 0;
@@ -1967,12 +1970,14 @@ void loop()
       //testResult = atof((ReadViessmannApi_Analog_01(1, (const char *)"_2_temperature_main", viessmannApiSelectionPtr_01)).value);
       //testResult = atof((ReadViessmannApi_Analog_01(1, (const char *)"_89_heating_dhw_cylinder_temperature", viessmannApiSelectionPtr_01)).value);
       //testResult = atof((ReadViessmannApi_Analog_01(1, (const char *)"_7_burner_modulation", viessmannApiSelectionPtr_01)).value);
- 
+      
+      
       dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_94_heating_temperature_outside", viessmannApiSelectionPtr_01)).value)); // Aussen
       dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_2_temperature_main", viessmannApiSelectionPtr_01)).value)); // Vorlauf                
       dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"_89_heating_dhw_cylinder_temperature",viessmannApiSelectionPtr_01)).value)); // Boiler
       dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(3, (const char *)"_7_burner_modulation",viessmannApiSelectionPtr_01)).value));  // Modulation
       
+
       ledState = !ledState;
       digitalWrite(LED_BUILTIN, ledState);    // toggle LED to signal that App is running
 
@@ -2403,10 +2408,14 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         // select Feature by its name (pSensorName value, raw, pre, error, rate, timestamp)
         
         //Serial.printf("The Vi-Lastreadtime (0): %u\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
+        
+        
+
         const int decShiftFactor = 10;
 
         AiOnTheEdgeApiSelection::Feature selectedFeature;
         
+        #pragma region  (is FirstGasmeterRead)
         if (isFirstGasmeterRead)
         {
           // Read raw instead of value
@@ -2457,11 +2466,13 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
                 DateTime firstReadingDateTime((const char *)first_Reading.localTimestamp);
                 DateTime localTimeDateTime((const char *)localTime.timestamp().c_str());   // Created for debugging
                 
+                Serial.printf("In: isFirstGasmeterRead, Dates: %s,  %s\n", (const char *)first_Reading.localTimestamp, (const char *)localTime.timestamp().c_str());
+                  
                 // if we have a new day --> write first_Reading, otherwise -->leave the old one
-                if (firstReadingDateTime.timestamp(DateTime::TIMESTAMP_DATE) != localTimeDateTime.timestamp(DateTime::TIMESTAMP_DATE))
-                
-                //if (firstReadingDateTime.timestamp(DateTime::TIMESTAMP_DATE) != localTime.timestamp(DateTime::TIMESTAMP_DATE))
+                if (firstReadingDateTime.timestamp(DateTime::TIMESTAMP_DATE) != localTimeDateTime.timestamp(DateTime::TIMESTAMP_DATE))       
                 {
+                  Serial.println("Was new day");
+                  Serial.println("Presetting an writing new first_Reading values");
                   strcpy(first_Reading.localTimestamp, (const char*)localTime.timestamp().c_str());
                   first_Reading.timeZoneOffsetUTC = myTimezone.utcIsDST(dateTimeUTCNow.unixtime()) ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;
                   first_Reading.gas_DayBaseValue = preValueFloat * decShiftFactor;
@@ -2493,62 +2504,75 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
             }   // (httpResponse == t_http_codes::HTTP_CODE_OK)
           }   
         }
+        #pragma endregion
         else   // not FirstGasmeterRead
         {
+        #pragma region (is not FirstGasmeterRead)
+
           selectedFeature = ReadAiOnTheEdgeApi_Analog_01(pSensorIndex, &gasmeterApiAccount,(const char *)"value", gasmeterApiSelectionPtr);
           // if we have a new day --> write first_Reading, otherwise -->leave the old one
           DateTime storedFirstReadingDateTime((const char *)first_Reading.localTimestamp);
           
-          //TimeSpan oneDay(1,0,0,0);
-          TimeSpan oneDay(0,0,0,0);   // for debugging
           
-          DateTime firstReadingDateTime = storedFirstReadingDateTime.operator-(oneDay); // commented, only for debugging
+          /******* for debugging */
+          GasmeterReadCounter++;   // to be deleted later
+          
+          TimeSpan diffDay(0,0,0,0);
+          TimeSpan oneDay(1,0,0,0);
+
+          if (GasmeterReadCounter == 1)
+          {
+             //diffDay = oneDay;
+          }
+
+          /******* end for debugging */
+         
+          DateTime firstReadingDateTime = storedFirstReadingDateTime.operator-(diffDay); // commented, only for debugging
           DateTime localTimeDateTime((const char *)localTime.timestamp().c_str());   // Created for debugging               
           
+          Serial.printf("In: is not FirstGasmeterRead, Dates: %s,  %s\n", (const char *)first_Reading.localTimestamp, (const char *)localTime.timestamp().c_str());
+                  
+          // if new day (is not FirstGasmeterRead)
           if (firstReadingDateTime.timestamp(DateTime::TIMESTAMP_DATE) != localTimeDateTime.timestamp(DateTime::TIMESTAMP_DATE))
           {
+            Serial.println("Was new day");
             strncpy(consumption, selectedFeature.value, sizeof(consumption));
-            //const char * magicNumberInvalidString =  MAGIC_NUMBER_INVALID;
-            //if ((const char *)consumption != MAGIC_NUMBER_INVALID)
-
+            Serial.printf("Consumption: %s\n", (const char *)consumption);
+            Serial.printf("LastGasmeterReading: %f.1\n", LastGasmeterReading);
+            
             float tempNumber = (float)MAGIC_NUMBER_INVALID;
 
             if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
             {
+              Serial.println("Preset new first_Reading values");
               tempNumber = atof(consumption);
               strcpy(first_Reading.localTimestamp, (const char*)localTime.timestamp().c_str());
               first_Reading.timeZoneOffsetUTC = myTimezone.utcIsDST(dateTimeUTCNow.unixtime()) ? TIMEZONEOFFSET + DSTOFFSET : TIMEZONEOFFSET;
-              first_Reading.gas_DayBaseValue = tempNumber * decShiftFactor;
+              first_Reading.gas_DayBaseValue = LastGasmeterReading;              
               first_Reading.gas_overflowCount = 0;
               first_Reading.water_DayBaseValue = 0;
               first_Reading.water_overflowCount = 0;
               first_Reading.checksum = calcChecksum( (uint8_t*) &first_Reading, sizeof(first_Reading) - sizeof(first_Reading.checksum) );                   
               
-              if (tempNumber < (MAGIC_NUMBER_INVALID - 0.01) || tempNumber > (MAGIC_NUMBER_INVALID + 0.01))
-              //if (tempNumber != (float)MAGIC_NUMBER_INVALID)
+              
+              Serial.printf("Setting gas_DayBaseValue to %.1f\n", LastGasmeterReading);
+              File file = FileFS.open(PERSIST_FILE, "w");
+              if (file)
               {
-                Serial.printf("Setting gas_DayBaseValue to %.1f\n", tempNumber);
-                File file = FileFS.open(PERSIST_FILE, "w");
-                if (file)
-                {
-                  file.write((uint8_t*) &first_Reading, sizeof(first_Reading));                                
-                  file.close();
-                }
-                file = FileFS.open(PERSIST_FILE, "r");
+                file.write((uint8_t*) &first_Reading, sizeof(first_Reading));                                
+                file.close();
+              }
+              file = FileFS.open(PERSIST_FILE, "r");
                 // Set content of the struct to 0
-                memset((void *) &first_Reading,       0, sizeof(first_Reading));
-                if (file)
-                {
-                  file.readBytes((char *) &first_Reading, sizeof(first_Reading));                   
-                  file.close();
-                }
-              }
-              else
+              memset((void *) &first_Reading,       0, sizeof(first_Reading));
+              if (file)
               {
-                Serial.printf("Not setting: %.1f\n", tempNumber);
-              }
+                file.readBytes((char *) &first_Reading, sizeof(first_Reading));                   
+                file.close();
+              }              
             }         
-          }         
+          }
+        #pragma endregion         
         }
         
         Serial.println("Read value (1)");
@@ -2592,7 +2616,8 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
 
         // multply by 10, so that there remains 1 significant digit after decimal point
         sprintf(consumption, "%.1f", tempNumber * decShiftFactor);
-        returnValueStruct.unClippedValue = atof((const char *)consumption);
+        LastGasmeterReading = atof((const char *)consumption);
+        returnValueStruct.unClippedValue = LastGasmeterReading;  
         
         // remove leading digits, so that there are maximal 2 digits 
         // before decimal point for .displayValue
