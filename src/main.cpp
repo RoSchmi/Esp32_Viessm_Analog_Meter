@@ -2170,16 +2170,18 @@ void loop()
           createSampleTime(sampleValueSet.LastUpdateTime, timeZoneOffsetUTC, (char *)sampleTime);
 
           // Define name of the table (arbitrary name + actual year, like: AnalogTestValues2020)
-          String augmentedAnalogTableName = analogTableName; 
+          String augmentedAnalogTableName = analogTableName;
+          String augmentedAnalogDaysTableName = analogTableName;
+          augmentedAnalogDaysTableName += "Days";
           if (augmentTableNameWithYear)
           {
-            // RoSchmi changed 10.07.2024 to resolve issue 1         
-            //augmentedAnalogTableName += (dateTimeUTCNow.year());
-            augmentedAnalogTableName += (localTime.year());  
+            
+            augmentedAnalogTableName += (localTime.year());
+            augmentedAnalogDaysTableName += (localTime.year());
           }
           
           // Create Azure Storage Table if table doesn't exist
-          if (localTime.year() != dataContainer.Year)    // if new year
+          if (localTime.year() != dataContainer.Year)    // if new year 
           {  
             az_http_status_code respCode = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str());
                      
@@ -2189,10 +2191,18 @@ void loop()
             }
             else
             {
-              // Reset board if not successful
-             
-             //SCB_AIRCR = 0x05FA0004;             
-            }                     
+              // eventually reset board if not successful                         
+            }
+            // Create a second table for consumption of days
+            respCode = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogDaysTableName.c_str());
+            if ((respCode == AZ_HTTP_STATUS_CODE_CONFLICT) || (respCode == AZ_HTTP_STATUS_CODE_CREATED))
+            {
+              dataContainer.Set_Year(localTime.year());                   
+            }
+            else
+            {
+              // eventually reset board if not successful                         
+            }
           }         
           // Create an Array of (here) 5 Properties
           // Each Property consists of the Name, the Value and the Type (here only Edm.String is supported)
