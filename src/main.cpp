@@ -2167,9 +2167,6 @@ void loop()
           Serial.println(F("\n###### AiOnTheEdge dataContainer has to be sent to Azure\n"));        
           // Retrieve edited sample values from container
           SampleValueSet sampleValueSet = dataContainer.getCheckedSampleValues(dateTimeUTCNow, true);
-          
-          
-
           createSampleTime(sampleValueSet.LastUpdateTime, timeZoneOffsetUTC, (char *)sampleTime);
 
           // Define name of the table (arbitrary name + actual year, like: AnalogTestValues2020)
@@ -2264,9 +2261,9 @@ void loop()
             DateTime actTimeDate = DateTime(localTime.year(), localTime.month(), localTime.day());
             
             //RoSchmi
-            //if (onOffValueSet.OnOffSampleValues[i].hasToBeSent || ((onOffValueSet.OnOffSampleValues[i].actState == true) &&  (lastSwitchTimeDate.operator!=(actTimeDate))))
+            if (onOffValueSet.OnOffSampleValues[i].hasToBeSent || ((onOffValueSet.OnOffSampleValues[i].actState == true) &&  (lastSwitchTimeDate.operator!=(actTimeDate))))
             
-            if (false)
+            //if (false)
             {
               if (onOffValueSet.OnOffSampleValues[i].hasToBeSent)
               {
@@ -2386,7 +2383,7 @@ void loop()
 
 #pragma region Function ReadAnalogSensorStruct_01(int pSensorIndex)
 ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
-{
+{ 
   ValueStruct returnValueStruct = { 
       .displayValue = (float)MAGIC_NUMBER_INVALID,
       .unClippedValue = (float)MAGIC_NUMBER_INVALID,
