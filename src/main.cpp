@@ -264,6 +264,12 @@ const bool augmentPartitionKey = true;
 // The TableName can be augmented with the actual year (recommended)
 const bool augmentTableNameWithYear = true;
 
+enum class SampleTimeFormatOpt {
+    FORMAT_FULL_1, //!< `MM/DD/YYYY hh:mm:ss + min`
+    FORMAT_DATE_GER, //!< `DD.MM.YYYY`
+  };
+  //String timestamp(timestampOpt opt = TIMESTAMP_FULL);
+
 typedef const char* X509Certificate;
 
 typedef int t_httpCode;
@@ -345,6 +351,7 @@ int soundSwitcherUpdateInterval = SOUNDSWITCHER_UPDATEINTERVAL;
 uint32_t soundSwitcherReadDelayTime = SOUNDSWITCHER_READ_DELAYTIME;
 
 float LastGasmeterReading = 0.0f;
+
 uint32_t GasmeterReadCounter = 0; //only for debugging, should be deleted in future
 
 uint64_t loopCounter = 0;
@@ -445,7 +452,7 @@ String floToStr(float value);
 bool isValidFloat(const char* str);
 //float ReadAnalogSensor_01(int pSensorIndex);
 ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex);
-void createSampleTime(DateTime dateTimeUTCNow, int timeZoneOffsetUTC, char * sampleTime);
+void createSampleTime(const DateTime dateTimeUTCNow, const int timeZoneOffsetUTC, char * sampleTime, const SampleTimeFormatOpt formatOpt = SampleTimeFormatOpt::FORMAT_FULL_1);
 az_http_status_code  createTable(CloudStorageAccount * myCloudStorageAccountPtr, X509Certificate pCaCert, const char * tableName);
 az_http_status_code insertTableEntity(CloudStorageAccount *myCloudStorageAccountPtr,X509Certificate pCaCert, const char * pTableName, TableEntity pTableEntity, char * outInsertETag);
 void makePartitionKey(const char * partitionKeyprefix, bool augmentWithYear, DateTime dateTime, az_span outSpan, size_t *outSpanLength);
@@ -589,8 +596,20 @@ typedef struct
 
 First_Reading first_Reading;
 
+typedef struct 
+{
+  bool isValid = false;
+  float dayConsumption = 0.0f;
+} MaxLastDayConsumption;
 
-//First_Reading loaded_First_Reading;
+// Is used to store the LastDayGasConsumption
+// is set in the first reading of each new day
+// if it is valid, the value is stored in a new
+// line in the Azure ...Days Table
+
+MaxLastDayConsumption maxLastDayGasConsumption;
+
+
 
 typedef struct
 {
@@ -2118,8 +2137,8 @@ void loop()
 
           // Besides PartitionKey and RowKey we have 5 properties to be stored in a table row
           // (SampleTime and 4 samplevalues)
-          size_t analogPropertyCount = 5;
-          EntityProperty AnalogPropertiesArray[5];
+          const size_t analogPropertyCount = 5;
+          EntityProperty AnalogPropertiesArray[analogPropertyCount];
          
           #if ANALOG_SENSORS_USE_AVERAGE == 1
             AnalogPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) sampleTime, (char *)"Edm.String");
@@ -2140,9 +2159,10 @@ void loop()
           partitionKey = az_span_slice(partitionKey, 0, partitionKeyLength);
          
           // Create the RowKey (special format)        
-          makeRowKey(localTime, rowKey, &rowKeyLength);
-          
+          makeRowKey(localTime, rowKey, &rowKeyLength);          
           rowKey = az_span_slice(rowKey, 0, rowKeyLength);
+          
+          
                     
           // Create TableEntity consisting of PartitionKey, RowKey and the properties named 'SampleTime', 'T_1', 'T_2', 'T_3' and 'T_4'
           AnalogTableEntity analogTableEntity(partitionKey, rowKey, az_span_create_from_str((char *)sampleTime),  AnalogPropertiesArray, analogPropertyCount);
@@ -2168,7 +2188,7 @@ void loop()
           // Retrieve edited sample values from container
           SampleValueSet sampleValueSet = dataContainer.getCheckedSampleValues(dateTimeUTCNow, true);
           createSampleTime(sampleValueSet.LastUpdateTime, timeZoneOffsetUTC, (char *)sampleTime);
-
+          
           // Define name of the table (arbitrary name + actual year, like: AnalogTestValues2020)
           String augmentedAnalogTableName = analogTableName;
           String augmentedAnalogDaysTableName = analogTableName;
@@ -2180,8 +2200,8 @@ void loop()
             augmentedAnalogDaysTableName += (localTime.year());
           }
           
-          // Create Azure Storage Table if table doesn't exist
-          if (localTime.year() != dataContainer.Year)    // if new year 
+          // Create Azure Storage Tables if tables don't exist
+          if (localTime.year() != dataContainer.Year)    // if new year          
           {  
             az_http_status_code respCode = createTable(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str());
                      
@@ -2209,8 +2229,8 @@ void loop()
 
           // Besides PartitionKey and RowKey we have 5 properties to be stored in a table row
           // (SampleTime and 4 samplevalues)
-          size_t analogPropertyCount = 5;
-          EntityProperty AnalogPropertiesArray[5];
+          const size_t analogPropertyCount = 5;
+          EntityProperty AnalogPropertiesArray[analogPropertyCount];
           AnalogPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) sampleTime, (char *)"Edm.String");
 
           #if ANALOG_SENSORS_USE_AVERAGE == 1
@@ -2250,7 +2270,69 @@ void loop()
           // Store Entity to Azure Cloud
              
           __unused az_http_status_code insertResult =  insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str(), analogTableEntity, (char *)EtagBuffer);
-                 
+          
+          // have to write new row in ...Days Table
+          if (maxLastDayGasConsumption.isValid)
+          {
+            
+            // Create the PartitionKey (special format)          
+            TimeSpan oneDay(1,0,0,0);
+            // make PartitionKey, correct for the last day
+            makePartitionKey(analogTablePartPrefix, augmentPartitionKey, localTime.operator-(oneDay), partitionKey, &partitionKeyLength);
+            partitionKey = az_span_slice(partitionKey, 0, partitionKeyLength);
+
+            // Create the RowKey (special format)
+            // make RowKey, correct for the last day
+            //TimeSpan oneSecond(0,0,0,1);
+            int offsetHours = timeZoneOffsetUTC / 60;
+            int offsetMinutes = timeZoneOffsetUTC % 60; 
+            TimeSpan spanOffsetUtc(0, offsetHours, offsetMinutes, 0);
+            TimeSpan spanToEndOfDay(0,23,59,59);
+            
+            //String todayDate = localTime.timestamp(DateTime::TIMESTAMP_DATE);
+            //DateTime beginOfToday(todayDate.c_str());
+
+            makeRowKey(localTime, rowKey, &rowKeyLength);
+            rowKey = az_span_slice(rowKey, 0, rowKeyLength);
+            
+            String SecondToLastUpdateDate = sampleValueSet.SecondToLastUpdateTime.timestamp(DateTime::TIMESTAMP_DATE);
+            //todayDate = sampleValueSet.LastUpdateTime.timestamp(DateTime::TIMESTAMP_DATE);
+            
+
+            DateTime startOfSecondToLastUpdateDate(SecondToLastUpdateDate.c_str());
+
+            
+            //createSampleTime(startOfToday, timeZoneOffsetUTC, (char *)sampleTime);
+            
+            
+            
+            createSampleTime((startOfSecondToLastUpdateDate.operator-(spanOffsetUtc)).operator+(spanToEndOfDay), timeZoneOffsetUTC, (char *)sampleTime, SampleTimeFormatOpt::FORMAT_DATE_GER);        
+            AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"Day", (char *) sampleTime, (char *)"Edm.String");
+            
+            AnalogPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"DayConsumption", (char *)floToStr(maxLastDayGasConsumption.dayConsumption).c_str(), (char *)"Edm.String");
+            AnalogPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"Total", (char *)"0.0", (char *)"Edm.String");
+            
+            createSampleTime((startOfSecondToLastUpdateDate.operator-(spanOffsetUtc)).operator+(spanToEndOfDay), timeZoneOffsetUTC, (char *)sampleTime, SampleTimeFormatOpt::FORMAT_FULL_1);
+            AnalogPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) sampleTime, (char *)"Edm.String");
+            
+            maxLastDayGasConsumption.isValid = false;
+            maxLastDayGasConsumption.dayConsumption = 0.0f;
+            
+            // Create TableEntity consisting of PartitionKey, RowKey and the properties named 'SampleTime', 'T_1', 'T_2', 'T_3' and 'T_4'
+            AnalogTableEntity analogTableEntity(partitionKey, rowKey, az_span_create_from_str((char *)sampleTime),  AnalogPropertiesArray, analogPropertyCount);
+            
+            az_http_status_code insertResult =  insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogDaysTableName.c_str(), analogTableEntity, (char *)EtagBuffer);
+            volatile int dummy = 0;
+            if (insertResult == AZ_HTTP_STATUS_CODE_ACCEPTED)
+            {
+              dummy = 1;
+            }
+            else
+            {
+              dummy = 2;
+            }
+
+          }
         }
         // Now test if Send On/Off values or End of day stuff?
         if (onOffDataContainer.One_hasToBeBeSent(localTime) || isLast15SecondsOfDay)
@@ -2519,7 +2601,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
 
           if (GasmeterReadCounter == 1)
           {
-             //diffDay = oneDay;
+            diffDay = oneDay;
           }
 
           /******* end for debugging */
@@ -2541,6 +2623,9 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
 
             if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
             {
+              maxLastDayGasConsumption.isValid = true;
+              maxLastDayGasConsumption.dayConsumption = LastGasmeterReading;
+              
               Serial.println("Preset new first_Reading values");
               tempNumber = atof(consumption);
               strcpy(first_Reading.localTimestamp, (const char*)localTime.timestamp().c_str());
@@ -2563,10 +2648,15 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
                 // Set content of the struct to 0
               memset((void *) &first_Reading,       0, sizeof(first_Reading));
               if (file)
-              {
+              { 
                 file.readBytes((char *) &first_Reading, sizeof(first_Reading));                   
                 file.close();
               }              
+            }
+            else
+            { 
+              maxLastDayGasConsumption.isValid = false;
+              maxLastDayGasConsumption.dayConsumption = 0.0f;
             }         
           }
         #pragma endregion         
@@ -3611,16 +3701,32 @@ float ReadAnalogSensor_01(int pSensorIndex)
 #pragma endregion
 
 #pragma region Function createSampleTime(...)
-void createSampleTime(DateTime dateTimeUTCNow, int timeZoneOffsetUTC, char * sampleTime)
+//void createSampleTime(const DateTime pDateTimeUTCNow, const int timeZoneOffsetUTC, char * sampleTime, sampleTimeFormatOpt formatOpt = sampleTimeFormatOpt::FORMAT_FULL_1)
+void createSampleTime(const DateTime pDateTimeUTCNow, const int timeZoneOffsetUTC, char * sampleTime, const SampleTimeFormatOpt formatOpt)
 {
+  DateTime localDateTimeUTC = pDateTimeUTCNow;
   int hoursOffset = timeZoneOffsetUTC / 60;
   int minutesOffset = timeZoneOffsetUTC % 60;
   char sign = timeZoneOffsetUTC < 0 ? '-' : '+';
   char TimeOffsetUTCString[10];
   sprintf(TimeOffsetUTCString, " %c%03i", sign, timeZoneOffsetUTC);
   TimeSpan timespanOffsetToUTC = TimeSpan(0, hoursOffset, minutesOffset, 0);
-  DateTime newDateTime = dateTimeUTCNow + timespanOffsetToUTC;
-  sprintf(sampleTime, "%02i/%02i/%04i %02i:%02i:%02i%s",newDateTime.month(), newDateTime.day(), newDateTime.year(), newDateTime.hour(), newDateTime.minute(), newDateTime.second(), TimeOffsetUTCString);
+  //DateTime newDateTime = dateTimeUTCNow + timespanOffsetToUTC;
+  DateTime newDateTime = localDateTimeUTC.operator+(timespanOffsetToUTC);
+  switch (formatOpt)
+  {
+    case SampleTimeFormatOpt::FORMAT_DATE_GER:
+    {
+      sprintf(sampleTime, "%02i.%02i.%04i", newDateTime.day(), newDateTime.month(), newDateTime.year() );
+    }   
+    break;
+    case SampleTimeFormatOpt::FORMAT_FULL_1:
+    default:
+    {
+      sprintf(sampleTime, "%02i/%02i/%04i %02i:%02i:%02i%s",newDateTime.month(), newDateTime.day(), newDateTime.year(), newDateTime.hour(), newDateTime.minute(), newDateTime.second(), TimeOffsetUTCString);   
+    }
+    break;
+  }
 }
 #pragma endregion
 

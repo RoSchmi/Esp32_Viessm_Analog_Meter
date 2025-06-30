@@ -35,11 +35,9 @@ void DataContainerWio::SetNewValue(uint32_t pIndex, DateTime pActDateTime, float
 void DataContainerWio::SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime, ValueStruct pValueStruct, bool pIsConsumption)
 {   
     // Ignore invalid readings with value 999.9 (MagicNumberInvalid)
-    //Serial.printf("Arriving in SetNewValueStruct. Value: %.1f\n", pValueStruct.displayValue);
     
     if (pValueStruct.displayValue > (MagicNumberInvalid + 0.11) || pValueStruct.displayValue < (MagicNumberInvalid - 0.11))
-    { 
-        //Serial.printf("\nValid value added to DataContainer. Index = %d Value: %.1f\n", pIndex, pValueStruct.displayValue);     
+    {        
         if (!pIsConsumption)
         {
             SampleValues[pIndex].feedCount++;
@@ -57,6 +55,7 @@ void DataContainerWio::SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime,
         if (pIsConsumption)
         {
             SampleValues[pIndex].BaseValue = pValueStruct.thisDayBaseValue;
+            // Rest can be deleted ?
             float copyBaseValue = SampleValues[0].BaseValue;
             volatile int dummy1 = 22;
             dummy1 =+ 1;
@@ -79,6 +78,7 @@ void DataContainerWio::SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime,
         SampleValues[pIndex].LastSendTime = pActDateTime;
         // RoSchmi new 04.04.25
         SampleValues[pIndex].LastUpdateValueTime = pActDateTime;
+        _SampleValuesSet.SecondToLastUpdateTime = _SampleValuesSet.LastUpdateTime;
         _SampleValuesSet.LastUpdateTime = pActDateTime;
     
     

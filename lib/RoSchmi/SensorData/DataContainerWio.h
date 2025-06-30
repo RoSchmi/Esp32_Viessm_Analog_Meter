@@ -32,7 +32,8 @@ SampleValue;
 typedef struct
 {  
     DateTime LastSendTime = DateTime();
-    DateTime LastUpdateTime;
+    DateTime LastUpdateTime= DateTime();
+    DateTime SecondToLastUpdateTime = DateTime();
     SampleValue SampleValues[PROPERTY_COUNT];
 }
 SampleValueSet; 
