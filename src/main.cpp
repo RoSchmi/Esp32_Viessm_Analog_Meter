@@ -351,6 +351,7 @@ int soundSwitcherUpdateInterval = SOUNDSWITCHER_UPDATEINTERVAL;
 uint32_t soundSwitcherReadDelayTime = SOUNDSWITCHER_READ_DELAYTIME;
 
 float LastGasmeterReading = 0.0f;
+float LastGasmeterDayConsumption = 0.0f;
 
 uint32_t GasmeterReadCounter = 0; //only for debugging, should be deleted in future
 
@@ -600,6 +601,7 @@ typedef struct
 {
   bool isValid = false;
   float dayConsumption = 0.0f;
+  float totalConsumption = 0.0f;
 } MaxLastDayConsumption;
 
 // Is used to store the LastDayGasConsumption
@@ -2304,18 +2306,22 @@ void loop()
             
             //createSampleTime(startOfToday, timeZoneOffsetUTC, (char *)sampleTime);
             
-            
+            float dayConsumption = maxLastDayGasConsumption.dayConsumption / 10;
+            float endOfDayTotalConsumption = maxLastDayGasConsumption.totalConsumption / 10;
             
             createSampleTime((startOfSecondToLastUpdateDate.operator-(spanOffsetUtc)).operator+(spanToEndOfDay), timeZoneOffsetUTC, (char *)sampleTime, SampleTimeFormatOpt::FORMAT_DATE_GER);        
-            AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"Day", (char *) sampleTime, (char *)"Edm.String");
+            AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *) sampleTime, (char *)"Edm.String");
             
-            AnalogPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"DayConsumption", (char *)floToStr(maxLastDayGasConsumption.dayConsumption).c_str(), (char *)"Edm.String");
-            AnalogPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"Total", (char *)"0.0", (char *)"Edm.String");
-            
+            AnalogPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"T_2", (char *)floToStr(dayConsumption).c_str(), (char *)"Edm.String");
+            AnalogPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"T_3", (char *)floToStr(endOfDayTotalConsumption).c_str(), (char *)"Edm.String");
+            AnalogPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"T_4", (char *)"0.0", (char *)"Edm.String");
+          
+
             createSampleTime((startOfSecondToLastUpdateDate.operator-(spanOffsetUtc)).operator+(spanToEndOfDay), timeZoneOffsetUTC, (char *)sampleTime, SampleTimeFormatOpt::FORMAT_FULL_1);
             AnalogPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) sampleTime, (char *)"Edm.String");
             
             maxLastDayGasConsumption.isValid = false;
+            maxLastDayGasConsumption.totalConsumption = 0.0f;
             maxLastDayGasConsumption.dayConsumption = 0.0f;
             
             // Create TableEntity consisting of PartitionKey, RowKey and the properties named 'SampleTime', 'T_1', 'T_2', 'T_3' and 'T_4'
@@ -2624,7 +2630,8 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
             if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
             {
               maxLastDayGasConsumption.isValid = true;
-              maxLastDayGasConsumption.dayConsumption = LastGasmeterReading;
+              maxLastDayGasConsumption.dayConsumption = LastGasmeterDayConsumption;
+              maxLastDayGasConsumption.totalConsumption = LastGasmeterReading;
               
               Serial.println("Preset new first_Reading values");
               tempNumber = atof(consumption);
@@ -2656,6 +2663,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
             else
             { 
               maxLastDayGasConsumption.isValid = false;
+              maxLastDayGasConsumption.totalConsumption = 0.0f;
               maxLastDayGasConsumption.dayConsumption = 0.0f;
             }         
           }
@@ -2733,15 +2741,20 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         uint32_t timeSinceLastSendSeconds = dateTimeUTCNow.secondstime() - LastSendTimeSeconds;
                  
         if (copyBaseValue <= copyUnClippedValue)
-        {
-          returnValueStruct.displayValue = (copyUnClippedValue - copyBaseValue); 
+        {        
+          LastGasmeterDayConsumption = (copyUnClippedValue - copyBaseValue);
+          returnValueStruct.displayValue = LastGasmeterDayConsumption;
         }
         else
         {
           // Overflow of copyUnClippedValue has occured
           int preDecimalPoint = (int)copyBaseValue;
           int oneMoreDigit =  pow(10,(int)log10(preDecimalPoint) + 1);
-          returnValueStruct.displayValue = copyUnClippedValue + (oneMoreDigit - copyBaseValue);
+          
+          LastGasmeterDayConsumption = copyUnClippedValue + (oneMoreDigit - copyBaseValue);
+           
+        
+          returnValueStruct.displayValue = LastGasmeterDayConsumption;
         }
               
         returnValueStruct.unClippedValue = copyUnClippedValue;
