@@ -70,8 +70,12 @@ Hysteresis;
 
 typedef  enum 
 {
+    
     INMP441 = 0,
     SPH0645LM4H = 1
+
+    //SPH0645LM4H = 0,
+    //INMP441 = 1
 }
 MicType;
 

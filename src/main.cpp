@@ -340,7 +340,10 @@ static const i2s_pin_config_t pin_config_Esp32_dev = {
     .data_in_num = 22                   // DOUT
 };
 
+// RoSchmi, was wrong ?
 MicType usedMicType = (USED_MICROPHONE == 0) ? MicType::SPH0645LM4H : MicType::INMP441;
+//MicType usedMicType = (USED_MICROPHONE == 0) ? MicType::SPH0645LM4H : MicType::INMP441; 
+
 
 SoundSwitcher soundSwitcher(pin_config_Esp32_dev, usedMicType);
 //SoundSwitcher soundSwitcher(pin_config_Adafruit_Huzzah_Esp32, usedMicType);
@@ -449,7 +452,7 @@ t_httpCode setAiPreValueViaRestApi(X509Certificate pCaCert, RestApiAccount * pRe
 t_httpCode read_Vi_UserFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr);
 void print_reset_reason(RESET_REASON reason);
 void scan_WIFI();
-String floToStr(float value);
+String floToStr(float value, char decimalChar = '.');
 bool isValidFloat(const char* str);
 //float ReadAnalogSensor_01(int pSensorIndex);
 ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex);
@@ -1267,19 +1270,11 @@ void setup()
 
   Serial.printf("Watchdog mode: %s\r\n", WORK_WITH_WATCHDOG == 0 ? "Disabled" : "Enabled");
   Serial.printf("Transport Protokoll: %s\r\n", AZURE_TRANSPORT_PROTOKOL == 0 ? "http" : "https");
-  Serial.printf("Selected Microphone Type = %s\r\n", (usedMicType == MicType::SPH0645LM4H) ? "SPH0645" : "INMP441");
+  //Serial.printf("Selected Microphone Type = %s\r\n", (usedMicType == MicType::SPH0645LM4H) ? "SPH0645" : "INMP441");
   
   delay(4000);
   
-  // If wanted -> Wait on press/release of boot button
-  /*
-  Serial.println(F("\r\n\r\nPress Boot Button to continue!"));
-  while (!buttonPressed)
-  {
-    delay(100);
-  }
-  */
-
+  
   // Wait some time (3000 ms)
   uint32_t start = millis();
   while ((millis() - start) < 3000)
@@ -1737,7 +1732,8 @@ void setup()
 
   soundSwitcher.begin(atoi((char *)sSwiThresholdStr), Hysteresis::Percent_10, soundSwitcherUpdateInterval, soundSwitcherReadDelayTime);
   soundSwitcher.SetCalibrationParams(-20.0);  // optional
-  soundSwitcher.SetActive();
+  soundSwitcher.SetInactive();
+
   //**************************************************************
   onOffDataContainer.begin(DateTime(), OnOffTableName_1, OnOffTableName_2, OnOffTableName_3, OnOffTableName_4);
 
@@ -2037,7 +2033,7 @@ void loop()
       // Check if one of the here listed On/Off states has changed     
       // (here: Burner, Circulation Pump, HotWaterCirculation Pump,
       // HotWaterPimary Pump)
-   
+      #pragma region Check if on of the Viessmann On/Off states has changed
       if (OnOffBurnerStatus.HasChangedState())
       {    
         onOffDataContainer.SetNewOnOffValue(0, OnOffBurnerStatus.GetStateAndResetChangedFlag(), dateTimeUTCNow, timeZoneOffsetUTC);
@@ -2057,7 +2053,7 @@ void loop()
       {
         onOffDataContainer.SetNewOnOffValue(3, OnOffHotWaterPrimaryPumpStatus.GetStateAndResetChangedFlag(), dateTimeUTCNow, timeZoneOffsetUTC);
       }
-      
+      #pragma endregion
       
       // This is for Burner Sound Sensor (need not to be used in this App)    
       /*
@@ -2080,7 +2076,9 @@ void loop()
             Serial.println();
           }           
       }
-      */           
+      */
+
+      #pragma region Check if something has to be sent to Azure, if so --> do           
       // Check if something is to do: send analog data ? send On/Off-Data ? Handle EndOfDay stuff ?
       //if (false)
       if (dataContainerAnalogViessmann01.hasToBeSent() || dataContainer.hasToBeSent() || onOffDataContainer.One_hasToBeBeSent(localTime) || isLast15SecondsOfDay)
@@ -2101,6 +2099,7 @@ void loop()
         size_t rowKeyLength = 0;
         az_span rowKey = AZ_SPAN_FROM_BUFFER(rowKeySpan);
         
+        #pragma region if (dataContainerAnalogViessmann01.hasToBeSent())
         if (dataContainerAnalogViessmann01.hasToBeSent())   // have to send analog values read from Viessmann ?
         {         
           // Retrieve edited sample values from container         
@@ -2182,7 +2181,9 @@ void loop()
           // Store Entity to Azure Cloud   
           __unused az_http_status_code insertResult =  insertTableEntity(myCloudStorageAccountPtr, myX509Certificate, (char *)augmentedAnalogTableName.c_str(), analogTableEntity, (char *)EtagBuffer);
         }
+        #pragma endregion
         
+        #pragma region if (dataContainer.hasToBeSent())
         if (dataContainer.hasToBeSent())   // have to send analog values read by Device (e.g. noise)?
         {
           //Serial.printf("\n###### AiOnTheEdge dataContainer has to be sent\n");
@@ -2236,12 +2237,12 @@ void loop()
           AnalogPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) sampleTime, (char *)"Edm.String");
 
           #if ANALOG_SENSORS_USE_AVERAGE == 1
-          AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *)floToStr(sampleValueSet.SampleValues[0].AverageValue).c_str(), (char *)"Edm.String");
+          AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *)floToStr(sampleValueSet.SampleValues[0].AverageValue / 10).c_str(), (char *)"Edm.String");
           AnalogPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"T_2", (char *)floToStr(sampleValueSet.SampleValues[1].AverageValue).c_str(), (char *)"Edm.String");
           AnalogPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"T_3", (char *)floToStr(sampleValueSet.SampleValues[2].AverageValue).c_str(), (char *)"Edm.String");
           AnalogPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"T_4", (char *)floToStr(sampleValueSet.SampleValues[3].AverageValue).c_str(), (char *)"Edm.String");
           #else
-          AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *)floToStr(sampleValueSet.SampleValues[0].Value).c_str(), (char *)"Edm.String");
+          AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *)floToStr(sampleValueSet.SampleValues[0].Value / 10).c_str(), (char *)"Edm.String");
           AnalogPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"T_2", (char *)floToStr(sampleValueSet.SampleValues[1].Value).c_str(), (char *)"Edm.String");
           AnalogPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"T_3", (char *)floToStr(sampleValueSet.SampleValues[2].Value).c_str(), (char *)"Edm.String");
           AnalogPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"T_4", (char *)floToStr(sampleValueSet.SampleValues[3].Value).c_str(), (char *)"Edm.String");
@@ -2307,14 +2308,17 @@ void loop()
             //createSampleTime(startOfToday, timeZoneOffsetUTC, (char *)sampleTime);
             
             float dayConsumption = maxLastDayGasConsumption.dayConsumption / 10;
-            float endOfDayTotalConsumption = maxLastDayGasConsumption.totalConsumption / 10;
+            float endOfDayTotalConsumption = gasmeterBaseValueOffsetInt + (maxLastDayGasConsumption.totalConsumption / 10);
             
+            String dayConsumptionStringDecPoint = floToStr(dayConsumption, '.');
+            String dayConsumptionStringDecKomma = floToStr(dayConsumption, ',');
+
             createSampleTime((startOfSecondToLastUpdateDate.operator-(spanOffsetUtc)).operator+(spanToEndOfDay), timeZoneOffsetUTC, (char *)sampleTime, SampleTimeFormatOpt::FORMAT_DATE_GER);        
             AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *) sampleTime, (char *)"Edm.String");
             
-            AnalogPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"T_2", (char *)floToStr(dayConsumption).c_str(), (char *)"Edm.String");
+            AnalogPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"T_2", (char *)dayConsumptionStringDecPoint.c_str(), (char *)"Edm.String");
             AnalogPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"T_3", (char *)floToStr(endOfDayTotalConsumption).c_str(), (char *)"Edm.String");
-            AnalogPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"T_4", (char *)"0.0", (char *)"Edm.String");
+            AnalogPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"T_4", (char *)dayConsumptionStringDecKomma.c_str(), (char *)"Edm.String");
           
 
             createSampleTime((startOfSecondToLastUpdateDate.operator-(spanOffsetUtc)).operator+(spanToEndOfDay), timeZoneOffsetUTC, (char *)sampleTime, SampleTimeFormatOpt::FORMAT_FULL_1);
@@ -2340,6 +2344,9 @@ void loop()
 
           }
         }
+        #pragma endregion
+        
+        #pragma region if (onOffDataContainer.One_hasToBeBeSent(localTime) || isLast15SecondsOfDay)
         // Now test if Send On/Off values or End of day stuff?
         if (onOffDataContainer.One_hasToBeBeSent(localTime) || isLast15SecondsOfDay)
         {
@@ -2473,8 +2480,10 @@ void loop()
               } 
             }                                
           }               
-        }       
-      }          
+        }
+        #pragma endregion       
+      }
+      #pragma endregion          
   } 
 }
 #pragma endregion
@@ -2607,7 +2616,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
 
           if (GasmeterReadCounter == 1)
           {
-            diffDay = oneDay;
+            //diffDay = oneDay;
           }
 
           /******* end for debugging */
@@ -2630,6 +2639,8 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
             if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
             {
               maxLastDayGasConsumption.isValid = true;
+              //dataContainer.SampleValues[0].UnClippedValue;
+              //dataContainer.SampleValues[1].Value;
               maxLastDayGasConsumption.dayConsumption = LastGasmeterDayConsumption;
               maxLastDayGasConsumption.totalConsumption = LastGasmeterReading;
               
@@ -2682,9 +2693,9 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
         {
           tempNumber = atof(consumption);
-          //#if SERIAL_PRINT == 1
+          #if SERIAL_PRINT == 1
             Serial.printf("\nString could be parsed to float: %s StringLength: %d\n", consumption, strlen(consumption));
-          //#endif
+          #endif
         }
         else
         {
@@ -3009,7 +3020,6 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestAp
 }
 #pragma endregion
 
-
 #pragma region Routine ReadViessmannApi_Analog_01(pSensorIndex, const char* pSensorName, * pViessmannApiSelectionPtr)
 ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char* pSensorName, ViessmannApiSelection * pViessmannApiSelectionPtr)
 {
@@ -3195,7 +3205,6 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
   return responseCode;
 }
 #pragma endregion
-
 
 #pragma region Routine connectMultiWiFi()
 uint8_t connectMultiWiFi()
@@ -3441,10 +3450,20 @@ boolean connect_Wifi(const char *ssid, const char * password)
 #pragma endregion
 
 #pragma region Function floToStr(float value)
-String floToStr(float value)
+String floToStr(float value, char decimalChar)
 {
   char buf[10];
-  sprintf(buf, "%.1f", (roundf(value * 10.0))/10.0);
+  snprintf(buf, sizeof(buf), "%.1f", (roundf(value * 10.0))/10.0);
+  if (decimalChar != '.')
+  {
+    for (int i = 0; buf[i] != '\0'; i++) 
+    {
+      if (buf[i] == '.')
+      {
+        buf[i] = decimalChar;
+      }
+    }
+  }
   return String(buf);
 }
 #pragma endregion

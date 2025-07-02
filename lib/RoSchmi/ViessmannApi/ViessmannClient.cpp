@@ -164,7 +164,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                 //snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][76]["properties"]["value"]["value"]);
                 //snprintf(apiSelectionPtr -> _76_temperature_supply.value, valLen - 1, (const char*)tempVal);
                 
-
+                Serial.println(F("Step 3"));
 
                 #if SERIAL_PRINT == 1
                 Serial.printf("(3) %s   %s   %s\n", apiSelectionPtr -> _2_temperature_main.name, apiSelectionPtr -> _2_temperature_main.timestamp, apiSelectionPtr -> _2_temperature_main.value);
