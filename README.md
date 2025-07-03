@@ -1,12 +1,11 @@
  ### Esp32_Viessm_Analog_Meter
 
-This is work in progress, in the moment not valuable for others.
+This is an application running on an Esp32 dev module to monitor data of a gas heating.
 
-Have a look on: Esp32_Viessm_DatBase_Bridge
+Gas consumption is retrieved from an analog gas meter via the Esp32-Cam application 'Ai-On-The-Edge-Device".
+Operation data of a Viessmann gas heating are retrieved by reading those data back from the Viessmann Cloud using the Viessmann Api. 
+Gas consumption data and data from the Viessmann heating are stored in the Cloud on Azure Storage Tables, from where they can be visualized with my iPhone App **'Charts4Azure'**.
 
-Esp32_Viessm_DatBase_Bridge is an App for an Esp32 Dev Board which retrieves sensor data via the Viessmann Api from the Viessmann Cloud and stores the data in Azure Storage Tables in a special way that they can be graphically visualized as time series graphs with my iPhone App **'Charts4Azure'**.
-
-Esp32_Viessm-Analog_Meter shall have an additional feature: Reading consumption values from an analog gasmeter which is watched by an Esp32-Cam running "AI-on-the-edge-device" using the Rest-Api.
 
 ![gallery](https://github.com/RoSchmi/Esp32_Viessm_Analog_Meter/blob/master/pictures/Heating_Graph_2.PNG)
 
@@ -22,6 +21,7 @@ module which permanently sends sensor data of the heating via WiFi and internet 
 Using this App one can see actual sensor data and change settings, but it is not possible to maintain historic sensor data and to display sensor data graphically as a time series graphs.
 Since Viessmann provides access to the actual heating sensor data via an API I decided to make an Esp32 application to download the sensor data via the API around every minute (1440 downloads per day are free) and store the values of several sensors on Azure Storage Tables. This requires a Microsoft Azure Account, is not completely free, but very cheap (only several cents per month).
 So I made this App which loads the sensor data from the Viessmann Cloud and stores the data in Azure Storage Tables in a certain way.
+Additionally this App retrieves gas consumption data from an analog gasmeter using an Esp32-Cam module running the application "Ai-On-The-Edge-Device".
 To display these data graphically on an Apple iPhone I use the iPhone App 'Charts4Azure' (Android version and a Microsoft Store App with minor functionality exist as well). The App 'Charts4Azure' always displays a set of 4 analog time series graphs (e.g. 4 temperature curves) and 4 On/Off time line graphs (e.g. for burner or pump activity) on one page.
 
 This App for the Esp32 Board can be loaded on an Esp32 Board without need to change the code to adapt the App to indvidual connection parameter like WiFi-Credentials, Azure-Credentials and Viessmann Credentials.
