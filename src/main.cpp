@@ -268,7 +268,7 @@ enum class SampleTimeFormatOpt {
     FORMAT_FULL_1, //!< `MM/DD/YYYY hh:mm:ss + min`
     FORMAT_DATE_GER, //!< `DD.MM.YYYY`
   };
-  //String timestamp(timestampOpt opt = TIMESTAMP_FULL);
+  
 
 typedef const char* X509Certificate;
 
@@ -1179,7 +1179,7 @@ void trimLeadingSpaces(char *str) {
 #pragma endregion
 
 #pragma region    setup()
-void setup()
+void setup() 
 {
   // At the begin of setup we get some information about
   // stack, heap and watchdog
@@ -1960,7 +1960,7 @@ void loop()
       localTime = myTimezone.toLocal(dateTimeUTCNow.unixtime());
       timeDiffUtcToLocal = localTime.operator-(dateTimeUTCNow);
       
-      // refresh access token if refresh interval has expired 
+      // refresh Viessmann access token if refresh interval has expired 
       if ((AccessTokenRefreshTime.operator+(AccessTokenRefreshInterval)).operator<(dateTimeUTCNow))
       {
           httpCode = refresh_Vi_AccessTokenFromApi((const char*)"dummyCaCert", myViessmannApiAccountPtr, viessmannRefreshToken);
@@ -1981,14 +1981,6 @@ void loop()
 
       // Get readings from 4 different analog sensors stored in the Viessmann Cloud    
       // and store the values in a container
-
-      float testResult = 0.0f;
-      //testResult = atof((ReadViessmannApi_Analog_01(0, (const char *)"_94_heating_temperature_outside", viessmannApiSelectionPtr_01)).value);
-      //testResult = atof((ReadViessmannApi_Analog_01(1, (const char *)"_2_temperature_main", viessmannApiSelectionPtr_01)).value);
-      //testResult = atof((ReadViessmannApi_Analog_01(1, (const char *)"_89_heating_dhw_cylinder_temperature", viessmannApiSelectionPtr_01)).value);
-      //testResult = atof((ReadViessmannApi_Analog_01(1, (const char *)"_7_burner_modulation", viessmannApiSelectionPtr_01)).value);
-      
-      
       dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_94_heating_temperature_outside", viessmannApiSelectionPtr_01)).value)); // Aussen
       dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_2_temperature_main", viessmannApiSelectionPtr_01)).value)); // Vorlauf                
       dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"_89_heating_dhw_cylinder_temperature",viessmannApiSelectionPtr_01)).value)); // Boiler
@@ -1999,25 +1991,13 @@ void loop()
       digitalWrite(LED_BUILTIN, ledState);    // toggle LED to signal that App is running
 
       // Get readings from 4 different analog sensors, (preferably measured by the Esp 32 device, e.g. noise level)     
-      // and store the values in a container
-      
-      ValueStruct myValueStruct = {.displayValue = 0.0, .unClippedValue = 0.0};
-      
-      //myValueStruct.displayValue = ReadAnalogSensorStruct_01(0).displayValue;
-      //myValueStruct.unClippedValue = ReadAnalogSensorStruct_01(0).unClippedValue;
-      //myValueStruct = ReadAnalogSensorStruct_01(1);
-      //myValueStruct = ReadAnalogSensorStruct_01(2);
-      //myValueStruct = ReadAnalogSensorStruct_01(3);
-      
-      
+      // and store the values in a container      
       dataContainer.SetNewValueStruct(0, dateTimeUTCNow, ReadAnalogSensorStruct_01(0), true);
       dataContainer.SetNewValueStruct(1, dateTimeUTCNow, ReadAnalogSensorStruct_01(1), true);     
       dataContainer.SetNewValueStruct(2, dateTimeUTCNow, ReadAnalogSensorStruct_01(2), false);      
       dataContainer.SetNewValueStruct(3, dateTimeUTCNow, ReadAnalogSensorStruct_01(3), false); 
       
-      //ledState = !ledState;
-      //digitalWrite(LED_BUILTIN, ledState);    // toggle LED to signal that App is running
-      
+      #pragma region Automatic OnOffSwitcher has toggled ? Is for tests and debugging
       // Check if automatic OnOffSwitcher has toggled (used to simulate on/off changes)
       // and accordingly change the state of one representation (here index 3) in onOffDataContainer
       // This can be used for debugging, shows that displaying on/off states is
@@ -2029,11 +2009,12 @@ void loop()
         onOffDataContainer.SetNewOnOffValue(3, !state, dateTimeUTCNow, timeZoneOffsetUTC);    
       }
       */
+      #pragma endregion
       
       // Check if one of the here listed On/Off states has changed     
       // (here: Burner, Circulation Pump, HotWaterCirculation Pump,
       // HotWaterPimary Pump)
-      #pragma region Check if on of the Viessmann On/Off states has changed
+      #pragma region Check if one of the Viessmann On/Off states has changed
       if (OnOffBurnerStatus.HasChangedState())
       {    
         onOffDataContainer.SetNewOnOffValue(0, OnOffBurnerStatus.GetStateAndResetChangedFlag(), dateTimeUTCNow, timeZoneOffsetUTC);
@@ -2055,6 +2036,7 @@ void loop()
       }
       #pragma endregion
       
+      #pragma region for Burner Sound Sensor (not used in this App)
       // This is for Burner Sound Sensor (need not to be used in this App)    
       /*
       if (feedResult.isValid && (feedResult.hasToggled || feedResult.analogToSend))
@@ -2077,6 +2059,7 @@ void loop()
           }           
       }
       */
+      #pragma endregion
 
       #pragma region Check if something has to be sent to Azure, if so --> do           
       // Check if something is to do: send analog data ? send On/Off-Data ? Handle EndOfDay stuff ?
@@ -2485,7 +2468,7 @@ void loop()
       }
       #pragma endregion          
   } 
-}
+}  // end of Loop()
 #pragma endregion
 
 #pragma region Function ReadAnalogSensorStruct_01(int pSensorIndex)
