@@ -2543,7 +2543,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
                 DateTime firstReadingDateTime((const char *)first_Reading.localTimestamp);
                 DateTime localTimeDateTime((const char *)localTime.timestamp().c_str());   // Created for debugging
                 
-                Serial.printf("In: isFirstGasmeterRead, Dates: %s,  %s\n", (const char *)first_Reading.localTimestamp, (const char *)localTime.timestamp().c_str());
+                //Serial.printf("In: isFirstGasmeterRead, Dates: %s,  %s\n", (const char *)first_Reading.localTimestamp, (const char *)localTime.timestamp().c_str());
                   
                 // if we have a new day --> write first_Reading, otherwise -->leave the old one
                 if (firstReadingDateTime.timestamp(DateTime::TIMESTAMP_DATE) != localTimeDateTime.timestamp(DateTime::TIMESTAMP_DATE))       
@@ -2607,7 +2607,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
           DateTime firstReadingDateTime = storedFirstReadingDateTime.operator-(diffDay); // commented, only for debugging
           DateTime localTimeDateTime((const char *)localTime.timestamp().c_str());   // Created for debugging               
           
-          Serial.printf("In: is not FirstGasmeterRead, Dates: %s,  %s\n", (const char *)first_Reading.localTimestamp, (const char *)localTime.timestamp().c_str());
+          //Serial.printf("In: is not FirstGasmeterRead, Dates: %s,  %s\n", (const char *)first_Reading.localTimestamp, (const char *)localTime.timestamp().c_str());
                   
           // if new day (is not FirstGasmeterRead)
           if (firstReadingDateTime.timestamp(DateTime::TIMESTAMP_DATE) != localTimeDateTime.timestamp(DateTime::TIMESTAMP_DATE))
@@ -2621,9 +2621,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
 
             if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
             {
-              maxLastDayGasConsumption.isValid = true;
-              //dataContainer.SampleValues[0].UnClippedValue;
-              //dataContainer.SampleValues[1].Value;
+              maxLastDayGasConsumption.isValid = true;              
               maxLastDayGasConsumption.dayConsumption = LastGasmeterDayConsumption;
               maxLastDayGasConsumption.totalConsumption = LastGasmeterReading;
               
@@ -2664,13 +2662,13 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         #pragma endregion         
         }
         
-        Serial.println("Read value (1)");
+        //Serial.println("Read value (1)");
         memset((void *) &consumption,       '\0', sizeof(consumption));
         strncpy(consumption, selectedFeature.value, sizeof(consumption));                                          
      
         float tempNumber = (float)MAGIC_NUMBER_INVALID;
         
-        Serial.println("Read value (2)");
+        //Serial.println("Read value (2)");
         //Serial.printf("writing consumption: %s Length: %d\n", (const char *)consumption, strlen(consumption));
          
         if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
@@ -2691,7 +2689,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         // convert values near MAGIC_NUMBER_INVALID to MAGIC_NUMBER_INVALID  
         tempNumber = (tempNumber > (float)MAGIC_NUMBER_INVALID - 0.01 && tempNumber < (float)MAGIC_NUMBER_INVALID + 0.01) ? (float)MAGIC_NUMBER_INVALID: tempNumber;
         
-        Serial.println("Read value (3)");
+        //Serial.println("Read value (3)");
 
         if (tempNumber > (MAGIC_NUMBER_INVALID - 0.01) && tempNumber < (MAGIC_NUMBER_INVALID + 0.01))
         {
@@ -2701,7 +2699,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
           return returnValueStruct;
         }
 
-        Serial.println("Read value (4)");
+        //Serial.println("Read value (4)");
 
         // multply by 10, so that there remains 1 significant digit after decimal point
         sprintf(consumption, "%.1f", tempNumber * decShiftFactor);
@@ -2718,7 +2716,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         
         returnValueStruct.thisDayBaseValue = first_Reading.gas_DayBaseValue;
         
-        Serial.println("Read value (5)");
+        //Serial.println("Read value (5)");
 
         //#if SERIAL_PRINT == 1
            Serial.printf("\nDisplayValue: %.1f  UnClippedValue: %.1f\n", returnValueStruct.displayValue, returnValueStruct.unClippedValue);
@@ -2779,14 +2777,13 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
 
         if (copyLastSendUnClippedValue <= copyUnClippedValue)
         {
-          Serial.println("No Overflow");
+          //Serial.println("No Overflow");
           valueDiffOverflowCorrected = (copyUnClippedValue - copyLastSendUnClippedValue);
-          //returnValueStruct.displayValue = (copyUnClippedValue - copyLastSendUnClippedValue); 
         }
         else
         {
           // Overflow of copyUnClippedValue has occured
-          Serial.println("Overflow has occured");
+          Serial.println("Overflow of unclipped value, performed needed calculations");
           int preDecimalPoint = (int)copyLastSendUnClippedValue;
           int oneMoreDigit =  pow(10,(int)log10(preDecimalPoint) + 1);  
           valueDiffOverflowCorrected = copyUnClippedValue + (oneMoreDigit - copyLastSendUnClippedValue);
@@ -3023,8 +3020,11 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   int64_t utcNowSecondsTime = (int64_t)dateTimeUTCNow.secondstime();
   int64_t remaining_Vi_seconds = tempLastReadTimeSeconds + tempReadIntervalSeconds - utcNowSecondsTime;
   
-   Serial.printf("Remaining seconds to read (Vi): %d\n",  (int32_t)remaining_Vi_seconds);
-  
+  if (pSensorIndex == 0)
+  {
+    Serial.printf("Remaining seconds to read (Vi): %d\n",  (int32_t)remaining_Vi_seconds);
+  }
+
   if ((tempLastReadTimeSeconds + tempReadIntervalSeconds) < utcNowSecondsTime) 
   { 
       Serial.println(F("########## Have to read Vi-Features #########\n"));
@@ -3037,7 +3037,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
         
         Serial.println(F("Succeeded to read Features from Viessmann Cloud\n"));
         
-        Serial.printf("OK-Vi-LastReadTime: %u dateTimeUTCNow: %u, Interval: %u\n", (uint32_t)pViessmannApiSelectionPtr ->lastReadTimeSeconds, dateTimeUTCNow.secondstime(), pViessmannApiSelectionPtr ->readIntervalSeconds); 
+        //Serial.printf("OK-Vi-LastReadTime: %u dateTimeUTCNow: %u, Interval: %u\n", (uint32_t)pViessmannApiSelectionPtr ->lastReadTimeSeconds, dateTimeUTCNow.secondstime(), pViessmannApiSelectionPtr ->readIntervalSeconds); 
       }
       else
       {
