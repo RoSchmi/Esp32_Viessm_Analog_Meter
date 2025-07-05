@@ -1,8 +1,8 @@
 #include <Arduino.h>
 
-// Program 'Esp32_Viessm_Analog_Meter' Branch Master
+// Program 'Esp32_Viessm_Analog_Meter' Branch: 
 #define PROGRAMVERSION "v1.0.0"
-// Last updated: 2025_03_08
+// Last updated: 2025_07_03
 // Copyright: RoSchmi 2024 License: Apache 2.0
 // the App was tested only on ESP32 Dev Board, no attempts were made to run it 
 // on variations of ESP32 or ESP8266
@@ -420,8 +420,6 @@ char GasMeterHostName[20] = "gasmeter";
 
 char WaterMeterAccountName[20] =  "watermeter";
 char WaterMeterHostName[20] = "watermeter";
-
-
 
 // Function Prototypes for WiFiManager
 bool loadApplConfigData();
@@ -2956,14 +2954,9 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestAp
   int64_t tempLast_Vi_ReadTimeSeconds = viessmannApiSelectionPtr_01 ->lastReadTimeSeconds;
   int32_t temp_Vi_ReadIntervalSeconds = viessmannApiSelectionPtr_01 ->readIntervalSeconds;
   
-  
-
-  
-
   t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures((const char *)url, bufferStorePtr, bufferStoreLength, apiSelectionPtr);
   
-  
-  Serial.printf("LastReadTime in Hex: %x\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
+  // Serial.printf("LastReadTime in Hex: %x\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
   
 
   //Restore

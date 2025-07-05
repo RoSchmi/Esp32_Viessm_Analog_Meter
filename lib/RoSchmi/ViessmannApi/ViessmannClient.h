@@ -25,6 +25,6 @@ class ViessmannClient
 
     
    private:
-      //void doTheFirst(ViessmannApiSelection * pViessmannApiSelectionPtr, JsonDocument pDoc);  
+      
 };
 #endif

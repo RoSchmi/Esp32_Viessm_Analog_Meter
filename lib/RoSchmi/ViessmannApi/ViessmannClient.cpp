@@ -20,32 +20,6 @@ ViessmannClient::ViessmannClient(ViessmannApiAccount * account, const char * caC
     _viessmannHttpPtr = httpClient;
        
     _viessmannHttpPtr -> setReuse(false);
-
-    //Serial.println("Viessmann Client Constructor\n");
- 
-    //uint64_t connectTimout = _viessmannWifiClient->getTimeout();
-    
-    //Serial.printf("\nTimeout is: %u\n");
-
-    // Some buffers located in memory segment .dram0.bss are injected to achieve lesser stack consumption
-    
-    /*
-    _requestPtr = bufferStorePtr;
-    _propertiesPtr = bufferStorePtr + REQUEST_BODY_BUFFER_LENGTH;
-    _authorizationHeaderBufferPtr = bufferStorePtr + REQUEST_BODY_BUFFER_LENGTH + PROPERTIES_BUFFER_LENGTH;
-    _responsePtr = bufferStorePtr + REQUEST_BODY_BUFFER_LENGTH + PROPERTIES_BUFFER_LENGTH + AUTH_HEADER_BUFFER_LENGTH;
-    */
-
-    /*
-   _accountPtr = account;
-    _caCert = caCert;
-    _httpPtr = httpClient;
-    _wifiClient = wifiClient;
-    */
-    /*
-       char responseString[RESPONSE_BUFFER_LENGTH];
-       memset(&(responseString[0]), 0, RESPONSE_BUFFER_LENGTH);
-    */
 }
 
 t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t reponseBufferLength, const uint32_t data_0_id, const char * gateways_0_serial, const char * gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr)
@@ -61,14 +35,6 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     String Url = _viessmannAccountPtr -> UriEndPointIot + addendum;
     String authorizationHeader = "Bearer " + _viessmannAccountPtr ->AccessToken;
     //Serial.println(F("Loading Viessmann features from Cloud"));
-    
-    
-    //apiSelectionPtr ->lastReadTimeSeconds
-    /*
-    int nameLen = apiSelectionPtr ->nameLenght;
-    int stampLen = apiSelectionPtr -> stampLength;
-    int valLen = apiSelectionPtr -> valueLength;
-    */
     
     const int nameLen = VI_FEATURENAMELENGTH;
     const int stampLen = VI_FEATURESTAMPLENGTH;
@@ -113,8 +79,17 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             filter["data"][0]["timestamp"] = true,
             filter["data"][0]["properties"] = true 
             ;
-            deserializeJson(doc, _viessmannHttpPtr ->getStream(),DeserializationOption::Filter(filter));
+            //deserializeJson(doc, _viessmannHttpPtr ->getStream(),DeserializationOption::Filter(filter));
             
+            DeserializationError error = deserializeJson(doc, _viessmannHttpPtr ->getStream(),DeserializationOption::Filter(filter));
+            if (error) 
+            {
+                Serial.printf("deserializeJson() failed: ", (const char *)error.c_str());     
+            }
+            else
+            {
+                Serial.println("JsonDoc Serialization without errors");
+            }
             #if SERIAL_PRINT == 1
             Serial.println(F("JsonDoc is deserialized"));
             #endif
@@ -133,35 +108,46 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                 snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][2]["properties"]["value"]["value"]); 
                 snprintf(apiSelectionPtr -> _2_temperature_main.value, valLen - 1, (const char*)tempVal);
                 
-                Serial.println("Step 2 (first)"); 
+                Serial.println("Step 2 (first)");
+                
+                // Wait some time (~3 ms)
+                // I don't know why this delay is needed,
+                // but if it is neglected, a load prohibited
+                // exception is thrown               
+                uint32_t start = millis();
+                while ((millis() - start) < 3)
+                {
+                    delay(1);
+                }
+                
 
                 apiSelectionPtr -> _4_boiler_temperature.idx = 4;
                 strncpy(apiSelectionPtr-> _4_boiler_temperature.timestamp, doc["data"][4]["timestamp"], stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][4]["properties"]["value"]["value"]); 
                 snprintf(apiSelectionPtr -> _4_boiler_temperature.value, valLen - 1, (const char*)tempVal);
                  
-                Serial.println("Step 4");
+                //Serial.println("Step 4");
 
                 apiSelectionPtr -> _6_burner_modulation.idx = 6;
                 strncpy(apiSelectionPtr-> _6_burner_modulation.timestamp, doc["data"][6]["timestamp"], stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.0f", (float)doc["data"][6]["properties"]["value"]["value"]); 
                 snprintf(apiSelectionPtr -> _6_burner_modulation.value, valLen - 1, (const char*)tempVal);
                 
-                Serial.println("Step 6");
+                //Serial.println("Step 6");
 
                 apiSelectionPtr -> _7_burner_hours.idx = 7;
                 strncpy(apiSelectionPtr-> _7_burner_hours.timestamp, doc["data"][7]["timestamp"], stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.2f", (float)doc["data"][7]["properties"]["hours"]["value"]);
                 snprintf(apiSelectionPtr -> _7_burner_hours.value, valLen - 1, (const char*)tempVal);
                 
-                Serial.println("Step 7a");
+                //Serial.println("Step 7a");
 
                 apiSelectionPtr -> _7_burner_starts.idx = 7;
                 strncpy(apiSelectionPtr-> _7_burner_starts.timestamp, doc["data"][7]["timestamp"], stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.0f", (float)doc["data"][7]["properties"]["starts"]["value"]);
                 snprintf(apiSelectionPtr -> _7_burner_starts.value, valLen - 1, (const char*)tempVal);
                 
-                Serial.println("Step 7b");
+                //Serial.println("Step 7b");
 
                 apiSelectionPtr -> _8_burner_is_active.idx = 8;
                 strncpy(apiSelectionPtr-> _8_burner_is_active.timestamp, doc["data"][8]["timestamp"], stampLen - 1);
@@ -173,7 +159,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                 strncpy(apiSelectionPtr -> _10_circulation_pump_status.timestamp, doc["data"][10]["timestamp"], stampLen - 1);
                 strncpy(apiSelectionPtr -> _10_circulation_pump_status.value, doc["data"][10]["properties"]["status"]["value"], valLen -1);
                 
-                Serial.println("Step 10");
+                //Serial.println("Step 10");
 
                 apiSelectionPtr -> _22_heating_curve_shift.idx = 22;
                 strncpy(apiSelectionPtr-> _22_heating_curve_shift.timestamp, doc["data"][22]["timestamp"], stampLen - 1);
@@ -187,7 +173,6 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                             
                 apiSelectionPtr -> _76_temperature_supply.idx = 76;                              
                 strncpy(apiSelectionPtr -> _76_temperature_supply.timestamp, doc["data"][76]["timestamp"], stampLen - 1);       
-                //strncpy(apiSelectionPtr -> _76_temperature_supply.timestamp, (const char *)valueString, strlen(valueString));
                 snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][76]["properties"]["value"]["value"]);
                 snprintf(apiSelectionPtr -> _76_temperature_supply.value, valLen - 1, (const char*)tempVal);
                 
