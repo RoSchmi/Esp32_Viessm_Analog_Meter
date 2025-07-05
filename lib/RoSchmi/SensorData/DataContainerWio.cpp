@@ -45,11 +45,8 @@ void DataContainerWio::SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime,
             SampleValues[pIndex].AverageValue = SampleValues[pIndex].SummedValues / SampleValues[pIndex].feedCount;
         }
 
-        //if (_isFirstTransmission || (pIsConsumption && (SampleValues[pIndex].LastSendTime.day() != pActDateTime.day())))
         extern TimeSpan timeDiffUtcToLocal;
-        
-        //bool isNewDay = pActDateTime.operator+(timeDiffUtcToLocal).day() != _lastSentTime.operator+(timeDiffUtcToLocal).day();
-        
+              
         bool isNewDay = pActDateTime.operator+(timeDiffUtcToLocal).day() != SampleValues[pIndex].LastUpdateValueTime.operator+(timeDiffUtcToLocal).day(); 
         
         if (pIsConsumption)
@@ -60,14 +57,7 @@ void DataContainerWio::SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime,
             volatile int dummy1 = 22;
             dummy1 =+ 1;
         }
-        /*
-        if (_isFirstTransmission || isNewDay)
-        {
-            //Serial.printf("Setting BaseValueStruct pSampleValue: %.2f\n", pValueStruct.unClippedValue);
-            SampleValues[pIndex].BaseValue = pValueStruct.unClippedValue;
-        }
-        */
-
+        
         SampleValues[pIndex].LastValue = SampleValues[pIndex].Value;
         SampleValues[pIndex].UnClippedLastValue = SampleValues[pIndex].UnClippedValue;
         
@@ -89,8 +79,6 @@ void DataContainerWio::SetNewValueStruct(uint32_t pIndex, DateTime pActDateTime,
             _isFirstTransmission = false;
 
             SampleValues[pIndex].LastSendTime = pActDateTime;
-            //SampleValues[pIndex].LastLastSendValue = SampleValues[pIndex].LastSendUnClippedValue; 
-            //SampleValues[pIndex].LastSendUnClippedValue = 0.0;
             SampleValues[pIndex].LastSendUnClippedValue = SampleValues[pIndex].UnClippedValue;
             Serial.println(F("Set new value in first transmission"));  
         }

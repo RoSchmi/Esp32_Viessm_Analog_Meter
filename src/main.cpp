@@ -2,7 +2,7 @@
 
 // Program 'Esp32_Viessm_Analog_Meter' Branch: 
 #define PROGRAMVERSION "v1.0.0"
-// Last updated: 2025_07_03
+// Last updated: 2025_07_05
 // Copyright: RoSchmi 2024 License: Apache 2.0
 // the App was tested only on ESP32 Dev Board, no attempts were made to run it 
 // on variations of ESP32 or ESP8266
@@ -62,6 +62,13 @@
 // exist as well). The App 'Charts4Azure' allways displays the combination of
 // 4 analog timeline graphs (e.g. 4 temperature sensors) and 4 On/Off timeline graphs 
 // (e.g. for burner or pump activity) on one page.
+
+// Besides the Viessmann data this App reads the gas consumption data of an analog gasmeter.
+// Digitizing of the data of the analog gasmeter is done by another Esp32_Cam device, which
+// is sitting on the gasmeter taking pictures e.g. every minute. The pictures are digitized
+// through the App "Ai-On-The-Edge-Device" on the Esp32-Cam. The digitized data from the
+// Esp32-Cam are retrieved from there via the REST-Api to be processed by this aplication
+// and stored on Azure Storage Tables.
 
 // For this Esp App Router-WiFi Credentials, Azure Credentials and Viessmann Credentials
 // can be entered via a Captive Portal page which is provided for one minute

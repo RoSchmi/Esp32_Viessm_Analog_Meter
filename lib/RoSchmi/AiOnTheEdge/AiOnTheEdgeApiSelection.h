@@ -11,7 +11,7 @@
 class AiOnTheEdgeApiSelection
 {
     private:
-    //classLabel is used to find instance in memory   
+    //classLabel is used to find instance in memory (debugging)  
     char classLabel[11] = "Ai-Api-Sel";
     char objLabel[11] = "none";
     char endLabel[9] = "Endlabel";

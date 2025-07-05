@@ -11,8 +11,7 @@ RestApiAccount::RestApiAccount(const String accountName, const String accountKey
     char strData[accountName.length() + 30];
     const char * insert = (char *)useHttps ? "s" : "";
     sprintf(strData, "http%s://%s", insert, HostName.c_str());
-    BaseUrl = String(strData);
-    //strncat(strData, "json", sizeof(strData) - strlen(strData) - 1);
+    BaseUrl = String(strData);   
     sprintf(strData, "http%s://%s/%s", insert, HostName.c_str(), "json");
     UriEndPointJson = String(strData);  
 }

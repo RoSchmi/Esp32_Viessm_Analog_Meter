@@ -10,7 +10,7 @@
 class ViessmannApiSelection
 {
     private:
-    //classLabel is used to find instance in memory   
+    //classLabel is used to find instance in memory (debugging)  
     char classLabel[11] = "Vi-Api-Sel";
     char objLabel[11] = "none";
     char endLabel[9] = "Endlabel";
@@ -46,8 +46,7 @@ class ViessmannApiSelection
     Feature _89_heating_dhw_cylinder_temperature;
     Feature _91_heating_dhw_outlet_temperature;
     Feature _92_heating_dhw_main_temperature;
-    Feature _94_heating_temperature_outside;
-     
+    Feature _94_heating_temperature_outside;    
 };
 
 #endif

@@ -1,14 +1,6 @@
 #include "ViessmannClient.h"
 #include "config.h"
 
-// WiFiClient * _viessmannWifiClient;
-
-//ViessmannApiAccount  * _viessmannAccountPtr;
-
-//HTTPClient * _viessmannHttpPtr;
-
-//const char * _viessmannCaCert;
-
 typedef int t_httpCode;
 
 // Constructor
@@ -269,35 +261,8 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     return httpResponseCode;
 }
 
-/*
-void ViessmannClient::doTheFirst(ViessmannApiSelection * apiSelectionPtr, JsonDocument doc)
-{
-    const int valLen = 30;
-    const int nameLen = 60;
-    const int stampLen = 30;
-    char tempVal[valLen] = {'0'};
-    //apiSelectionPtr -> _2_temperature_main.idx = 2;
-    apiSelectionPtr -> _2_temperature_main.idx = 2;
-    strncpy(apiSelectionPtr -> _2_temperature_main.name, doc["data"][2]["feature"], nameLen - 1);               
-    strncpy(apiSelectionPtr-> _2_temperature_main.timestamp, doc["data"][2]["timestamp"], stampLen - 1);
-    snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][2]["properties"]["value"]["value"]); 
-    snprintf(apiSelectionPtr -> _2_temperature_main.value, valLen - 1, (const char*)tempVal);
-              
-}
-*/
-
 t_httpCode ViessmannClient::RefreshAccessToken(uint8_t* responseBuffer, const uint16_t reponseBufferLength, const char * refreshToken)
-{
-    //#define MAXCOUNT 2
-    
-    // t_httpCode httpResponseCode = 0;
-
-    //for (int i = 0; i < MAXCOUNT; i++)
-    //{
-        // Try first with invalid grant to avoid connection refused error
-        //String body = i == 0 ? "grant_type=refresh_token&client_id=" + (String)_viessmannAccountPtr ->ClientId + "&refresh_token=" + (String)refreshToken + "*" 
-        //      : "grant_type=refresh_token&client_id=" + (String)_viessmannAccountPtr ->ClientId + "&refresh_token=" + (String)refreshToken; 
-
+{ 
         String body = "grant_type=refresh_token&client_id=" + (String)_viessmannAccountPtr ->ClientId + "&refresh_token=" + (String)refreshToken; 
            
         String Url = _viessmannAccountPtr -> UriEndPointToken;
@@ -347,7 +312,6 @@ t_httpCode ViessmannClient::RefreshAccessToken(uint8_t* responseBuffer, const ui
     return httpResponseCode;
 }
     
-
 t_httpCode ViessmannClient::GetEquipment(uint8_t* responseBuffer, const uint16_t reponseBufferLength)
 {
     String Url = _viessmannAccountPtr -> UriEndPointIot + "equipment/installations" + "?includeGateways=true"; 
@@ -399,7 +363,3 @@ t_httpCode ViessmannClient::GetUser(uint8_t* responseBuffer, const uint16_t repo
     _viessmannHttpPtr->end();  
     return httpResponseCode; 
 }
-/*
-ViessmannClient::~ViessmannClient()
-{};
-*/
