@@ -25,6 +25,17 @@ class ViessmannClient
 
     
    private:
+
+   //WiFiClient * _aiOnTheEdgeWifiClient;
+   WiFiClient * _viessmannWifiClient;
+   //HTTPClient * _aiOnTheEdgeHttpPtr;
+   HTTPClient * _viessmannHttpPtr;
+
+   //RestApiAccount * _restApiAccountPtr;
+   ViessmannApiAccount  * _viessmannAccountPtr;
+
+   //char * _aiOnTheEdgeCaCert;
+   char * _viessmannCaCert;
       
 };
 #endif

@@ -1,13 +1,13 @@
 #include "ViessmannClient.h"
 #include "config.h"
 
-WiFiClient * _viessmannWifiClient;
+// WiFiClient * _viessmannWifiClient;
 
-ViessmannApiAccount  * _viessmannAccountPtr;
+//ViessmannApiAccount  * _viessmannAccountPtr;
 
-HTTPClient * _viessmannHttpPtr;
+//HTTPClient * _viessmannHttpPtr;
 
-const char * _viessmannCaCert;
+//const char * _viessmannCaCert;
 
 typedef int t_httpCode;
 
@@ -15,7 +15,7 @@ typedef int t_httpCode;
 ViessmannClient::ViessmannClient(ViessmannApiAccount * account, const char * caCert, HTTPClient * httpClient, WiFiClient * wifiClient, uint8_t * bufferStorePtr)
 {  
     _viessmannAccountPtr = account;
-    _viessmannCaCert = caCert;
+    _viessmannCaCert = (char *)caCert;
     _viessmannWifiClient = wifiClient;  
     _viessmannHttpPtr = httpClient;
        
