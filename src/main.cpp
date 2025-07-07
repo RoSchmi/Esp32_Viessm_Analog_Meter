@@ -2431,10 +2431,8 @@ void loop()
               }
 
               //RoSchmi
-              Serial.println(F("\nDidn't need to create Tabele\n"));
-
-              
-              
+              //Serial.println(F("\nDidn't need to create Table\n"));
+ 
               TimeSpan TimeFromLast = onOffValueSet.OnOffSampleValues[i].TimeFromLast;
 
               char timefromLast[15] = {0};
@@ -2631,7 +2629,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
 
           if (GasmeterReadCounter == 1)
           {
-            //diffDay = oneDay;
+            // diffDay = oneDay;     // normally has to be commented out
           }
 
           /******* end for debugging */
@@ -3042,7 +3040,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   ViessmannApiSelection::Feature returnFeature;
   strncpy(returnFeature.value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.value) - 1);
   
-  // Only read features from the cloud when readInterval has expired
+  
    
   int64_t utcNowSecondsTime = (int64_t)dateTimeUTCNow.secondstime();
   int64_t remaining_Vi_seconds = tempLastReadTimeSeconds + tempReadIntervalSeconds - utcNowSecondsTime;
@@ -3052,6 +3050,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
     Serial.printf("Remaining seconds to read (Vi): %d\n",  (int32_t)remaining_Vi_seconds);
   }
 
+  // Only read features from the cloud when readInterval has expired
   if ((tempLastReadTimeSeconds + tempReadIntervalSeconds) < utcNowSecondsTime) 
   { 
       Serial.println(F("########## Have to read Vi-Features #########\n"));
@@ -3073,7 +3072,7 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
         Serial.println(F("Failed to read Features from Viessmann Cloud"));
         Serial.printf("Else-LastReadTime: %u dateTimeUTCNow: %u, Interval: %u\n", (uint32_t)viessmannApiSelection_01.lastReadTimeSeconds, dateTimeUTCNow.secondstime(), (uint32_t)viessmannApiSelection_01.readIntervalSeconds); 
         //Serial.println((char*)bufferStorePtr);
-      } 
+       } 
   }
   
   if (analogSensorMgr_Vi_01.HasToBeRead(pSensorIndex, dateTimeUTCNow))
@@ -3103,8 +3102,6 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     //Serial.println("Setting Viessmann Client insecure\n");
   }
 
-  
-
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
   #endif
@@ -3127,7 +3124,6 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
                                         localTime.month() , localTime.day(),
                                         localTime.hour() , localTime.minute());
   
-  //t_httpCode responseCode = viessmannClient ->GetFeatures(bufferStorePtr, bufferStoreLength, data_0_id, Gateways_0_Serial, Gateways_0_Devices_0_Id, apiSelectionPtr);
     
   t_httpCode responseCode = viessmannClient.GetFeatures(bufferStorePtr, bufferStoreLength, data_0_id, Gateways_0_Serial, Gateways_0_Devices_0_Id, apiSelectionPtr);
 
@@ -3143,7 +3139,7 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     loadViFeaturesResp400Count = 0;
     loadViFeaturesRespOtherCount = 0;
 
-    // Populate features array and replace the name read from Api
+    // Populate features array and set the name read from Api
     // with the name used in this Application
     features[0] = apiSelectionPtr ->_2_temperature_main;
     strcpy(features[0].name, (const char *)"_2_temperature_main");
@@ -3179,11 +3175,9 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     strcpy(features[15].name, (const char *)"_94_heating_temperature_outside");
 
     //RoSchmi for debugging
-
-    bool foundUnkonwn = false;
     for (int i = 0; i < 16; i++)
     {
-       if (strcmp((const char *) features[i].timestamp, "unkonwn") == 0)
+       if (strcmp((const char *) features[i].timestamp, "null") == 0)
        {
           while(true)
           {
@@ -3214,7 +3208,7 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     }
     Serial.printf("Bad httpResponses, Code 400: %d, Others: %d\n", loadViFeaturesResp400Count, loadViFeaturesRespOtherCount);
   
-    if (loadViFeaturesResp400Count > 50 || loadViFeaturesRespOtherCount > 50)
+    if (loadViFeaturesResp400Count > 20 || loadViFeaturesRespOtherCount > 20)
     {
       Serial.printf("Rebooting, failed Vi-Requests. 400: %d, others: %d\n", loadViFeaturesResp400Count, loadViFeaturesRespOtherCount);
       ESP.restart();
