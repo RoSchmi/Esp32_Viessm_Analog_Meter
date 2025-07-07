@@ -14,10 +14,11 @@ ViessmannClient::ViessmannClient(ViessmannApiAccount * account, const char * caC
     _viessmannHttpPtr -> setReuse(false);
 }
 
+#pragma region ViessmannClient::GetFeatures(...)
 t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t reponseBufferLength, const uint32_t data_0_id, const char * gateways_0_serial, const char * gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr)
 {
     Serial.println("Viessmann Client start getting features\n");
-    Serial.printf("In ViessmannClient. LastReadTimeSeconds: %u Interval: %u \n ", (uint32_t)apiSelectionPtr ->lastReadTimeSeconds, apiSelectionPtr ->readIntervalSeconds);
+    //Serial.printf("In ViessmannClient. LastReadTimeSeconds: %u Interval: %u \n ", (uint32_t)apiSelectionPtr ->lastReadTimeSeconds, apiSelectionPtr ->readIntervalSeconds);
     char InstallationId[20] = {0};
     sprintf(InstallationId, "%d", data_0_id);
 
@@ -80,7 +81,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             }
             else
             {
-                Serial.println("JsonDoc Serialization without errors");
+                //Serial.println("JsonDoc Serialization without errors");
             }
             #if SERIAL_PRINT == 1
             Serial.println(F("JsonDoc is deserialized"));
@@ -96,7 +97,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                 // From the long Features JSON string get some chosen entities
                 
                 apiSelectionPtr -> _2_temperature_main.idx = 2;
-                strncpy(apiSelectionPtr-> _2_temperature_main.timestamp, doc["data"][2]["timestamp"], stampLen - 1);
+                strncpy(apiSelectionPtr-> _2_temperature_main.timestamp, doc["data"][2]["timestamp"] | "unknown", stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][2]["properties"]["value"]["value"]); 
                 snprintf(apiSelectionPtr -> _2_temperature_main.value, valLen - 1, (const char*)tempVal);
                 
@@ -105,100 +106,286 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                 // Wait some time (~3 ms)
                 // I don't know why this delay is needed,
                 // but if it is neglected, a load prohibited
-                // exception is thrown               
+                // exception is thrown
+                /*                             
                 uint32_t start = millis();
                 while ((millis() - start) < 3)
                 {
                     delay(1);
                 }
+                */
                 
-
+                // May be that the exception is thrown, because the command
+                // e.g. doc["data"][4]["timestamp"]; falsely returns a nullptr
+                // then this event. could be handeled by code like this
+                /*                
+                char* strPtr = doc["data"][4]["timestamp"];               
+                if (strPtr == nullptr)
+                {
+                    ... do things, substitute ?
+                    Serial.println("Received Null Ptr");
+                }
+                else
+                {
+                    Serial.println("Not Null Ptr");
+                }
+                */
+                char* strPtr = nullptr;
+                               
                 apiSelectionPtr -> _4_boiler_temperature.idx = 4;
-                strncpy(apiSelectionPtr-> _4_boiler_temperature.timestamp, doc["data"][4]["timestamp"], stampLen - 1);
+                
+                if (doc["data"][4]["timestamp"] == nullptr)
+                {  
+                    Serial.printf("Received Null Ptr: %d\n", 4);
+                }
+                else
+                {
+                    //Serial.println("Not Null Ptr");
+                }
+
+                strncpy(apiSelectionPtr-> _4_boiler_temperature.timestamp, doc["data"][4]["timestamp"] | "unknown", stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][4]["properties"]["value"]["value"]); 
                 snprintf(apiSelectionPtr -> _4_boiler_temperature.value, valLen - 1, (const char*)tempVal);
                  
                 //Serial.println("Step 4");
 
                 apiSelectionPtr -> _6_burner_modulation.idx = 6;
-                strncpy(apiSelectionPtr-> _6_burner_modulation.timestamp, doc["data"][6]["timestamp"], stampLen - 1);
+
+                /*
+                if (doc["data"][6]["timestamp"] == nullptr)
+                {  
+                    Serial.printf("Received Null Ptr: %d\n", 6);
+                }
+                else
+                {
+                    //Serial.println("Not Null Ptr");
+                }
+                */
+
+                strncpy(apiSelectionPtr-> _6_burner_modulation.timestamp, doc["data"][6]["timestamp"] | "unknown", stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.0f", (float)doc["data"][6]["properties"]["value"]["value"]); 
                 snprintf(apiSelectionPtr -> _6_burner_modulation.value, valLen - 1, (const char*)tempVal);
                 
                 //Serial.println("Step 6");
 
                 apiSelectionPtr -> _7_burner_hours.idx = 7;
-                strncpy(apiSelectionPtr-> _7_burner_hours.timestamp, doc["data"][7]["timestamp"], stampLen - 1);
+
+                /*
+                if (doc["data"][7]["timestamp"] == nullptr)
+                {  
+                    Serial.printf("Received Null Ptr: %d\n", 7);
+                }
+                else
+                {
+                    //Serial.println("Not Null Ptr");
+                }
+                */
+
+                strncpy(apiSelectionPtr-> _7_burner_hours.timestamp, doc["data"][7]["timestamp"] | "unknown", stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.2f", (float)doc["data"][7]["properties"]["hours"]["value"]);
                 snprintf(apiSelectionPtr -> _7_burner_hours.value, valLen - 1, (const char*)tempVal);
                 
                 //Serial.println("Step 7a");
 
                 apiSelectionPtr -> _7_burner_starts.idx = 7;
-                strncpy(apiSelectionPtr-> _7_burner_starts.timestamp, doc["data"][7]["timestamp"], stampLen - 1);
+                strncpy(apiSelectionPtr-> _7_burner_starts.timestamp, doc["data"][7]["timestamp"] | "unknown", stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.0f", (float)doc["data"][7]["properties"]["starts"]["value"]);
                 snprintf(apiSelectionPtr -> _7_burner_starts.value, valLen - 1, (const char*)tempVal);
                 
                 //Serial.println("Step 7b");
 
                 apiSelectionPtr -> _8_burner_is_active.idx = 8;
-                strncpy(apiSelectionPtr-> _8_burner_is_active.timestamp, doc["data"][8]["timestamp"], stampLen - 1);
+
+                /*
+                if (doc["data"][8]["timestamp"] == nullptr)
+                {  
+                    Serial.printf("Received Null Ptr: %d\n", 8);
+                }
+                else
+                {
+                    //Serial.println("Not Null Ptr");
+                }
+                */
+                strncpy(apiSelectionPtr-> _8_burner_is_active.timestamp, doc["data"][8]["timestamp"] | "unknown", stampLen - 1);
                 strcpy(apiSelectionPtr -> _8_burner_is_active.value, (boolean)doc["data"][8]["properties"]["active"]["value"] ? "true" : "false");
                 
-                Serial.println("Step 8");
+                //Serial.println("Step 8");
 
                 apiSelectionPtr -> _10_circulation_pump_status.idx = 10;
-                strncpy(apiSelectionPtr -> _10_circulation_pump_status.timestamp, doc["data"][10]["timestamp"], stampLen - 1);
+                /*
+                strPtr = (char *)doc["data"][10]["timestamp"];
+                if (strPtr == nullptr)
+                {  
+                    Serial.printf("Received Null Ptr: %d\n", 10);
+                }
+                else
+                {
+                    //Serial.println("Not Null Ptr");
+                }
+                */
+
+
+                strncpy(apiSelectionPtr -> _10_circulation_pump_status.timestamp, doc["data"][10]["timestamp"] | "unknown", stampLen - 1);
                 strncpy(apiSelectionPtr -> _10_circulation_pump_status.value, doc["data"][10]["properties"]["status"]["value"], valLen -1);
                 
                 //Serial.println("Step 10");
 
                 apiSelectionPtr -> _22_heating_curve_shift.idx = 22;
-                strncpy(apiSelectionPtr-> _22_heating_curve_shift.timestamp, doc["data"][22]["timestamp"], stampLen - 1);
+                /*
+                strPtr = (char *)doc["data"][22]["timestamp"];
+                if (strPtr == nullptr)
+                {  
+                    Serial.printf("Received Null Ptr: %d\n", 22);
+                }
+                else
+                {
+                    //Serial.println("Not Null Ptr");
+                }
+                */
+                strncpy(apiSelectionPtr-> _22_heating_curve_shift.timestamp, doc["data"][22]["timestamp"] | "unknown", stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.0f", (float)doc["data"][22]["properties"]["shift"]["value"]);
                 snprintf(apiSelectionPtr -> _22_heating_curve_shift.value, valLen - 1, (const char*)tempVal);
                                       
                 apiSelectionPtr -> _22_heating_curve_slope.idx = 22;
-                strncpy(apiSelectionPtr -> _22_heating_curve_slope.timestamp, doc["data"][22]["timestamp"], stampLen - 1);
+                strncpy(apiSelectionPtr -> _22_heating_curve_slope.timestamp, doc["data"][22]["timestamp"] | "unknown", stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][22]["properties"]["slope"]["value"]);
                 snprintf(apiSelectionPtr -> _22_heating_curve_slope.value, valLen - 1, (const char*)tempVal);
                             
-                apiSelectionPtr -> _76_temperature_supply.idx = 76;                              
-                strncpy(apiSelectionPtr -> _76_temperature_supply.timestamp, doc["data"][76]["timestamp"], stampLen - 1);       
+                apiSelectionPtr -> _76_temperature_supply.idx = 76;
+                /*
+                strPtr = (char *)doc["data"][76]["timestamp"];
+                if (strPtr == nullptr)
+                {  
+                    Serial.printf("Received Null Ptr: %d\n", 76);
+                }
+                else
+                {
+                    //Serial.println("Not Null Ptr");
+                }
+                */
+
+                strncpy(apiSelectionPtr -> _76_temperature_supply.timestamp, doc["data"][76]["timestamp"] | "unknown", stampLen - 1);       
                 snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][76]["properties"]["value"]["value"]);
                 snprintf(apiSelectionPtr -> _76_temperature_supply.value, valLen - 1, (const char*)tempVal);
                 
-                Serial.println("Step 76");
+                //Serial.println("Step 76");
                            
                 apiSelectionPtr -> _84_heating_dhw_charging.idx = 84;
-                strncpy(apiSelectionPtr-> _84_heating_dhw_charging.timestamp, doc["data"][84]["timestamp"], stampLen - 1);
+                /*
+                strPtr = (char *)doc["data"][84]["timestamp"];
+                if (strPtr == nullptr)
+                {  
+                    Serial.printf("Received Null Ptr: %d\n", 84);
+                }
+                else
+                {
+                    //Serial.println("Not Null Ptr");
+                }
+                */
+
+                strncpy(apiSelectionPtr-> _84_heating_dhw_charging.timestamp, doc["data"][84]["timestamp"]  | "unknown", stampLen - 1);
                 strcpy(apiSelectionPtr -> _84_heating_dhw_charging.value, (boolean)doc["data"][84]["properties"]["active"]["value"] ? "true" : "false");
              
                 apiSelectionPtr -> _85_heating_dhw_pump_status.idx = 85;
-                strncpy(apiSelectionPtr -> _85_heating_dhw_pump_status.timestamp, doc["data"][85]["timestamp"], stampLen - 1);
+                /*
+                strPtr = (char *)doc["data"][85]["timestamp"];
+                if (strPtr == nullptr)
+                {  
+                    Serial.printf("Received Null Ptr: %d\n", 85);
+                }
+                else
+                {
+                    //Serial.println("Not Null Ptr");
+                }
+                */
+
+                strncpy(apiSelectionPtr -> _85_heating_dhw_pump_status.timestamp, doc["data"][85]["timestamp"]  | "unknown", stampLen - 1);
                 strncpy(apiSelectionPtr -> _85_heating_dhw_pump_status.value, doc["data"][85]["properties"]["status"]["value"], valLen -1);
             
                 apiSelectionPtr -> _87_heating_dhw_pump_primary_status.idx = 87;
-                strncpy(apiSelectionPtr -> _87_heating_dhw_pump_primary_status.timestamp, doc["data"][87]["timestamp"], stampLen - 1);
+                /*
+                strPtr = (char *)doc["data"][87]["timestamp"];
+                if (strPtr == nullptr)
+                {  
+                    Serial.printf("Received Null Ptr: %d\n", 87);
+                }
+                else
+                {
+                    //Serial.println("Not Null Ptr");
+                }
+                */
+                strncpy(apiSelectionPtr -> _87_heating_dhw_pump_primary_status.timestamp, doc["data"][87]["timestamp"] | "unknown", stampLen - 1);
                 strncpy(apiSelectionPtr -> _87_heating_dhw_pump_primary_status.value, doc["data"][87]["properties"]["status"]["value"], valLen -1);
 
                 apiSelectionPtr -> _89_heating_dhw_cylinder_temperature.idx = 89;
-                strncpy(apiSelectionPtr-> _89_heating_dhw_cylinder_temperature.timestamp, doc["data"][89]["timestamp"], stampLen - 1);
+                
+                /*
+                strPtr = (char *)doc["data"][89]["timestamp"];
+                if (strPtr == nullptr)
+                {  
+                    Serial.printf("Received Null Ptr: %d\n", 89);
+                }
+                else
+                {
+                    //Serial.println("Not Null Ptr");
+                }
+                */
+
+                strncpy(apiSelectionPtr-> _89_heating_dhw_cylinder_temperature.timestamp, doc["data"][89]["timestamp"] | "unknown", stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][89]["properties"]["value"]["value"]);
                 snprintf(apiSelectionPtr -> _89_heating_dhw_cylinder_temperature.value, valLen - 1, (const char*)tempVal);
                         
                 apiSelectionPtr -> _91_heating_dhw_outlet_temperature.idx = 91;
-                strncpy(apiSelectionPtr-> _91_heating_dhw_outlet_temperature.timestamp, doc["data"][91]["timestamp"], stampLen - 1);
+                
+                /*
+                strPtr = (char *)doc["data"][91]["timestamp"];
+                if (strPtr == nullptr)
+                {  
+                    Serial.printf("Received Null Ptr: %d\n", 91);
+                }
+                else
+                {
+                    //Serial.println("Not Null Ptr");
+                }
+                */
+
+                strncpy(apiSelectionPtr-> _91_heating_dhw_outlet_temperature.timestamp, doc["data"][91]["timestamp"] | "unknown", stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][91]["properties"]["value"]["value"]);
                 snprintf(apiSelectionPtr -> _91_heating_dhw_outlet_temperature.value, valLen - 1, (const char*)tempVal);
-                          
+                        
                 apiSelectionPtr -> _92_heating_dhw_main_temperature.idx = 92;
-                strncpy(apiSelectionPtr-> _92_heating_dhw_main_temperature.timestamp, doc["data"][92]["timestamp"], stampLen - 1);
+                
+                /*
+                strPtr = (char *)doc["data"][92]["timestamp"];
+                if (strPtr == nullptr)
+                {  
+                    Serial.printf("Received Null Ptr: %d\n", 92);
+                }
+                else
+                {
+                    //Serial.println("Not Null Ptr");
+                }
+                */
+
+
+                strncpy(apiSelectionPtr-> _92_heating_dhw_main_temperature.timestamp, doc["data"][92]["timestamp"] | "unknown", stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][92]["properties"]["value"]["value"]);
                 snprintf(apiSelectionPtr -> _92_heating_dhw_main_temperature.value, valLen - 1, (const char*)tempVal);
-                                   
+                
                 apiSelectionPtr -> _94_heating_temperature_outside.idx = 94;
-                strncpy(apiSelectionPtr-> _94_heating_temperature_outside.timestamp, doc["data"][94]["timestamp"], stampLen - 1);
+                
+                /*
+                strPtr = (char *)doc["data"][94]["timestamp"];
+                if (strPtr == nullptr)
+                {  
+                    Serial.printf("Received Null Ptr: %d\n", 94);
+                }
+                else
+                {
+                    //Serial.println("Not Null Ptr");
+                }
+                */
+                strncpy(apiSelectionPtr-> _94_heating_temperature_outside.timestamp, doc["data"][94]["timestamp"] | "unknown", stampLen - 1);
                 snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][94]["properties"]["value"]["value"]);
                 snprintf(apiSelectionPtr -> _94_heating_temperature_outside.value, valLen - 1, (const char*)tempVal);
                             
@@ -260,7 +447,9 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     //Serial.println(F("Returning"));
     return httpResponseCode;
 }
+#pragma endregion
 
+#pragma region ViessmannClient::RefreshAccessToken(...)
 t_httpCode ViessmannClient::RefreshAccessToken(uint8_t* responseBuffer, const uint16_t reponseBufferLength, const char * refreshToken)
 { 
         String body = "grant_type=refresh_token&client_id=" + (String)_viessmannAccountPtr ->ClientId + "&refresh_token=" + (String)refreshToken; 
@@ -269,10 +458,10 @@ t_httpCode ViessmannClient::RefreshAccessToken(uint8_t* responseBuffer, const ui
 
         //Url = "https://iam.viessmann.com/idp/v3/token";
     
-        //#if SERIAL_PRINT == 1
+        #if SERIAL_PRINT == 1
             Serial.println(Url);
             Serial.println(body);
-        //#endif
+        #endif
 
         _viessmannHttpPtr ->begin(*_viessmannWifiClient, Url);
 
@@ -311,7 +500,9 @@ t_httpCode ViessmannClient::RefreshAccessToken(uint8_t* responseBuffer, const ui
     
     return httpResponseCode;
 }
-    
+#pragma endregion
+
+#pragma region ViessmannClient::GetEquipment(...)
 t_httpCode ViessmannClient::GetEquipment(uint8_t* responseBuffer, const uint16_t reponseBufferLength)
 {
     String Url = _viessmannAccountPtr -> UriEndPointIot + "equipment/installations" + "?includeGateways=true"; 
@@ -335,8 +526,10 @@ t_httpCode ViessmannClient::GetEquipment(uint8_t* responseBuffer, const uint16_t
     }
     _viessmannHttpPtr->end();
     return httpResponseCode;
-} 
+}
+#pragma endregion 
 
+#pragma region ViessmannClient::GetUser(...)
 t_httpCode ViessmannClient::GetUser(uint8_t* responseBuffer, const uint16_t reponseBufferLength)
 {
     String Url = _viessmannAccountPtr -> UriEndPointUser + "?sections=identity"; 
@@ -363,3 +556,4 @@ t_httpCode ViessmannClient::GetUser(uint8_t* responseBuffer, const uint16_t repo
     _viessmannHttpPtr->end();  
     return httpResponseCode; 
 }
+#pragma endregion

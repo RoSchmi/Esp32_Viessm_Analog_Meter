@@ -770,13 +770,16 @@ WiFi_STA_IPConfig WM_STA_IPconfig;       // For Router STA connection
 
 // Functions
 
+#pragma region initAPIPConfigStruct(...)
 void initAPIPConfigStruct(WiFi_AP_IPConfig &in_WM_AP_IPconfig)
 {
   in_WM_AP_IPconfig._ap_static_ip   = APStaticIP;
   in_WM_AP_IPconfig._ap_static_gw   = APStaticGW;
   in_WM_AP_IPconfig._ap_static_sn   = APStaticSN;
 }
+#pragma endregion
 
+#pragma region initSTAIPConfigStruct(...)
 void initSTAIPConfigStruct(WiFi_STA_IPConfig &in_WM_STA_IPconfig)
 {
   in_WM_STA_IPconfig._sta_static_ip   = stationIP;
@@ -787,7 +790,9 @@ void initSTAIPConfigStruct(WiFi_STA_IPConfig &in_WM_STA_IPconfig)
   in_WM_STA_IPconfig._sta_static_dns2 = dns2IP;
 #endif
 }
+#pragma endregion
 
+#pragma region displayIPConfigStruct...)
 void displayIPConfigStruct(WiFi_STA_IPConfig in_WM_STA_IPconfig)
 {
   LOGERROR3(F("stationIP ="), in_WM_STA_IPconfig._sta_static_ip, ", gatewayIP =", in_WM_STA_IPconfig._sta_static_gw);
@@ -796,7 +801,9 @@ void displayIPConfigStruct(WiFi_STA_IPConfig in_WM_STA_IPconfig)
   LOGERROR3(F("dns1IP ="), in_WM_STA_IPconfig._sta_static_dns1, ", dns2IP =", in_WM_STA_IPconfig._sta_static_dns2);
 #endif
 }
+#pragma endregion
 
+#pragma region configWiFi(...)
 void configWiFi(WiFi_STA_IPConfig in_WM_STA_IPconfig)
 {
   #if USE_CONFIGURABLE_DNS  
@@ -807,6 +814,7 @@ void configWiFi(WiFi_STA_IPConfig in_WM_STA_IPconfig)
     WiFi.config(in_WM_STA_IPconfig._sta_static_ip, in_WM_STA_IPconfig._sta_static_gw, in_WM_STA_IPconfig._sta_static_sn);
   #endif 
 }
+#pragma endregion
 
 ///////////////////////////////////////////
 
@@ -847,6 +855,7 @@ void printLocalTime()
 
 #endif
 
+#pragma region heartBeatPrint()
 void heartBeatPrint()
 {
 #if USE_ESP_WIFIMANAGER_NTP
@@ -874,7 +883,9 @@ void heartBeatPrint()
   }
 #endif  
 }
+#pragma endregion
 
+#pragma region check_WiFi()
 void check_WiFi()
 {
   if ( (WiFi.status() != WL_CONNECTED) )
@@ -882,8 +893,10 @@ void check_WiFi()
     Serial.println(F("\nWiFi lost. Call connectMultiWiFi in loop"));
     connectMultiWiFi();
   }
-}  
+}
+#pragma endregion  
 
+#pragma region check_status()
 // From example Async_ConfigOnDoubleReset_Multi.cpp
 void check_status()
 {
@@ -916,8 +929,9 @@ void check_status()
     checkstatus_timeout = current_millis + HEARTBEAT_INTERVAL;
   }
 }
+#pragma endregion
 
-
+#pragma region calcChecksum(....)
 int calcChecksum(uint8_t* address, uint16_t sizeToCalc)
 {
   uint16_t checkSum = 0;
@@ -929,7 +943,9 @@ int calcChecksum(uint8_t* address, uint16_t sizeToCalc)
 
   return checkSum;
 }
+#pragma endregion
 
+#pragma region loadWiFiConfigData()
 bool loadWiFiConfigData()    // Load configuration to access Router WiFi Credentials from filesystem
 {
   File file = FileFS.open(CONFIG_FILENAME, "r");
@@ -975,7 +991,9 @@ bool loadWiFiConfigData()    // Load configuration to access Router WiFi Credent
     return false;
   }
 }
+#pragma endregion
 
+#pragma region  saveWiFiConfigData()   // Save Router WiFi-Credentials to file
 void saveWiFiConfigData()   // Save Router WiFi-Credentials to file
 {
   File file = FileFS.open(CONFIG_FILENAME, "w");
@@ -997,7 +1015,9 @@ void saveWiFiConfigData()   // Save Router WiFi-Credentials to file
     LOGERROR(F("failed"));
   }
 }   // end saveWiFiConfigData
+#pragma endregion
 
+#pragma region loadPermanentData()
 bool loadPermanentData()
 {
   File f = FileFS.open(PERSIST_FILE, "r");
@@ -1020,7 +1040,9 @@ bool loadPermanentData()
     return false;
   }
 }
+#pragma endregion
 
+#pragma region loadApplConfigData()
 bool loadApplConfigData()    // Config parameter for Azure credentials, Viessmann Refresh-Token and threshold
 {
   // this opens the config file in read-mode
@@ -1106,7 +1128,9 @@ bool loadApplConfigData()    // Config parameter for Azure credentials, Viessman
   Serial.println(F("\nCustom config file was successfully parsed")); 
   return true;
 }
+#pragma endregion
 
+#pragma region saveApplConfigData() // Azure, Viessmann Refresh-Token, Noise threshold
 bool saveApplConfigData() // Config parameter for Azure credentials, Viessmann Refresh-Token and threshold
 {
   LOGERROR(F("Saving additional configuration to file"));
@@ -1164,6 +1188,7 @@ bool saveApplConfigData() // Config parameter for Azure credentials, Viessmann R
   Serial.println(F("\nConfig file was successfully saved"));
   return true;
 }
+#pragma endregion
 
 #pragma region Function trimLeadingSpaces(char *str)
 void trimLeadingSpaces(char *str) {
@@ -1182,6 +1207,7 @@ void trimLeadingSpaces(char *str) {
     str[i] = '\0'; // Null-terminieren des Strings
 }
 #pragma endregion
+
 
 #pragma region    setup()
 void setup() 
@@ -2476,6 +2502,7 @@ void loop()
 }  // end of Loop()
 #pragma endregion
 
+
 #pragma region Function ReadAnalogSensorStruct_01(int pSensorIndex)
 ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
 { 
@@ -3150,6 +3177,22 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     strcpy(features[14].name, (const char *)"_92_heating_dhw_main_temperature");
     features[15] = apiSelectionPtr ->_94_heating_temperature_outside;
     strcpy(features[15].name, (const char *)"_94_heating_temperature_outside");
+
+    //RoSchmi for debugging
+
+    bool foundUnkonwn = false;
+    for (int i = 0; i < 16; i++)
+    {
+       if (strcmp((const char *) features[i].timestamp, "unkonwn") == 0)
+       {
+          while(true)
+          {
+            Serial.printf("Unknown timestamp was found\n");
+            delay(5000);
+          }
+       } 
+    }
+
     
     // Get 4 On/Off sensor values which were read from the Viessmann Api
     // and store them in a 'twin' of the sensor, reflecting its state 
@@ -3889,7 +3932,6 @@ t_httpCode read_Vi_EquipmentFromApi(X509Certificate pCaCert, ViessmannApiAccount
     secure_wifi_client.setInsecure();
   }
   
-
   #if WORK_WITH_WATCHDOG == 1
       esp_task_wdt_reset();
   #endif
@@ -4012,7 +4054,7 @@ t_httpCode refresh_Vi_AccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAc
 }
 #pragma endregion
 
-#pragma region Routine createTable(...)
+#pragma region Routine createTable(...)   //Azure Storage Table
 az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificate pCaCert, const char * pTableName)
 { 
 
@@ -4061,14 +4103,13 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
  
     delay(1000);
     //RoSchmi (temporary commented)
-    ESP.restart();
-    
+    ESP.restart();    
   }
 return statusCode;
 }
 #pragma endregion
 
-#pragma region Routine insertTableEntity(...)
+#pragma region Routine insertTableEntity(...)    //Azure Storage Table
 az_http_status_code insertTableEntity(CloudStorageAccount *pAccountPtr,  X509Certificate pCaCert, const char * pTableName, TableEntity pTableEntity, char * outInsertETag)
 { 
   #if AZURE_TRANSPORT_PROTOKOL == 1
