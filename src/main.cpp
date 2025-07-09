@@ -2,7 +2,7 @@
 
 // Program 'Esp32_Viessm_Analog_Meter' Branch: 
 #define PROGRAMVERSION "v1.0.0"
-// Last updated: 2025_07_05
+// Last updated: 2025_07_09
 // Copyright: RoSchmi 2024 License: Apache 2.0
 // the App was tested only on ESP32 Dev Board, no attempts were made to run it 
 // on variations of ESP32 or ESP8266
@@ -1303,7 +1303,7 @@ void setup()
   Serial.printf("Transport Protokoll: %s\r\n", AZURE_TRANSPORT_PROTOKOL == 0 ? "http" : "https");
   //Serial.printf("Selected Microphone Type = %s\r\n", (usedMicType == MicType::SPH0645LM4H) ? "SPH0645" : "INMP441");
   
-  delay(4000);
+   delay(4000);
   
   
   // Wait some time (3000 ms)
@@ -2642,7 +2642,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
           // if new day (is not FirstGasmeterRead)
           if (firstReadingDateTime.timestamp(DateTime::TIMESTAMP_DATE) != localTimeDateTime.timestamp(DateTime::TIMESTAMP_DATE))
           {
-            Serial.println("Was new day");
+             Serial.println("Was new day");
             strncpy(consumption, selectedFeature.value, sizeof(consumption));
             Serial.printf("Consumption: %s\n", (const char *)consumption);
             Serial.printf("LastGasmeterReading: %f.1\n", LastGasmeterReading);
@@ -2773,7 +2773,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
           int preDecimalPoint = (int)copyBaseValue;
           int oneMoreDigit =  pow(10,(int)log10(preDecimalPoint) + 1);
           
-          LastGasmeterDayConsumption = copyUnClippedValue + (oneMoreDigit - copyBaseValue);
+            LastGasmeterDayConsumption = copyUnClippedValue + (oneMoreDigit - copyBaseValue);
            
         
           returnValueStruct.displayValue = LastGasmeterDayConsumption;
@@ -2902,34 +2902,31 @@ AiOnTheEdgeApiSelection::Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, 
 
   Serial.printf("Remaining seconds (Ai): %d\n", (int32_t)remaining_Ai_Seconds);
   
+  // if ReadInterval has expired, --> readJsonFromRestApi
   if ((tempLastReadTimeSeconds + tempReadIntervalSeconds) < utcNowSecondsTime)  
   {
     char myUriEndpoint[50] = {0};
     strncpy(myUriEndpoint, (const char *)(pRestApiAccount ->UriEndPointJson).c_str(), sizeof(myUriEndpoint) - 1);
     
     t_httpCode httpResponseCode = readJsonFromRestApi(myX509Certificate, pRestApiAccount, pAiOnTheEdgeApiSelectionPtr);   
-    
-    // Restore lastReadTimeSeconds and readIntervalSeconds
-    //pAiOnTheEdgeApiSelectionPtr->lastReadTimeSeconds = tempLastReadTimeSeconds;
-    //pAiOnTheEdgeApiSelectionPtr->readIntervalSeconds = tempReadIntervalSeconds;
-
+     
     if (httpResponseCode > 0)
     {
+      pAiOnTheEdgeApiSelectionPtr ->lastReadTimeSeconds = (int64_t)dateTimeUTCNow.secondstime();          
+    
       if (httpResponseCode == t_http_codes::HTTP_CODE_OK)
       {
         //Serial.println("Success to read Features from Ai-On-The-Edge");       
-        pAiOnTheEdgeApiSelectionPtr ->lastReadTimeSeconds = (int64_t)dateTimeUTCNow.secondstime();          
       }
       else
       {
-        pAiOnTheEdgeApiSelectionPtr ->lastReadTimeSeconds = (int64_t)dateTimeUTCNow.secondstime();
-        Serial.println("Failed to read Features from Ai-On-The-Edge-Device"); 
+        Serial.printf("Failed to read Features: ResponseCode: %d\n", httpResponseCode); 
         Serial.println((char*)bufferStorePtr);
       }
     }
     else
     {
-      Serial.println("Failed reading from Ai-On-The-Edge-Device"); 
+      Serial.printf("Failed reading from Ai-On-The-Edge-Device, httpCode: %d\n", httpResponseCode); 
     }
   }
  

@@ -174,14 +174,15 @@ t_httpCode AiOnTheEdgeClient::SetPreValue(const char * url, const char * preValu
        
     t_httpCode httpResponseCode = _aiOnTheEdgeHttpPtr ->GET();
     if (httpResponseCode > 0) 
-    { 
+    {
+
         if (httpResponseCode == HTTP_CODE_OK)
         {
             //Serial.println("Request returned ok\n");
         }
         else
         {
-            Serial.printf("Request got wrong responsecode:%d\n", httpResponseCode);
+            Serial.printf("Request got wrong responseCode:%d\n", httpResponseCode);
         }
     }
     else
