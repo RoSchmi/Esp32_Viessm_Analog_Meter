@@ -72,9 +72,35 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             filter["data"][0]["timestamp"] = true,
             filter["data"][0]["properties"] = true 
             ;
-            
+
             DeserializationError error = deserializeJson(doc, _viessmannHttpPtr ->getStream(),DeserializationOption::Filter(filter));
-            if (error == DeserializationError::Ok) // Ok; EmptyInput; IncompleteInput; InvalidInput; NoMemory
+            
+            // wait some time to read to end of stream 
+            uint32_t start = millis();
+            while ((millis() - start) < 3)
+            {
+                delay(1);
+            }
+
+            // wait some time for error to become o.k.
+            for (int i = 0; i < 5; i++)
+            {
+                //error = deserializeJson(doc, _viessmannHttpPtr ->getStream(),DeserializationOption::Filter(filter));
+                uint32_t start = millis();
+                while ((millis() - start) < 3)
+                {
+                    delay(1);
+                } 
+                
+                if (error == DeserializationError::Ok)
+                {
+                    Serial.printf("Breaking in round: %d\n", i);
+                    break;
+                }  
+                     
+            }
+            
+            if (error == DeserializationError::Ok) // Ok; EmptyInput; IncompleteInput; InvalidInput; NoMemory           
             {
             #pragma region if(DeserializationError::Ok)    
                 #if SERIAL_PRINT == 1
@@ -96,6 +122,14 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                     snprintf(apiSelectionPtr -> _2_temperature_main.value, valLen - 1, (const char*)tempVal);
                 
                     Serial.println("Step 2 (first)");
+
+                    // Wait some time (~3 ms)
+                    // I don't know why this delay is needed,
+                    // but if it is neglected, a load prohibited
+                    // exception is thrown
+                                  
+                    
+                    
                                                        
                     apiSelectionPtr -> _4_boiler_temperature.idx = 4;
                     strncpy(apiSelectionPtr-> _4_boiler_temperature.timestamp, doc["data"][4]["timestamp"] | "null", stampLen - 1);

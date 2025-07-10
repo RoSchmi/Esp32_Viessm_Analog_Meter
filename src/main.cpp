@@ -2645,7 +2645,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
              Serial.println("Was new day");
             strncpy(consumption, selectedFeature.value, sizeof(consumption));
             Serial.printf("Consumption: %s\n", (const char *)consumption);
-            Serial.printf("LastGasmeterReading: %f.1\n", LastGasmeterReading);
+            Serial.printf("LastGasmeterReading: %.1f\n", LastGasmeterReading);
             
             float tempNumber = (float)MAGIC_NUMBER_INVALID;
 
