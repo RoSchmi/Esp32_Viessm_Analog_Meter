@@ -73,33 +73,26 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             filter["data"][0]["properties"] = true 
             ;
 
-            DeserializationError error = deserializeJson(doc, _viessmannHttpPtr ->getStream(),DeserializationOption::Filter(filter));
+            DeserializationError error; // = deserializeJson(doc, _viessmannHttpPtr ->getStream(),DeserializationOption::Filter(filter));
             
-            // wait some time to read to end of stream 
             uint32_t start = millis();
-            while ((millis() - start) < 3)
+            uint32_t loopCtr = 0;
+            while ((millis() - start) < 1000) 
             {
-                delay(1);
-            }
-
-            // wait some time for error to become o.k.
-            for (int i = 0; i < 5; i++)
-            {
-                //error = deserializeJson(doc, _viessmannHttpPtr ->getStream(),DeserializationOption::Filter(filter));
+                error = deserializeJson(doc, _viessmannHttpPtr->getStream(), DeserializationOption::Filter(filter));
                 uint32_t start = millis();
                 while ((millis() - start) < 3)
                 {
                     delay(1);
-                } 
-                
-                if (error == DeserializationError::Ok)
+                }
+                if (error == DeserializationError::Ok) 
                 {
-                    Serial.printf("Breaking in round: %d\n", i);
+                    Serial.printf("Breaking in round: %d\n", loopCtr);                   
                     break;
-                }  
-                     
+                }
+                loopCtr++;
             }
-            
+  
             if (error == DeserializationError::Ok) // Ok; EmptyInput; IncompleteInput; InvalidInput; NoMemory           
             {
             #pragma region if(DeserializationError::Ok)    
@@ -288,8 +281,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     }
     
     _viessmannHttpPtr ->useHTTP10(false);
-    _viessmannHttpPtr->end();
-    //Serial.println(F("Returning"));
+    _viessmannHttpPtr->end();    
     return httpResponseCode;
 }
 #pragma endregion
