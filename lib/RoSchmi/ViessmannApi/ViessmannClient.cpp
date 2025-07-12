@@ -73,26 +73,29 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             filter["data"][0]["properties"] = true 
             ;
 
-            DeserializationError error; // = deserializeJson(doc, _viessmannHttpPtr ->getStream(),DeserializationOption::Filter(filter));
+            DeserializationError error; 
             
+            // I don't know why this loop is needed but otherwise
+            // deserialize gives error incomplete
             uint32_t start = millis();
             uint32_t loopCtr = 0;
             while ((millis() - start) < 1000) 
             {
                 error = deserializeJson(doc, _viessmannHttpPtr->getStream(), DeserializationOption::Filter(filter));
+                               
                 uint32_t start = millis();
                 while ((millis() - start) < 3)
                 {
                     delay(1);
-                }
-                if (error == DeserializationError::Ok) 
-                {
-                    Serial.printf("Breaking in round: %d\n", loopCtr);                   
-                    break;
-                }
+                }              
+                    if (error == DeserializationError::Ok) 
+                    {
+                        Serial.printf("Breaking in round: %d\n", loopCtr);                   
+                        break;
+                    }
                 loopCtr++;
             }
-  
+
             if (error == DeserializationError::Ok) // Ok; EmptyInput; IncompleteInput; InvalidInput; NoMemory           
             {
             #pragma region if(DeserializationError::Ok)    
