@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include "config.h"
 
 // Program 'Esp32_Viessm_Analog_Meter' Branch: 
 #define PROGRAMVERSION "v1.0.0"
@@ -159,7 +160,7 @@
 
 #include "Rs_TimeNameHelper.h"
 
-// Now support ArduinoJson 6.0.0+ ( tested with v6.14.1 )
+// Now support ArduinoJson 6.0.0+ ( tested with v7.1.0 )
 #include "ArduinoJson.h"      // get it from https://arduinojson.org/ or install via Arduino library manager
 
 // Default Esp32 stack size of 8192 byte is not enough for this application.
@@ -167,9 +168,8 @@
 // https://community.platformio.org/t/esp32-stack-configuration-reloaded/20994/4
 
 SET_LOOP_TASK_STACK_SIZE ( 16*1024 ); // 16KB
-//SET_LOOP_TASK_STACK_SIZE ( 16*1024 ); // 16KB
 
-//SET_LOOP_TASK_STACK_SIZE ( 32*1024 ); // 32KB  used this
+//SET_LOOP_TASK_STACK_SIZE ( 32*1024 ); // 32KB  
 
 // Allocate memory space in memory segment .dram0.bss, ptr to this memory space is later
 // passed to TableClient (is used there as the place for some buffers to preserve stack )
@@ -2251,12 +2251,29 @@ void loop()
           AnalogPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) sampleTime, (char *)"Edm.String");
 
           #if ANALOG_SENSORS_USE_AVERAGE == 1
-          AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *)floToStr(sampleValueSet.SampleValues[0].AverageValue / 10).c_str(), (char *)"Edm.String");
+          // RoSchmi
+          // 999.9 is not divided by 10 as 999.9 has a special meaning
+          float handledValue = sampleValueSet.SampleValues[0].Value == 999.9 ? 999.9 : sampleValueSet.SampleValues[0].Value / 10;
+          if (handledValue == 999.9)
+          {
+            Serial.println("handled Value was 999.9");
+          }
+          AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *)floToStr(handledValue).c_str(), (char *)"Edm.String");   
+          //AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *)floToStr(sampleValueSet.SampleValues[0].AverageValue / 10).c_str(), (char *)"Edm.String");
           AnalogPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"T_2", (char *)floToStr(sampleValueSet.SampleValues[1].AverageValue).c_str(), (char *)"Edm.String");
           AnalogPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"T_3", (char *)floToStr(sampleValueSet.SampleValues[2].AverageValue).c_str(), (char *)"Edm.String");
           AnalogPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"T_4", (char *)floToStr(sampleValueSet.SampleValues[3].AverageValue).c_str(), (char *)"Edm.String");
           #else
-          AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *)floToStr(sampleValueSet.SampleValues[0].Value / 10).c_str(), (char *)"Edm.String");
+          // RoSchmi
+          // 999.9 is not divided by 10 as 999.9 has a special meaning
+          volatile float handledValue = sampleValueSet.SampleValues[0].Value == 999.9 ? 999.9 : sampleValueSet.SampleValues[0].Value / 10;
+          if (handledValue == 999.9)
+          {
+            Serial.println("handled Value was 999.9");
+          }
+          AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *)floToStr(handledValue).c_str(), (char *)"Edm.String");
+         
+          //AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *)floToStr(sampleValueSet.SampleValues[0].Value / 10).c_str(), (char *)"Edm.String");
           AnalogPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"T_2", (char *)floToStr(sampleValueSet.SampleValues[1].Value).c_str(), (char *)"Edm.String");
           AnalogPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"T_3", (char *)floToStr(sampleValueSet.SampleValues[2].Value).c_str(), (char *)"Edm.String");
           AnalogPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"T_4", (char *)floToStr(sampleValueSet.SampleValues[3].Value).c_str(), (char *)"Edm.String");
@@ -3131,6 +3148,7 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
 
     // Populate features array and set the name read from Api
     // with the name used in this Application
+    // Here VI_FEATURES_COUNT is 16
     features[0] = apiSelectionPtr ->_2_temperature_main;
     strcpy(features[0].name, (const char *)"_2_temperature_main");
     features[1] = apiSelectionPtr ->_4_boiler_temperature;
@@ -3163,9 +3181,10 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     strcpy(features[14].name, (const char *)"_92_heating_dhw_main_temperature");
     features[15] = apiSelectionPtr ->_94_heating_temperature_outside;
     strcpy(features[15].name, (const char *)"_94_heating_temperature_outside");
-
-    //RoSchmi timestamp cannot be read --> restart
-    for (int i = 0; i < 16; i++)
+    
+    
+    //RoSchmi if timestamp cannot be read something went wrong --> restart
+    for (int i = 0; i < VI_FEATURES_COUNT; i++)
     {
        if (strcmp((const char *) features[i].timestamp, "null") == 0)
        {

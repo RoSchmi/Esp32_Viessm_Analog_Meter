@@ -76,7 +76,8 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             DeserializationError error; 
             
             // I don't know why this loop is needed but otherwise
-            // deserialize gives error incomplete
+            // deserialize gives error 'incompleteInput'
+            // don't change this loop if it works as expected 
             uint32_t start = millis();
             uint32_t loopCtr = 0;
             while ((millis() - start) < 1000) 
