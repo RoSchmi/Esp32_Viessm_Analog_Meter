@@ -474,7 +474,7 @@ uint8_t connectMultiWiFi();
 // Here: Begin of WiFi Manager definitions
 //***************************************************************
 
-#if !( defined(ESP8266) ||  defined(ESP32) )
+#if !(defined(ESP32) )
   #error This code is intended to run on the ESP8266 or ESP32 platform! Please check your Tools->Board setting.
 #endif
 
@@ -497,14 +497,10 @@ uint8_t connectMultiWiFi();
   
   // Definitions of the Filesystem used on ESP32 (e.g. for storing Router Credentials)
   // LittleFS has higher priority than SPIFFS
-  #if ( ARDUINO_ESP32C3_DEV )
-    // Currently, ESP32-C3 only supporting SPIFFS and EEPROM. Will fix to support LittleFS
-    #define USE_LITTLEFS          false
-    #define USE_SPIFFS            true
-  #else
-    #define USE_LITTLEFS    true
-    #define USE_SPIFFS      false
-  #endif
+  
+  #define USE_LITTLEFS    true
+  #define USE_SPIFFS      false
+  
 
   #if USE_LITTLEFS
     // Use LittleFS
@@ -538,32 +534,7 @@ uint8_t connectMultiWiFi();
   #define LED_OFF           LOW
 
 #else   // (Not Esp32)
-#include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
-  //needed for library
-  #include <DNSServer.h>
-
-  // From v1.1.0
-  #include <ESP8266WiFiMulti.h>
-  ESP8266WiFiMulti wifiMulti;
-
-  #define USE_LITTLEFS      true
-  
-  #if USE_LITTLEFS
-    #include <LittleFS.h>
-    FS* filesystem = &LittleFS;
-    #define FileFS    LittleFS
-    #define FS_Name       "LittleFS"
-  #else
-    FS* filesystem = &SPIFFS;
-    #define FileFS    SPIFFS
-    #define FS_Name       "SPIFFS"
-  #endif
-  //////
-  
-  #define ESP_getChipId()   (ESP.getChipId())
-  
-  #define LED_ON      LOW
-  #define LED_OFF     HIGH
+// enter stuff for Not Esp32 here
 #endif
 
 // SSID and PW for Config Portal
@@ -583,14 +554,6 @@ String Router_Pass;
 #define SSID_MAX_LEN            32
 //WPA2 passwords can be up to 63 characters long.
 #define PASS_MAX_LEN            64
-
-/*
-typedef struct
-{
-  float displayValue;
-  float unClippedValue;
-}  ValueSet;
-*/
 
 typedef struct 
 {
@@ -618,8 +581,6 @@ typedef struct
 // line in the Azure ...Days Table
 
 MaxLastDayConsumption maxLastDayGasConsumption;
-
-
 
 typedef struct
 {
@@ -741,30 +702,6 @@ IPAddress APStaticSN  = IPAddress(255, 255, 255, 0);
 // Onboard LED I/O pin on NodeMCU board
 const int PIN_LED = 2; // D4 on NodeMCU and WeMos. GPIO2/ADC12 of ESP32. Controls the onboard LED.
 
-///////////////////////////////////////////
-// New in v1.4.0
-/******************************************
- * // Defined in ESPAsync_WiFiManager.h
-typedef struct
-{
-  IPAddress _ap_static_ip;
-  IPAddress _ap_static_gw;
-  IPAddress _ap_static_sn;
-
-}  WiFi_AP_IPConfig;
-
-typedef struct
-{
-  IPAddress _sta_static_ip;
-  IPAddress _sta_static_gw;
-  IPAddress _sta_static_sn;
-#if USE_CONFIGURABLE_DNS  
-  IPAddress _sta_static_dns1;
-  IPAddress _sta_static_dns2;
-#endif
-}  WiFi_STA_IPConfig;
-******************************************/
-
 WiFi_AP_IPConfig  WM_AP_IPconfig;        // For Access Point
 WiFi_STA_IPConfig WM_STA_IPconfig;       // For Router STA connection
 
@@ -828,31 +765,17 @@ void toggleLED()
 
 void printLocalTime()
 {
-#if ESP8266
-  static time_t now;
-  
-  now = time(nullptr);
-  
-  if ( now > 1451602800 )
-  {
-    Serial.print("Local Date/Time: ");
-    Serial.print(ctime(&now));
-  }
-#else
-  struct tm timeinfo;
+    struct tm timeinfo;
+    getLocalTime( &timeinfo );
 
-  getLocalTime( &timeinfo );
-
-  // Valid only if year > 2000. 
-  // You can get from timeinfo : tm_year, tm_mon, tm_mday, tm_hour, tm_min, tm_sec
-  if (timeinfo.tm_year > 100 )
-  {
-    Serial.print("Local Date/Time: ");
-    Serial.print( asctime( &timeinfo ) );
-  }
-#endif
+    // Valid only if year > 2000. 
+    // You can get from timeinfo : tm_year, tm_mon, tm_mday, tm_hour, tm_min, tm_sec
+    if (timeinfo.tm_year > 100 )
+    {
+      Serial.print("Local Date/Time: ");
+      Serial.print( asctime( &timeinfo ) );
+    }
 }
-
 #endif
 
 #pragma region heartBeatPrint()
@@ -1034,10 +957,9 @@ bool loadPermanentData()
     std::unique_ptr<char[]> buf(new char[size + 1]);
 
     // Read and store file contents in buf
-    f.readBytes(buf.get(), size);
-    // Closing file
+    f.readBytes(buf.get(), size);  
     f.close();
-    return false;
+    return true;
   }
 }
 #pragma endregion
@@ -1156,9 +1078,6 @@ bool saveApplConfigData() // Config parameter for Azure credentials, Viessmann R
   json[ViessmannClientId_Label] = strlen(viessmannClientId) > 2 ? viessmannClientId : "";
   json[ViessmannRefreshToken_Label] = strlen(viessmannRefreshToken) > 2 ? viessmannRefreshToken : "";
   
-  //json[AzureAccountKey_Label] = azureAccountKey;
-  //json[ViessmannClientId_Label] = viessmannClientId;
-  //json[ViessmannRefreshToken_Label] = viessmannRefreshToken;
   json[GasmeterBaseValueOffset_Label] = gasmeterBaseValueOffsetStr;
   json[SoundSwitcherThresholdString_Label] = sSwiThresholdStr;
   // Open file for writing
@@ -1392,18 +1311,13 @@ void setup()
   // Use this to personalize DHCP hostname (RFC952 conformed)
   AsyncWebServer webServer(HTTP_PORT);
 
-#if ( USING_ESP32_S2 || USING_ESP32_C3 )
-  ESPAsync_WiFiManager ESPAsync_wifiManager(&webServer, NULL, "AsyncConfigOnStartup");
-#else
   // RoSchmi
-  //DNSServer dnsServer;
   AsyncDNSServer dnsServer;
   
   //dnsServer.start();
   
-  
   ESPAsync_WiFiManager ESPAsync_wifiManager(&webServer, &dnsServer, "AsyncConfigOnStartup");
-#endif
+
 
 #if USE_CUSTOM_AP_IP 
   //set custom ip for portal
@@ -1440,7 +1354,6 @@ void setup()
   
   ssid.toUpperCase();
   password = "My" + ssid;
-
 
   // RoSchmi new
   // Extra parameters to be configured
@@ -1506,9 +1419,7 @@ void setup()
     LOGERROR3(F("SSID: "), Loaded_WM_config.WiFi_Creds[i].wifi_ssid, F(", PW = "), Loaded_WM_config.WiFi_Creds[i].wifi_pw);
     }
     
-
-
-#if DISPLAY_STORED_CREDENTIALS_IN_CP    // Cave: This directive is alse used in ESPAsync_WiFiManger
+#if DISPLAY_STORED_CREDENTIALS_IN_CP    // Cave: This directive is also used in ESPAsync_WiFiManger
     // New. Update Credentials, got from loadWiFiConfigData(), to display on CP
     
     // Cave:dangerous, the passwords should never be shown
@@ -1522,12 +1433,9 @@ void setup()
     {
       LOGERROR3(F("Current TZ_Name ="), WM_config.TZ_Name, F(", TZ = "), WM_config.TZ);
 
-  #if ESP8266
-      configTime(WM_config.TZ, "pool.ntp.org"); 
-  #else
+  
       //configTzTime(WM_config.TZ, "pool.ntp.org" );
       configTzTime(WM_config.TZ, "time.nist.gov", "0.pool.ntp.org", "1.pool.ntp.org");
-  #endif   
     }
     else
     {
@@ -1631,14 +1539,11 @@ void setup()
          
     if ( strlen(WM_config.TZ_Name) > 0 )
     {
-      LOGERROR3(F("Saving current TZ_Name ="), WM_config.TZ_Name, F(", TZ = "), WM_config.TZ);
-
-#if ESP8266
-      configTime(WM_config.TZ, "pool.ntp.org"); 
-#else
+      LOGERROR3(F("Saving current TZ_Name ="), WM_config.TZ_Name, F(", TZ = "), WM_config.TZ);    
+      
       //configTzTime(WM_config.TZ, "pool.ntp.org" );
       configTzTime(WM_config.TZ, "time.nist.gov", "0.pool.ntp.org", "1.pool.ntp.org");
-#endif
+      
     }
     else
     {
@@ -1685,11 +1590,7 @@ void setup()
 
   digitalWrite(LED_BUILTIN, LED_OFF); // Turn led off as we are not in configuration mode.
 
-  
-
   startedAt = millis();
-
-
 
   // Azure Acount must be updated here with eventually changed values from WiFi-Manager
   myCloudStorageAccount.ChangeAccountParams((char *)azureAccountName, (char *)azureAccountKey, UseHttps_State, UseCaCert_State);
@@ -1874,9 +1775,6 @@ void setup()
   localTime = myTimezone.toLocal(dateTimeUTCNow.unixtime());
   timeDiffUtcToLocal = localTime.operator-(dateTimeUTCNow);
 
-  
-
-  
   Serial.printf("%s %i %02d %02d %02d %02d", (char *)"Local-Time is:", localTime.year(), 
                                         localTime.month() , localTime.day(),
                                         localTime.hour() , localTime.minute());

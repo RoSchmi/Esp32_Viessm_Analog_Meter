@@ -228,7 +228,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             else
             {
             #pragma region else (DeserializationError::Not Ok)
-                Serial.printf("DeserializeJson() failed: %s\n", (const char *)error.c_str());
+                Serial.printf("\nDeserializeJson() failed: %s\n\n", (const char *)error.c_str());
                 Serial.println("Handled the same way as a -1 response");   
                 
                 
