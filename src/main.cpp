@@ -368,6 +368,8 @@ uint32_t GasmeterReadCounter = 0; //only for debugging, should be deleted in fut
 uint64_t loopCounter = 0;
 int insertCounterAnalogTable = 0;
 int insertCounterApiAnalogTable01 = 0;
+uint32_t Ai_01_Read_Errorcount = 0;
+
 
 uint32_t tryUploadCounter = 0;
 uint32_t failedUploadCounter = 0;
@@ -459,6 +461,7 @@ void print_reset_reason(RESET_REASON reason);
 void scan_WIFI();
 String floToStr(float value, char decimalChar = '.');
 bool isValidFloat(const char* str);
+bool nearlyEqualFloat(float nominalValue, float actualValue, float absTolerance = 0.0001f);
 //float ReadAnalogSensor_01(int pSensorIndex);
 ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex);
 void createSampleTime(const DateTime dateTimeUTCNow, const int timeZoneOffsetUTC, char * sampleTime, const SampleTimeFormatOpt formatOpt = SampleTimeFormatOpt::FORMAT_FULL_1);
@@ -827,8 +830,9 @@ void check_status()
   static ulong checkwifi_timeout    = 0;
 
   static ulong current_millis;
-
+// RoSchmi changed for tests from 1000 to 2000
 #define WIFICHECK_INTERVAL    1000L
+//#define WIFICHECK_INTERVAL    2000L
 
 #if USE_ESP_WIFIMANAGER_NTP
 #define HEARTBEAT_INTERVAL    60000L
@@ -2097,11 +2101,17 @@ void loop()
         
         #pragma region if (dataContainer.hasToBeSent())
         if (dataContainer.hasToBeSent())   // have to send analog values read by Device (e.g. noise)?
-        {
-          //Serial.printf("\n###### AiOnTheEdge dataContainer has to be sent\n");
+        {         
           Serial.println(F("\n###### AiOnTheEdge dataContainer has to be sent to Azure\n"));        
           // Retrieve edited sample values from container
           SampleValueSet sampleValueSet = dataContainer.getCheckedSampleValues(dateTimeUTCNow, true);
+          // RoSchmi for debugging
+          volatile float valueOfFirstLine = sampleValueSet.SampleValues[0].Value;
+          if (valueOfFirstLine > 99.9)
+          {
+            Serial.printf("Value of T_1: %.1f\n", valueOfFirstLine);
+          }
+          
           createSampleTime(sampleValueSet.LastUpdateTime, timeZoneOffsetUTC, (char *)sampleTime);
           
           // Define name of the table (arbitrary name + actual year, like: AnalogTestValues2020)
@@ -2148,24 +2158,18 @@ void loop()
           EntityProperty AnalogPropertiesArray[analogPropertyCount];
           AnalogPropertiesArray[0] = (EntityProperty)TableEntityProperty((char *)"SampleTime", (char *) sampleTime, (char *)"Edm.String");
 
-          #if ANALOG_SENSORS_USE_AVERAGE == 1
+          // #if ANALOG_SENSORS_USE_AVERAGE == 1  makes no sense here
           // RoSchmi
           // 999.9 is not divided by 10 as 999.9 has a special meaning
-          float handledValue = sampleValueSet.SampleValues[0].Value == 999.9 ? 999.9 : sampleValueSet.SampleValues[0].Value / 10;
-          if (handledValue == 999.9)
-          {
-            Serial.println("handled Value was 999.9");
-          }
-          AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *)floToStr(handledValue).c_str(), (char *)"Edm.String");   
-          //AnalogPropertiesArray[1] = (EntityProperty)TableEntityProperty((char *)"T_1", (char *)floToStr(sampleValueSet.SampleValues[0].AverageValue / 10).c_str(), (char *)"Edm.String");
-          AnalogPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"T_2", (char *)floToStr(sampleValueSet.SampleValues[1].AverageValue).c_str(), (char *)"Edm.String");
-          AnalogPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"T_3", (char *)floToStr(sampleValueSet.SampleValues[2].AverageValue).c_str(), (char *)"Edm.String");
-          AnalogPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"T_4", (char *)floToStr(sampleValueSet.SampleValues[3].AverageValue).c_str(), (char *)"Edm.String");
-          #else
-          // RoSchmi
-          // 999.9 is not divided by 10 as 999.9 has a special meaning
-          volatile float handledValue = sampleValueSet.SampleValues[0].Value == 999.9 ? 999.9 : sampleValueSet.SampleValues[0].Value / 10;
-          if (handledValue == 999.9)
+          //volatile float handledValue = sampleValueSet.SampleValues[0].Value == 999.9 ? 999.9 : sampleValueSet.SampleValues[0].Value / 10;
+          
+          float roundedMagicNumberInvalid = round((float)MAGIC_NUMBER_INVALID * 10) / 10;
+
+          volatile float handledValue = nearlyEqualFloat(roundedMagicNumberInvalid, sampleValueSet.SampleValues[0].Value, 0.0001f) ? roundedMagicNumberInvalid : sampleValueSet.SampleValues[0].Value / 10;
+          
+          //volatile float handledValue = round(sampleValueSet.SampleValues[0].Value * 10) / 10;
+          
+          if (handledValue == roundedMagicNumberInvalid);
           {
             Serial.println("handled Value was 999.9");
           }
@@ -2175,8 +2179,7 @@ void loop()
           AnalogPropertiesArray[2] = (EntityProperty)TableEntityProperty((char *)"T_2", (char *)floToStr(sampleValueSet.SampleValues[1].Value).c_str(), (char *)"Edm.String");
           AnalogPropertiesArray[3] = (EntityProperty)TableEntityProperty((char *)"T_3", (char *)floToStr(sampleValueSet.SampleValues[2].Value).c_str(), (char *)"Edm.String");
           AnalogPropertiesArray[4] = (EntityProperty)TableEntityProperty((char *)"T_4", (char *)floToStr(sampleValueSet.SampleValues[3].Value).c_str(), (char *)"Edm.String");
-          #endif
-
+          
           // Create the PartitionKey (special format)
           makePartitionKey(analogTablePartPrefix, augmentPartitionKey, localTime, partitionKey, &partitionKeyLength);
           partitionKey = az_span_slice(partitionKey, 0, partitionKeyLength);
@@ -2619,6 +2622,8 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
         {
           tempNumber = atof(consumption);
+          
+
           #if SERIAL_PRINT == 1
             Serial.printf("\nString could be parsed to float: %s StringLength: %d\n", consumption, strlen(consumption));
           #endif
@@ -2628,6 +2633,18 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
           Serial.printf("Value invalid (0.00) or could not be parsed to float: %s\n", consumption);
           tempNumber = (float)MAGIC_NUMBER_INVALID;
 
+          // handle ESP.restart if more than 3 invalid readings
+          Ai_01_Read_Errorcount++;
+          if (Ai_01_Read_Errorcount > 3)
+          {
+            Serial.println("Rebooting, reading gasmeter failed 3 times");
+            ESP.restart();
+            while(true)
+            {
+              delay(500);
+            }
+          }
+          
           Serial.println("Read value (2)");    
         }
         
@@ -2638,13 +2655,14 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
 
         if (tempNumber > (MAGIC_NUMBER_INVALID - 0.01) && tempNumber < (MAGIC_NUMBER_INVALID + 0.01))
         {
+          
           // if tempNumber = MAGIC_NUMBER_INVALID return both with MAGIC_NUMBER_INVALID
           // (was preset at the beginning)
           // this means, that the values are ignored in further process
           return returnValueStruct;
         }
 
-        //Serial.println("Read value (4)");
+        Ai_01_Read_Errorcount = 0;
 
         // multply by 10, so that there remains 1 significant digit after decimal point
         sprintf(consumption, "%.1f", tempNumber * decShiftFactor);
@@ -2661,8 +2679,6 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         
         returnValueStruct.thisDayBaseValue = first_Reading.gas_DayBaseValue;
         
-        //Serial.println("Read value (5)");
-
         //#if SERIAL_PRINT == 1
            Serial.printf("\nDisplayValue: %.1f  UnClippedValue: %.1f\n", returnValueStruct.displayValue, returnValueStruct.unClippedValue);
         //#endif
@@ -3496,6 +3512,10 @@ bool isValidFloat(const char* str)
 }
 #pragma endregion
 
+#pragma region Function nearlyEqualFloatFloat(...)
+
+#pragma endregion
+
 #pragma region Function extractSubString(...)
 bool extractSubString (const char * source, const String startTag, const String endTag, char * result, const int maxResultLength)
 {
@@ -3524,6 +3544,10 @@ bool extractSubString (const char * source, const String startTag, const String 
   }
 }
 #pragma endregion
+bool nearlyEqualFloat(float nominalValue, float actualValue, float absTolerance) 
+{
+  return fabs(nominalValue - actualValue) < absTolerance;
+}
 
 #pragma region Function setAiPreValueViaRestApi(...)
 t_httpCode setAiPreValueViaRestApi(X509Certificate pCaCert, RestApiAccount * pRestApiAccount , const char * pPreValue)

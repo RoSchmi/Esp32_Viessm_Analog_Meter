@@ -80,7 +80,8 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             // don't change this loop if it works as expected 
             uint32_t start = millis();
             uint32_t loopCtr = 0;
-            while ((millis() - start) < 1000) 
+            //while ((millis() - start) < 1000)
+            while ((millis() - start) < 100)
             {
                 error = deserializeJson(doc, _viessmannHttpPtr->getStream(), DeserializationOption::Filter(filter));
                                
@@ -127,7 +128,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                                   
                     
                     
-                                                       
+                                                     
                     apiSelectionPtr -> _4_boiler_temperature.idx = 4;
                     strncpy(apiSelectionPtr-> _4_boiler_temperature.timestamp, doc["data"][4]["timestamp"] | "null", stampLen - 1);
                     snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][4]["properties"]["value"]["value"]); 
