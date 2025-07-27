@@ -162,7 +162,7 @@
 
 // Now support ArduinoJson 6.0.0+ ( tested with v7.1.0 )
 #include "ArduinoJson.h"      // get it from https://arduinojson.org/ or install via Arduino library manager
-
+#include "StreamUtils.h"
 // Default Esp32 stack size of 8192 byte is not enough for this application.
 // --> configure stack size dynamically from code to 16384
 // https://community.platformio.org/t/esp32-stack-configuration-reloaded/20994/4
@@ -3392,6 +3392,8 @@ boolean connect_Wifi(const char *ssid, const char * password)
 }
 */
 #pragma endregion
+
+
 
 #pragma region Function floToStr(float value)
 String floToStr(float value, char decimalChar)

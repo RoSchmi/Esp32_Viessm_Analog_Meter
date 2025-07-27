@@ -7,6 +7,8 @@
 #include "ViessmannApiAccount.h"
 #include "ViessmannApiSelection.h"
 #include "ArduinoJson.h"
+#include "StreamUtils.h"
+#include "NullPrint.h"
 
 
 #ifndef _VIESSMANNCLIENT_H_

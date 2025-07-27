@@ -9,9 +9,9 @@ ViessmannClient::ViessmannClient(ViessmannApiAccount * account, const char * caC
     _viessmannAccountPtr = account;
     _viessmannCaCert = (char *)caCert;
     _viessmannWifiClient = wifiClient;  
-    _viessmannHttpPtr = httpClient;
-       
+    _viessmannHttpPtr = httpClient;   
     _viessmannHttpPtr -> setReuse(false);
+    
 }
 
 #pragma region ViessmannClient::GetFeatures(...)
@@ -40,7 +40,8 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     Serial.println(Url);
 
     //https://arduinojson.org/v7/how-to/use-arduinojson-with-httpclient/
-
+    
+    
     _viessmannHttpPtr ->useHTTP10(true);   // Must be reset to false for Azure requests
                                            // Is needed to load the long features JSON string
 
@@ -48,6 +49,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     #if SERIAL_PRINT == 1
     Serial.printf("Free heapsize: %d Minimum: %d\n", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
     #endif
+  
     _viessmannHttpPtr ->begin(*_viessmannWifiClient, Url);
     
     _viessmannHttpPtr ->addHeader("Authorization", authorizationHeader); 
@@ -83,7 +85,14 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             //while ((millis() - start) < 1000)
             while ((millis() - start) < 100)
             {
-                error = deserializeJson(doc, _viessmannHttpPtr->getStream(), DeserializationOption::Filter(filter));
+                WiFiClient* stream = _viessmannHttpPtr->getStreamPtr();
+                
+                NullPrint nullPrint;
+                //ReadLoggingStream loggingStream(*stream, Serial);  //use this to print the JSON string
+                ReadLoggingStream loggingStream(*stream, nullPrint);
+
+                error = deserializeJson(doc, loggingStream, DeserializationOption::Filter(filter));
+                //error = deserializeJson(doc, _viessmannHttpPtr->getStream(), DeserializationOption::Filter(filter));
                                
                 uint32_t start = millis();
                 while ((millis() - start) < 3)
