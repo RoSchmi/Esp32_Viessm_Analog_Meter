@@ -2169,7 +2169,7 @@ void loop()
           
           //volatile float handledValue = round(sampleValueSet.SampleValues[0].Value * 10) / 10;
           
-          if (handledValue == roundedMagicNumberInvalid);
+          if (handledValue == roundedMagicNumberInvalid)
           {
             Serial.println("handled Value was 999.9");
           }

@@ -20,13 +20,10 @@
 // Define other settings according to your needs
 
 // Uri defining where to get data from the Viessmann API
-//#define VIESSMANN_USER_BASE_URI  "api.viessmann.com/users/v1/users/me";
 #define VIESSMANN_USER_BASE_URI  "api.viessmann-climatesolutions.com/users/v1/users/me";
 
-//#define VIESSMANN_IOT_BASE_URI "api.viessmann.com/iot/v2/";
 #define VIESSMANN_IOT_BASE_URI "api.viessmann-climatesolutions.com/iot/v2/";
 
-//#define VIESSMANN_TOKEN_BASE_URI "iam.viessmann.com/idp/v3/token";
 #define VIESSMANN_TOKEN_BASE_URI "iam.viessmann-climatesolutions.com/idp/v3/token";
 
 // The credentials of your WiFi router and the name and key of your
