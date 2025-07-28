@@ -82,18 +82,21 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             // don't change this loop if it works as expected 
             uint32_t start = millis();
             uint32_t loopCtr = 0;
-            //while ((millis() - start) < 1000)
+            
             while ((millis() - start) < 100)
             {
                 WiFiClient* stream = _viessmannHttpPtr->getStreamPtr();
                 
-                NullPrint nullPrint;
-                //ReadLoggingStream loggingStream(*stream, Serial);  //use this to print the JSON string
-                ReadLoggingStream loggingStream(*stream, nullPrint);
-
-                error = deserializeJson(doc, loggingStream, DeserializationOption::Filter(filter));
+                #if SERIAL_PRINT == 1
+                    ReadLoggingStream loggingStream(*stream, Serial);  //use this to print the JSON string
+                #else
+                    NullPrint nullPrint;
+                    ReadLoggingStream loggingStream(*stream, nullPrint);
+                #endif
+                
                 //error = deserializeJson(doc, _viessmannHttpPtr->getStream(), DeserializationOption::Filter(filter));
-                               
+                error = deserializeJson(doc, loggingStream, DeserializationOption::Filter(filter));
+                          
                 uint32_t start = millis();
                 while ((millis() - start) < 3)
                 {
