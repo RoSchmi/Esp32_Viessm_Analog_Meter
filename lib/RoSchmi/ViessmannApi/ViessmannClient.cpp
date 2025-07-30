@@ -43,14 +43,19 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     
     
     _viessmannHttpPtr ->useHTTP10(true);   // Must be reset to false for Azure requests
-                                           // Is needed to load the long features JSON string
+                                            // Is needed to load the long features JSON string
 
     //Serial.println(F("Set httpClient to true"));
     #if SERIAL_PRINT == 1
     Serial.printf("Free heapsize: %d Minimum: %d\n", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
     #endif
-  
-    _viessmannHttpPtr ->begin(*_viessmannWifiClient, Url);
+    
+     _viessmannWifiClient ->setTimeout(7);  //default of WiFiClientSecure is 5000 ms
+     
+     uint32_t wiFiSecureTimeOut = _viessmannWifiClient ->getTimeout();
+     Serial.printf("WiFiClientSecure TimeOut = %d\n", wiFiSecureTimeOut);
+
+     _viessmannHttpPtr ->begin(*_viessmannWifiClient, Url);
     
     _viessmannHttpPtr ->addHeader("Authorization", authorizationHeader); 
                
@@ -77,39 +82,23 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
 
             DeserializationError error; 
             
-            // I don't know why this loop is needed but otherwise
-            // deserialize gives error 'incompleteInput'
-            // don't change this loop if it works as expected 
-            uint32_t start = millis();
-            uint32_t loopCtr = 0;
+            WiFiClient* stream = _viessmannHttpPtr->getStreamPtr();
+            stream->setTimeout(2);
             
-            while ((millis() - start) < 100)
-            {
-                WiFiClient* stream = _viessmannHttpPtr->getStreamPtr();
+             
+            //volatile uint32_t streamTimeOut = stream ->getTimeout();
+            //Serial.printf("Stream Timeout is: %d\n", streamTimeOut);
+                           
+            //#if SERIAL_PRINT == 1
+                //ReadLoggingStream loggingStream(*stream, Serial);  //use this to print the JSON string
+            //#else
+                NullPrint nullPrint;
+                ReadLoggingStream loggingStream(*stream, nullPrint);
+            //#endif
                 
-                #if SERIAL_PRINT == 1
-                    ReadLoggingStream loggingStream(*stream, Serial);  //use this to print the JSON string
-                #else
-                    NullPrint nullPrint;
-                    ReadLoggingStream loggingStream(*stream, nullPrint);
-                #endif
-                
-                //error = deserializeJson(doc, _viessmannHttpPtr->getStream(), DeserializationOption::Filter(filter));
-                error = deserializeJson(doc, loggingStream, DeserializationOption::Filter(filter));
-                          
-                uint32_t start = millis();
-                while ((millis() - start) < 3)
-                {
-                    delay(1);
-                }              
-                    if (error == DeserializationError::Ok) 
-                    {
-                        Serial.printf("Breaking in round: %d\n", loopCtr);                   
-                        break;
-                    }
-                loopCtr++;
-            }
-
+            //error = deserializeJson(doc, _viessmannHttpPtr->getStream(), DeserializationOption::Filter(filter));
+            error = deserializeJson(doc, loggingStream, DeserializationOption::Filter(filter));
+                                                       
             if (error == DeserializationError::Ok) // Ok; EmptyInput; IncompleteInput; InvalidInput; NoMemory           
             {
             #pragma region if(DeserializationError::Ok)    
@@ -131,16 +120,8 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                     snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][2]["properties"]["value"]["value"]); 
                     snprintf(apiSelectionPtr -> _2_temperature_main.value, valLen - 1, (const char*)tempVal);
                 
-                    Serial.println("Step 2 (first)");
-
-                    // Wait some time (~3 ms)
-                    // I don't know why this delay is needed,
-                    // but if it is neglected, a load prohibited
-                    // exception is thrown
-                                  
-                    
-                    
-                                                     
+                    //Serial.println("Step 2 (first)");
+                                     
                     apiSelectionPtr -> _4_boiler_temperature.idx = 4;
                     strncpy(apiSelectionPtr-> _4_boiler_temperature.timestamp, doc["data"][4]["timestamp"] | "null", stampLen - 1);
                     snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][4]["properties"]["value"]["value"]); 
@@ -297,7 +278,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
         Serial.printf("Vi-Features: Error performing the request, HTTP-Code: %d\n", httpResponseCode);
     }
     
-    _viessmannHttpPtr ->useHTTP10(false);
+    _viessmannHttpPtr ->useHTTP10(false);   
     _viessmannHttpPtr->end();    
     return httpResponseCode;
 }
