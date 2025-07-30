@@ -49,8 +49,10 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     #if SERIAL_PRINT == 1
     Serial.printf("Free heapsize: %d Minimum: %d\n", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
     #endif
-    
+     // Setting of timeout possibly needed to avoid 'IncompleteInput' errors (not sure)
+           
      _viessmannWifiClient ->setTimeout(7);  //default of WiFiClientSecure is 5000 ms
+                                            // here it is set to 7000 ms
      
      uint32_t wiFiSecureTimeOut = _viessmannWifiClient ->getTimeout();
      Serial.printf("WiFiClientSecure TimeOut = %d\n", wiFiSecureTimeOut);
@@ -83,12 +85,10 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             DeserializationError error; 
             
             WiFiClient* stream = _viessmannHttpPtr->getStreamPtr();
+            // Setting of timeout seems to be needed to avoid 'IncompleteInput' errors
+            // Not sure if the argument plays a role, seems to work with '1' as well
             stream->setTimeout(2);
-            
-             
-            //volatile uint32_t streamTimeOut = stream ->getTimeout();
-            //Serial.printf("Stream Timeout is: %d\n", streamTimeOut);
-                           
+                          
             //#if SERIAL_PRINT == 1
                 //ReadLoggingStream loggingStream(*stream, Serial);  //use this to print the JSON string
             //#else

@@ -402,6 +402,7 @@ int32_t sysTimeNtpDelta = 0;
 static bool UseHttps_State = AZURE_TRANSPORT_PROTOKOL == 0 ? false : true;
 static bool UseCaCert_State = AZURE_TRANSPORT_PROTOKOL == 0 ? false : true;
 
+const char * LOG_FILE = "/LogData.json";             // For logging of error conditions etc.
 const char * PERSIST_FILE = "/PersistantData.json";  // For values that shoult persist after reset
 const char * CONFIG_FILE = "/ConfigSW.json";         // Configuration for Azure and threshold
                                                      // 'CONFIG_FILENAME' is used for Router Credentials
