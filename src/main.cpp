@@ -559,6 +559,28 @@ String Router_Pass;
 //WPA2 passwords can be up to 63 characters long.
 #define PASS_MAX_LEN            64
 
+typedef struct
+{ 
+  char localTimestamp[30] = {'\0'};
+  char logType[8] = {'\0'};
+  char logMess[30] = {'\0'};
+} Logging_Entry;
+
+// RoSchmi to delete
+//Logging_Entry LogMessages[LogArrayCount];
+
+
+
+// Beispiel-JSON
+/*
+  const char* json = R"([
+    {"timestamp": "2020-04-16T18:34:56", "logtype": "warning", "message": "First logmessage"},
+    {"timestamp": "2020-04-16T18:34:57", "logtype": "warning", "message": "Second logmessage"},
+    {"timestamp": "2020-04-16T18:34:58", "logtype": "warning", "message": "Third logmessage"},
+    {"timestamp": "2020-04-16T18:34:59", "logtype": "warning", "message": "Forth logmessage"}
+  ])";
+*/
+
 typedef struct 
 {
   char localTimestamp[30] = {'\0'};
@@ -871,6 +893,139 @@ int calcChecksum(uint8_t* address, uint16_t sizeToCalc)
 
   return checkSum;
 }
+#pragma endregion
+
+#pragma region logging_EntryToJson
+JsonObject logging_EntryToJson(const Logging_Entry& p) {
+  JsonDocument temp;
+  JsonObject obj = temp.to<JsonObject>();
+  obj["timestamp"] = serialized(p.localTimestamp);
+  obj["loggingType"] = serialized(p.logType);
+  obj["loggingMessage"] = serialized(p.logMess);
+  return obj;
+}
+#pragma endregion
+
+#pragma region addLogEntry
+bool addLogEntry(const char * logFile, const char * logType, const char * logMessage, uint32_t maxLogMessageCount = 10)
+{
+  if (strlen(logMessage) > 50 || strlen(logType) > 7)
+  {
+    Serial.println("Logging failed: LogType or Logmessage too long (7, 50)");
+    return false;
+  }
+
+  if (!LittleFS.exists(logFile))
+  {
+    File file = FileFS.open(logFile, "w");
+    if (file)
+    {
+      Logging_Entry create;
+      strcpy(create.localTimestamp, (const char *)localTime.timestamp().c_str());
+      strcpy(create.logType, "Message");
+      strcpy(create.logMess, "Created new Log-File");
+ 
+      JsonDocument logDoc;
+      JsonArray logArray = logDoc.to<JsonArray>();
+
+      char jsonCreate[150] = {'\0'};
+      int createSize = snprintf(jsonCreate, sizeof(jsonCreate), "{\"time\":\"%s\",\"logType\":\"%s\",\"logMess\":\"%s\"}", create.localTimestamp, create.logType, create.logMess);
+      if (createSize > sizeof(jsonCreate) -1)
+      {
+        Serial.println("Logging failed: Json-Creation-String too long");
+        file.close();
+        return false; 
+      }
+      logArray.add(serialized((const char *)jsonCreate));     
+      serializeJson(logDoc, file);
+      file.close();   
+    }
+    else
+    {
+      Serial.println("Logging failed: Log-File couldn't be created");
+      return false;
+    }   
+  }
+  else
+  {
+    // RoSchmi
+    // Must be commented out, is only for debugging
+    // LittleFS.remove(logFile);
+  }
+  
+  Logging_Entry nE;
+  strcpy(nE.localTimestamp, (const char *)localTime.timestamp().c_str());
+  strcpy(nE.logType, logType);
+  strcpy(nE.logMess, logMessage);
+
+  File file = LittleFS.open(logFile, "r");
+  if (!file) {
+    Serial.println("Logging failed: Couldn't read Log-File");
+    file.close();
+    return false;
+  }
+     
+  JsonDocument newDoc;
+  DeserializationError error = deserializeJson(newDoc, file);
+  file.close();
+  if (error)
+  {
+    Serial.println("Logging failed: Couldn't parse Log-File");
+    return false;
+  }
+
+  file = LittleFS.open(logFile, "w");
+    
+  JsonArray logArray = newDoc.as<JsonArray>();
+  while (logArray.size() > maxLogMessageCount)
+  {
+    logArray.remove(0);
+  }
+  
+  char jsonAct[150] = {'\0'};
+  int actSize = snprintf(jsonAct, sizeof(jsonAct), "{\"time\":\"%s\",\"logType\":\"%s\",\"logMess\":\"%s\"}", nE.localTimestamp, nE.logType, nE.logMess);
+  if (actSize > sizeof(jsonAct) -1)
+  {
+    Serial.println("Logging failed: Json-String to long");
+    file.close();
+    return false; 
+  }
+  
+  logArray.add(serialized((const char *)jsonAct));
+  
+  //serializeJsonPretty(newDoc, Serial);
+  //Serial.println("");
+  
+  serializeJson(newDoc, file);
+  file.close();
+  return true;  
+}
+#pragma endregion
+
+#pragma region printLogEntries
+void printLogEntries(const char * logFile)
+{
+    File file = LittleFS.open(logFile, "r");
+    if (!file)
+    {
+      Serial.println("Printing Log-File failed: Couldn't read Log-File");
+      return;
+    }
+    JsonDocument printDoc;
+    DeserializationError error = deserializeJson(printDoc, file);
+    
+    if (error)
+    {
+      Serial.println("Printing Log-File failed: Couldn't parse Log-File");
+      file.close();
+      return;
+    }
+    file.close();
+    Serial.printf("Printing Log-File %s:\n", logFile);
+    serializeJson(printDoc, Serial);
+    Serial.println("");
+}
+
 #pragma endregion
 
 #pragma region loadWiFiConfigData()
@@ -1774,7 +1929,9 @@ void setup()
                                         dateTimeUTCNow.month() , dateTimeUTCNow.day(),
                                         dateTimeUTCNow.hour() , dateTimeUTCNow.minute());
   Serial.println("");
+
   
+
   // RoSchmi
   //DateTime localTime = myTimezone.toLocal(dateTimeUTCNow.unixtime());
   localTime = myTimezone.toLocal(dateTimeUTCNow.unixtime());
@@ -1784,6 +1941,12 @@ void setup()
                                         localTime.month() , localTime.day(),
                                         localTime.hour() , localTime.minute());
   Serial.println("\n");
+
+  #if FLASH_LOGGING == 1
+      addLogEntry(LOG_FILE, "Message", "Program started", LOGGING_ENTRIES);
+  #endif
+
+  printLogEntries(LOG_FILE);
   
   // Set Standard Read Interval
   // Is limited to be not below 2 seconds

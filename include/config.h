@@ -44,6 +44,8 @@
 
 
 #define SERIAL_PRINT 0                    // 1 = yes, 0 = no. Select if Serial.print messages are printed
+#define FLASH_LOGGING 1                   // 1 = yes, 0 = no. Enable to write log-messages in Flash (LittleFS)
+#define LOGGING_ENTRIES 10                // Number of persisting entries in Log-File
 
 #define _ESPASYNC_WIFIMGR_LOGLEVEL_  0     // ( 0 - 4) Define EspAsync_WiFiManager Loglevel (Debug Messages)
 
