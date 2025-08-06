@@ -563,23 +563,8 @@ typedef struct
 { 
   char localTimestamp[30] = {'\0'};
   char logType[8] = {'\0'};
-  char logMess[30] = {'\0'};
+  char logMess[50] = {'\0'};
 } Logging_Entry;
-
-// RoSchmi to delete
-//Logging_Entry LogMessages[LogArrayCount];
-
-
-
-// Beispiel-JSON
-/*
-  const char* json = R"([
-    {"timestamp": "2020-04-16T18:34:56", "logtype": "warning", "message": "First logmessage"},
-    {"timestamp": "2020-04-16T18:34:57", "logtype": "warning", "message": "Second logmessage"},
-    {"timestamp": "2020-04-16T18:34:58", "logtype": "warning", "message": "Third logmessage"},
-    {"timestamp": "2020-04-16T18:34:59", "logtype": "warning", "message": "Forth logmessage"}
-  ])";
-*/
 
 typedef struct 
 {
@@ -992,9 +977,6 @@ bool addLogEntry(const char * logFile, const char * logType, const char * logMes
   }
   
   logArray.add(serialized((const char *)jsonAct));
-  
-  //serializeJsonPretty(newDoc, Serial);
-  //Serial.println("");
   
   serializeJson(newDoc, file);
   file.close();
@@ -1964,7 +1946,10 @@ void setup()
     AccessTokenRefreshTime = dateTimeUTCNow;
   }
   else
-  {     
+  {
+    #if FLASH_LOGGING == 1
+        addLogEntry(LOG_FILE, "Error", "Couldn't refr. access token", LOGGING_ENTRIES);
+    #endif     
     Serial.println(F("Couldn't refresh accessToken from Viessmann Cloud. Error message is:"));
     Serial.println((char*)bufferStorePtr);
     ESP.restart();
@@ -1984,6 +1969,9 @@ void setup()
   else
   {     
     Serial.println(F("Couldn't read UserId from Viessmann Cloud.\r\nError message is:"));
+    #if FLASH_LOGGING == 1
+        addLogEntry(LOG_FILE, "Error", "Couldn't read user", LOGGING_ENTRIES);
+    #endif
     Serial.println((char*)bufferStorePtr);
     ESP.restart();
     while(true)
@@ -2000,7 +1988,10 @@ void setup()
     viessmannEquip_is_read = true;
   }
   else
-  {     
+  {
+    #if FLASH_LOGGING == 1
+        addLogEntry(LOG_FILE, "Error", "Couldn't read equipment", LOGGING_ENTRIES);
+    #endif     
     Serial.println(F("Couldn't read Equipment from Viessmann Cloud.\r\nError message is:"));
     Serial.println((char*)bufferStorePtr);
     // RoSchmi
@@ -2801,6 +2792,9 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
           Ai_01_Read_Errorcount++;
           if (Ai_01_Read_Errorcount > 3)
           {
+            #if FLASH_LOGGING == 1
+              addLogEntry(LOG_FILE, "Error", "More than 3 invalid readings", LOGGING_ENTRIES);
+            #endif
             Serial.println("Rebooting, reading gasmeter failed 3 times");
             ESP.restart();
             while(true)
@@ -3266,6 +3260,9 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     {
        if (strcmp((const char *) features[i].timestamp, "null") == 0)
        {
+          #if FLASH_LOGGING == 1
+            addLogEntry(LOG_FILE, "Error", "Viessmann can't read timestamp", LOGGING_ENTRIES);
+          #endif
           Serial.println("Unknown timestamp was found. Rebooting\n");
           ESP.restart();
           while(true)
@@ -3298,6 +3295,9 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
   
     if (loadViFeaturesResp400Count > 20 || loadViFeaturesRespOtherCount > 20)
     {
+      #if FLASH_LOGGING == 1
+        addLogEntry(LOG_FILE, "Error", "Viessmann failed requests", LOGGING_ENTRIES);
+      #endif
       Serial.printf("Rebooting, failed Vi-Requests. 400: %d, others: %d\n", loadViFeaturesResp400Count, loadViFeaturesRespOtherCount);
       ESP.restart();
       while(true)
@@ -3946,6 +3946,9 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
   else
   {
       sprintf(codeString, "%s %i", "Table Creation failed: ", az_http_status_code(statusCode));
+      #if FLASH_LOGGING == 1
+        addLogEntry(LOG_FILE, "Error", "Azure table creation failed", LOGGING_ENTRIES);
+      #endif
       //#if SERIAL_PRINT == 1   
         Serial.println((char *)codeString);
       //#endif
