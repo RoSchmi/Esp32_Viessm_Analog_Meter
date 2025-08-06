@@ -880,17 +880,6 @@ int calcChecksum(uint8_t* address, uint16_t sizeToCalc)
 }
 #pragma endregion
 
-#pragma region logging_EntryToJson
-JsonObject logging_EntryToJson(const Logging_Entry& p) {
-  JsonDocument temp;
-  JsonObject obj = temp.to<JsonObject>();
-  obj["timestamp"] = serialized(p.localTimestamp);
-  obj["loggingType"] = serialized(p.logType);
-  obj["loggingMessage"] = serialized(p.logMess);
-  return obj;
-}
-#pragma endregion
-
 #pragma region addLogEntry
 bool addLogEntry(const char * logFile, const char * logType, const char * logMessage, uint32_t maxLogMessageCount = 10)
 {
