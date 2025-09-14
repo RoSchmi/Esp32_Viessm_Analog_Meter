@@ -3,7 +3,7 @@
 
 // Program 'Esp32_Viessm_Analog_Meter' Branch: 
 #define PROGRAMVERSION "v1.0.0"
-// Last updated: 2025_07_09
+// Last updated: 2025_09_14
 // Copyright: RoSchmi 2024 License: Apache 2.0
 // the App was tested only on ESP32 Dev Board, no attempts were made to run it 
 // on variations of ESP32 or ESP8266
@@ -2058,9 +2058,9 @@ void loop()
 
       // Get readings from 4 different analog sensors stored in the Viessmann Cloud    
       // and store the values in a container
-      dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_94_heating_temperature_outside", viessmannApiSelectionPtr_01)).value)); // Aussen
-      dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_2_temperature_main", viessmannApiSelectionPtr_01)).value)); // Vorlauf                
-      dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"_89_heating_dhw_cylinder_temperature",viessmannApiSelectionPtr_01)).value)); // Boiler
+      dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_97_heating_temperature_outside", viessmannApiSelectionPtr_01)).value)); // Aussen
+      dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_3_temperature_main", viessmannApiSelectionPtr_01)).value)); // Vorlauf                
+      dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"_92_heating_dhw_cylinder_temperature",viessmannApiSelectionPtr_01)).value)); // Boiler
       dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(3, (const char *)"_6_burner_modulation",viessmannApiSelectionPtr_01)).value));  // Modulation
       
 
@@ -3210,8 +3210,8 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     // Populate features array and set the name read from Api
     // with the name used in this Application
     // Here VI_FEATURES_COUNT is 16
-    features[0] = apiSelectionPtr ->_2_temperature_main;
-    strcpy(features[0].name, (const char *)"_2_temperature_main");
+    features[0] = apiSelectionPtr ->_3_temperature_main;
+    strcpy(features[0].name, (const char *)"_3_temperature_main");
     features[1] = apiSelectionPtr ->_4_boiler_temperature;
     strcpy(features[1].name, (const char *)"_4_boiler_temperature");
     features[2] = apiSelectionPtr ->_6_burner_modulation;
@@ -3230,25 +3230,16 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     strcpy(features[8].name, (const char *)"_76_temperature_supply");
     features[9] = apiSelectionPtr ->_84_heating_dhw_charging;
     strcpy(features[9].name, (const char *)"_84_heating_dhw_charging");
-    // RoSchmi
     features[10] = apiSelectionPtr ->_86_heating_dhw_pump_status;
     strcpy(features[10].name, (const char *)"_86_heating_dhw_pump_status");
     features[11] = apiSelectionPtr ->_88_heating_dhw_pump_primary_status;
     strcpy(features[11].name, (const char *)"_88_heating_dhw_pump_primary_status");
-    features[12] = apiSelectionPtr ->_89_heating_dhw_cylinder_temperature;
-    strcpy(features[12].name, (const char *)"_89_heating_dhw_cylinder_temperature");
-    
-    // RoSchmi
-    //features[13] = apiSelectionPtr ->_91_heating_dhw_outlet_temperature;
-    //strcpy(features[13].name, (const char *)"_91_heating_dhw_outlet_temperature");
-    
-    features[13] = apiSelectionPtr ->_92_heating_dhw_main_temperature;
-    strcpy(features[13].name, (const char *)"_92_heating_dhw_main_temperature");
-    
+    features[12] = apiSelectionPtr ->_92_heating_dhw_cylinder_temperature;
+    strcpy(features[12].name, (const char *)"_92_heating_dhw_cylinder_temperature");
+    //features[13] = apiSelectionPtr ->_92_heating_dhw_main_temperature;
+    //strcpy(features[13].name, (const char *)"_92_heating_dhw_main_temperature");
     features[14] = apiSelectionPtr ->_93_heating_dhw_outlet_temperature;
     strcpy(features[14].name, (const char *)"_93_heating_dhw_outlet_temperature");
-    
-    
     features[15] = apiSelectionPtr ->_97_heating_temperature_outside;
     strcpy(features[15].name, (const char *)"_97_heating_temperature_outside");
     
@@ -3275,7 +3266,6 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     // and store them in a 'twin' of the sensor, reflecting its state 
     OnOffBurnerStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_8_burner_is_active.value), (const char *)"true") == 0, dateTimeUTCNow);
     OnOffCirculationPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_10_circulation_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
-    // RoSchmi
     OnOffHotWaterCircualtionPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_86_heating_dhw_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
     OnOffHotWaterPrimaryPumpStatus.Feed(strcmp((apiSelectionPtr -> _88_heating_dhw_pump_primary_status.value), (const char *)"on") == 0, dateTimeUTCNow);   
   }
