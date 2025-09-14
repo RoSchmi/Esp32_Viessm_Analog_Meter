@@ -71,9 +71,9 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
 
         if (httpResponseCode == HTTP_CODE_OK)
         {     
-            #if SERIAL_PRINT == 1
+            //#if SERIAL_PRINT == 1
               Serial.println(F("Viessmann Received ResponseCode OK"));
-            #endif
+            //#endif
              
             JsonDocument doc;
             StaticJsonDocument<64> filter;           
@@ -120,47 +120,47 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                     snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][2]["properties"]["value"]["value"]); 
                     snprintf(apiSelectionPtr -> _2_temperature_main.value, valLen - 1, (const char*)tempVal);
                 
-                    //Serial.println("Step 2 (first)");
+                    Serial.println("Step 2 (first)");
                                      
                     apiSelectionPtr -> _4_boiler_temperature.idx = 4;
                     strncpy(apiSelectionPtr-> _4_boiler_temperature.timestamp, doc["data"][4]["timestamp"] | "null", stampLen - 1);
                     snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][4]["properties"]["value"]["value"]); 
                     snprintf(apiSelectionPtr -> _4_boiler_temperature.value, valLen - 1, (const char*)tempVal);
                  
-                    //Serial.println("Step 4");
+                    Serial.println("Step 4");
 
                     apiSelectionPtr -> _6_burner_modulation.idx = 6;
                     strncpy(apiSelectionPtr-> _6_burner_modulation.timestamp, doc["data"][6]["timestamp"] | "null", stampLen - 1);
                     snprintf(tempVal, sizeof(tempVal), "%.0f", (float)doc["data"][6]["properties"]["value"]["value"]); 
                     snprintf(apiSelectionPtr -> _6_burner_modulation.value, valLen - 1, (const char*)tempVal);
                 
-                    //Serial.println("Step 6");
+                    Serial.println("Step 6");
 
                     apiSelectionPtr -> _7_burner_hours.idx = 7;
                     strncpy(apiSelectionPtr-> _7_burner_hours.timestamp, doc["data"][7]["timestamp"] | "null", stampLen - 1);
                     snprintf(tempVal, sizeof(tempVal), "%.2f", (float)doc["data"][7]["properties"]["hours"]["value"]);
                     snprintf(apiSelectionPtr -> _7_burner_hours.value, valLen - 1, (const char*)tempVal);
                 
-                    //Serial.println("Step 7a");
+                    Serial.println("Step 7a");
 
                     apiSelectionPtr -> _7_burner_starts.idx = 7;
                     strncpy(apiSelectionPtr-> _7_burner_starts.timestamp, doc["data"][7]["timestamp"] | "null", stampLen - 1);
                     snprintf(tempVal, sizeof(tempVal), "%.0f", (float)doc["data"][7]["properties"]["starts"]["value"]);
                     snprintf(apiSelectionPtr -> _7_burner_starts.value, valLen - 1, (const char*)tempVal);
                 
-                    //Serial.println("Step 7b");
+                    Serial.println("Step 7b");
 
                     apiSelectionPtr -> _8_burner_is_active.idx = 8;               
                     strncpy(apiSelectionPtr-> _8_burner_is_active.timestamp, doc["data"][8]["timestamp"] | "null", stampLen - 1);
                     strcpy(apiSelectionPtr -> _8_burner_is_active.value, (boolean)doc["data"][8]["properties"]["active"]["value"] ? "true" : "false");
                 
-                    //Serial.println("Step 8");
+                    Serial.println("Step 8");
 
                     apiSelectionPtr -> _10_circulation_pump_status.idx = 10;
                     strncpy(apiSelectionPtr -> _10_circulation_pump_status.timestamp, doc["data"][10]["timestamp"] | "null", stampLen - 1);
                     strncpy(apiSelectionPtr -> _10_circulation_pump_status.value, doc["data"][10]["properties"]["status"]["value"], valLen -1);
                 
-                    //Serial.println("Step 10");
+                    Serial.println("Step 10");
 
                     apiSelectionPtr -> _22_heating_curve_shift.idx = 22;                
                     strncpy(apiSelectionPtr-> _22_heating_curve_shift.timestamp, doc["data"][22]["timestamp"] | "null", stampLen - 1);
@@ -177,41 +177,59 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                     snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][76]["properties"]["value"]["value"]);
                     snprintf(apiSelectionPtr -> _76_temperature_supply.value, valLen - 1, (const char*)tempVal);
                 
-                    //Serial.println("Step 76");
+                    Serial.println("Step 76");
                            
                     apiSelectionPtr -> _84_heating_dhw_charging.idx = 84;
                     strncpy(apiSelectionPtr-> _84_heating_dhw_charging.timestamp, doc["data"][84]["timestamp"]  | "null", stampLen - 1);
                     strcpy(apiSelectionPtr -> _84_heating_dhw_charging.value, (boolean)doc["data"][84]["properties"]["active"]["value"] ? "true" : "false");
-             
+                    
+                    Serial.println("Step 84");
+                    /*
                     apiSelectionPtr -> _85_heating_dhw_pump_status.idx = 85;
                     strncpy(apiSelectionPtr -> _85_heating_dhw_pump_status.timestamp, doc["data"][85]["timestamp"]  | "null", stampLen - 1);
                     strncpy(apiSelectionPtr -> _85_heating_dhw_pump_status.value, doc["data"][85]["properties"]["status"]["value"], valLen -1);
-            
-                    apiSelectionPtr -> _87_heating_dhw_pump_primary_status.idx = 87;               
-                    strncpy(apiSelectionPtr -> _87_heating_dhw_pump_primary_status.timestamp, doc["data"][87]["timestamp"] | "null", stampLen - 1);
-                    strncpy(apiSelectionPtr -> _87_heating_dhw_pump_primary_status.value, doc["data"][87]["properties"]["status"]["value"], valLen -1);
+                    */
+                    apiSelectionPtr -> _86_heating_dhw_pump_status.idx = 86;
+                    strncpy(apiSelectionPtr -> _86_heating_dhw_pump_status.timestamp, doc["data"][86]["timestamp"]  | "null", stampLen - 1);
+                    strncpy(apiSelectionPtr -> _86_heating_dhw_pump_status.value, doc["data"][86]["properties"]["status"]["value"], valLen -1);
+                    
+
+                    Serial.println("Step 86");
+
+                    apiSelectionPtr -> _88_heating_dhw_pump_primary_status.idx = 88;               
+                    strncpy(apiSelectionPtr -> _88_heating_dhw_pump_primary_status.timestamp, doc["data"][88]["timestamp"] | "null", stampLen - 1);
+                    strncpy(apiSelectionPtr -> _88_heating_dhw_pump_primary_status.value, doc["data"][88]["properties"]["status"]["value"], valLen -1);
+                    
+                    Serial.println("Step 87");
 
                     apiSelectionPtr -> _89_heating_dhw_cylinder_temperature.idx = 89;
                     strncpy(apiSelectionPtr-> _89_heating_dhw_cylinder_temperature.timestamp, doc["data"][89]["timestamp"] | "null", stampLen - 1);
                     snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][89]["properties"]["value"]["value"]);
                     snprintf(apiSelectionPtr -> _89_heating_dhw_cylinder_temperature.value, valLen - 1, (const char*)tempVal);
-                        
-                    apiSelectionPtr -> _91_heating_dhw_outlet_temperature.idx = 91;
-                    strncpy(apiSelectionPtr-> _91_heating_dhw_outlet_temperature.timestamp, doc["data"][91]["timestamp"] | "null", stampLen - 1);
-                    snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][91]["properties"]["value"]["value"]);
-                    snprintf(apiSelectionPtr -> _91_heating_dhw_outlet_temperature.value, valLen - 1, (const char*)tempVal);
-                        
+                    
+                    Serial.println("Step 89");
+
                     apiSelectionPtr -> _92_heating_dhw_main_temperature.idx = 92;                
                     strncpy(apiSelectionPtr-> _92_heating_dhw_main_temperature.timestamp, doc["data"][92]["timestamp"] | "null", stampLen - 1);
                     snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][92]["properties"]["value"]["value"]);
                     snprintf(apiSelectionPtr -> _92_heating_dhw_main_temperature.value, valLen - 1, (const char*)tempVal);
-                
-                    apiSelectionPtr -> _94_heating_temperature_outside.idx = 94;               
-                    strncpy(apiSelectionPtr-> _94_heating_temperature_outside.timestamp, doc["data"][94]["timestamp"] | "null", stampLen - 1);
-                    snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][94]["properties"]["value"]["value"]);
-                    snprintf(apiSelectionPtr -> _94_heating_temperature_outside.value, valLen - 1, (const char*)tempVal);
+                    
+                    Serial.println("Step 92");
+                    
+                    // RoSchmi change line with tempVal to 93 after 15.9.25
+                    apiSelectionPtr -> _93_heating_dhw_outlet_temperature.idx = 93;
+                    strncpy(apiSelectionPtr-> _93_heating_dhw_outlet_temperature.timestamp, doc["data"][93]["timestamp"] | "null", stampLen - 1);
+                    snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][92]["properties"]["value"]["value"]);
+                    snprintf(apiSelectionPtr -> _93_heating_dhw_outlet_temperature.value, valLen - 1, (const char*)tempVal);
+                    
+                    Serial.println("Step 93");
+
+                    apiSelectionPtr -> _97_heating_temperature_outside.idx = 97;               
+                    strncpy(apiSelectionPtr-> _97_heating_temperature_outside.timestamp, doc["data"][97]["timestamp"] | "null", stampLen - 1);
+                    snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][97]["properties"]["value"]["value"]);
+                    snprintf(apiSelectionPtr -> _97_heating_temperature_outside.value, valLen - 1, (const char*)tempVal);
                            
-                    Serial.println("Step 94 (last)");               
+                    Serial.println("Step 97 (last)");               
                 }
                 else
                 {

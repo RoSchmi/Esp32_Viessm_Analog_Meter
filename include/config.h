@@ -36,7 +36,7 @@
 #define SOUNDSWITCHER_UPDATEINTERVAL 400    // Interval in ms for reading sound level
 #define SOUNDSWITCHER_READ_DELAYTIME 4000   // Delay in ms from switch to displayed value
 
-#define SENDINTERVAL_MINUTES_AI   2    // Sendinterval in minutes (5 - 10 is recommended), in this interval                                        
+#define SENDINTERVAL_MINUTES_AI   10   // Sendinterval in minutes (5 - 10 is recommended), in this interval                                        
                                        // data are sent to the Cloud (is limited to be not below 1 second)
 #define SENDINTERVAL_MINUTES_VI   5    // Sendinterval for Viessmann data in minutes (5 - 10 is recommended), in this interval                                        
                                        // data are sent to the Cloud (is limited to be not below 1 second)

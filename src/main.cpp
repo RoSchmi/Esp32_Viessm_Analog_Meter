@@ -3230,18 +3230,27 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     strcpy(features[8].name, (const char *)"_76_temperature_supply");
     features[9] = apiSelectionPtr ->_84_heating_dhw_charging;
     strcpy(features[9].name, (const char *)"_84_heating_dhw_charging");
-    features[10] = apiSelectionPtr ->_85_heating_dhw_pump_status;
-    strcpy(features[10].name, (const char *)"_85_heating_dhw_pump_status");
-    features[11] = apiSelectionPtr ->_87_heating_dhw_pump_primary_status;
-    strcpy(features[11].name, (const char *)"_87_heating_dhw_pump_primary_status");
+    // RoSchmi
+    features[10] = apiSelectionPtr ->_86_heating_dhw_pump_status;
+    strcpy(features[10].name, (const char *)"_86_heating_dhw_pump_status");
+    features[11] = apiSelectionPtr ->_88_heating_dhw_pump_primary_status;
+    strcpy(features[11].name, (const char *)"_88_heating_dhw_pump_primary_status");
     features[12] = apiSelectionPtr ->_89_heating_dhw_cylinder_temperature;
     strcpy(features[12].name, (const char *)"_89_heating_dhw_cylinder_temperature");
-    features[13] = apiSelectionPtr ->_91_heating_dhw_outlet_temperature;
-    strcpy(features[13].name, (const char *)"_91_heating_dhw_outlet_temperature");
-    features[14] = apiSelectionPtr ->_92_heating_dhw_main_temperature;
-    strcpy(features[14].name, (const char *)"_92_heating_dhw_main_temperature");
-    features[15] = apiSelectionPtr ->_94_heating_temperature_outside;
-    strcpy(features[15].name, (const char *)"_94_heating_temperature_outside");
+    
+    // RoSchmi
+    //features[13] = apiSelectionPtr ->_91_heating_dhw_outlet_temperature;
+    //strcpy(features[13].name, (const char *)"_91_heating_dhw_outlet_temperature");
+    
+    features[13] = apiSelectionPtr ->_92_heating_dhw_main_temperature;
+    strcpy(features[13].name, (const char *)"_92_heating_dhw_main_temperature");
+    
+    features[14] = apiSelectionPtr ->_93_heating_dhw_outlet_temperature;
+    strcpy(features[14].name, (const char *)"_93_heating_dhw_outlet_temperature");
+    
+    
+    features[15] = apiSelectionPtr ->_97_heating_temperature_outside;
+    strcpy(features[15].name, (const char *)"_97_heating_temperature_outside");
     
     
     //RoSchmi if timestamp cannot be read something went wrong --> restart
@@ -3266,8 +3275,9 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     // and store them in a 'twin' of the sensor, reflecting its state 
     OnOffBurnerStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_8_burner_is_active.value), (const char *)"true") == 0, dateTimeUTCNow);
     OnOffCirculationPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_10_circulation_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
-    OnOffHotWaterCircualtionPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_85_heating_dhw_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
-    OnOffHotWaterPrimaryPumpStatus.Feed(strcmp((apiSelectionPtr -> _87_heating_dhw_pump_primary_status.value), (const char *)"on") == 0, dateTimeUTCNow);   
+    // RoSchmi
+    OnOffHotWaterCircualtionPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_86_heating_dhw_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
+    OnOffHotWaterPrimaryPumpStatus.Feed(strcmp((apiSelectionPtr -> _88_heating_dhw_pump_primary_status.value), (const char *)"on") == 0, dateTimeUTCNow);   
   }
   else
   {
