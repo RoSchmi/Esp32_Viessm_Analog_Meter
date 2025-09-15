@@ -32,11 +32,11 @@ class ViessmannApiSelection
     
     Feature _3_temperature_main;
     Feature _4_boiler_temperature;
-    Feature _6_burner_modulation;
-    Feature _7_burner_hours;
-    Feature _7_burner_starts;
-    Feature _8_burner_is_active;
-    Feature _10_circulation_pump_status;
+    Feature _7_burner_modulation;
+    Feature _8_burner_hours;
+    Feature _8_burner_starts;
+    Feature _9_burner_is_active;
+    Feature _13_circulation_pump_status;
     Feature _22_heating_curve_shift;
     Feature _22_heating_curve_slope;
     Feature _76_temperature_supply;

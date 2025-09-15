@@ -129,38 +129,38 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                  
                     //Serial.println("Step 4");
 
-                    apiSelectionPtr -> _6_burner_modulation.idx = 6;
-                    strncpy(apiSelectionPtr-> _6_burner_modulation.timestamp, doc["data"][6]["timestamp"] | "null", stampLen - 1);
-                    snprintf(tempVal, sizeof(tempVal), "%.0f", (float)doc["data"][6]["properties"]["value"]["value"]); 
-                    snprintf(apiSelectionPtr -> _6_burner_modulation.value, valLen - 1, (const char*)tempVal);
+                    apiSelectionPtr -> _7_burner_modulation.idx = 7;
+                    strncpy(apiSelectionPtr-> _7_burner_modulation.timestamp, doc["data"][7]["timestamp"] | "null", stampLen - 1);
+                    snprintf(tempVal, sizeof(tempVal), "%.0f", (float)doc["data"][7]["properties"]["value"]["value"]); 
+                    snprintf(apiSelectionPtr -> _7_burner_modulation.value, valLen - 1, (const char*)tempVal);
                 
-                    //Serial.println("Step 6");
+                    //Serial.println("Step 7");
 
-                    apiSelectionPtr -> _7_burner_hours.idx = 7;
-                    strncpy(apiSelectionPtr-> _7_burner_hours.timestamp, doc["data"][7]["timestamp"] | "null", stampLen - 1);
-                    snprintf(tempVal, sizeof(tempVal), "%.2f", (float)doc["data"][7]["properties"]["hours"]["value"]);
-                    snprintf(apiSelectionPtr -> _7_burner_hours.value, valLen - 1, (const char*)tempVal);
+                    apiSelectionPtr -> _8_burner_hours.idx = 8;
+                    strncpy(apiSelectionPtr-> _8_burner_hours.timestamp, doc["data"][8]["timestamp"] | "null", stampLen - 1);
+                    snprintf(tempVal, sizeof(tempVal), "%.2f", (float)doc["data"][8]["properties"]["hours"]["value"]);
+                    snprintf(apiSelectionPtr -> _8_burner_hours.value, valLen - 1, (const char*)tempVal);
                 
-                    //Serial.println("Step 7a");
+                    //Serial.println("Step 8a");
 
-                    apiSelectionPtr -> _7_burner_starts.idx = 7;
-                    strncpy(apiSelectionPtr-> _7_burner_starts.timestamp, doc["data"][7]["timestamp"] | "null", stampLen - 1);
-                    snprintf(tempVal, sizeof(tempVal), "%.0f", (float)doc["data"][7]["properties"]["starts"]["value"]);
-                    snprintf(apiSelectionPtr -> _7_burner_starts.value, valLen - 1, (const char*)tempVal);
+                    apiSelectionPtr -> _8_burner_starts.idx = 8;
+                    strncpy(apiSelectionPtr-> _8_burner_starts.timestamp, doc["data"][8]["timestamp"] | "null", stampLen - 1);
+                    snprintf(tempVal, sizeof(tempVal), "%.0f", (float)doc["data"][8]["properties"]["starts"]["value"]);
+                    snprintf(apiSelectionPtr -> _8_burner_starts.value, valLen - 1, (const char*)tempVal);
                 
-                    //Serial.println("Step 7b");
+                    //Serial.println("Step 8b");
 
-                    apiSelectionPtr -> _8_burner_is_active.idx = 8;               
-                    strncpy(apiSelectionPtr-> _8_burner_is_active.timestamp, doc["data"][8]["timestamp"] | "null", stampLen - 1);
-                    strcpy(apiSelectionPtr -> _8_burner_is_active.value, (boolean)doc["data"][8]["properties"]["active"]["value"] ? "true" : "false");
+                    apiSelectionPtr -> _9_burner_is_active.idx = 9;               
+                    strncpy(apiSelectionPtr-> _9_burner_is_active.timestamp, doc["data"][9]["timestamp"] | "null", stampLen - 1);
+                    strcpy(apiSelectionPtr -> _9_burner_is_active.value, (boolean)doc["data"][9]["properties"]["active"]["value"] ? "true" : "false");
                 
-                    //Serial.println("Step 8");
+                    //Serial.println("Step 9");
 
-                    apiSelectionPtr -> _10_circulation_pump_status.idx = 10;
-                    strncpy(apiSelectionPtr -> _10_circulation_pump_status.timestamp, doc["data"][10]["timestamp"] | "null", stampLen - 1);
-                    strncpy(apiSelectionPtr -> _10_circulation_pump_status.value, doc["data"][10]["properties"]["status"]["value"], valLen -1);
+                    apiSelectionPtr -> _13_circulation_pump_status.idx = 13;
+                    strncpy(apiSelectionPtr -> _13_circulation_pump_status.timestamp, doc["data"][13]["timestamp"] | "null", stampLen - 1);
+                    strncpy(apiSelectionPtr -> _13_circulation_pump_status.value, doc["data"][13]["properties"]["status"]["value"], valLen -1);
                 
-                    //Serial.println("Step 10");
+                    //Serial.println("Step 13");
 
                     apiSelectionPtr -> _22_heating_curve_shift.idx = 22;                
                     strncpy(apiSelectionPtr-> _22_heating_curve_shift.timestamp, doc["data"][22]["timestamp"] | "null", stampLen - 1);

@@ -462,6 +462,7 @@ void print_reset_reason(RESET_REASON reason);
 void scan_WIFI();
 String floToStr(float value, char decimalChar = '.');
 bool isValidFloat(const char* str);
+bool isValidInt(const char* str);
 bool nearlyEqualFloat(float nominalValue, float actualValue, float absTolerance = 0.0001f);
 //float ReadAnalogSensor_01(int pSensorIndex);
 ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex);
@@ -974,13 +975,13 @@ bool addLogEntry(const char * logFile, const char * logType, const char * logMes
 #pragma endregion
 
 #pragma region printLogEntries
-void printLogEntries(const char * logFile)
+int printLogEntries(const char * logFile)
 {
     File file = LittleFS.open(logFile, "r");
     if (!file)
     {
       Serial.println("Printing Log-File failed: Couldn't read Log-File");
-      return;
+      return 0;
     }
     JsonDocument printDoc;
     DeserializationError error = deserializeJson(printDoc, file);
@@ -989,12 +990,29 @@ void printLogEntries(const char * logFile)
     {
       Serial.println("Printing Log-File failed: Couldn't parse Log-File");
       file.close();
-      return;
+      return 0;
     }
     file.close();
     Serial.printf("Printing Log-File %s:\n", logFile);
     serializeJson(printDoc, Serial);
     Serial.println("");
+
+    JsonArray arr = printDoc.as<JsonArray>();
+    JsonObject lastEntry = arr[arr.size() - 1];
+    const char* lastLogType = lastEntry["logType"];
+    if (isValidInt(lastLogType))
+    {
+      return atoi(lastLogType);
+    }
+    else
+    {
+      return 0;
+    }
+    
+
+
+
+    
 }
 
 #pragma endregion
@@ -1913,11 +1931,19 @@ void setup()
                                         localTime.hour() , localTime.minute());
   Serial.println("\n");
 
-  #if FLASH_LOGGING == 1
+  #if FLASH_LOGGING == 1      
+      int lastLogTypeAsInteger = printLogEntries(LOG_FILE);
       addLogEntry(LOG_FILE, "Message", "Program started", LOGGING_ENTRIES);
+
+      // The following assignment serves as a rudimentary form of debugging
+      // depending on the error that caused the reboot, the ramp (showing
+      // the successful uploads) starts with a different base value) 
+      insertCounterAnalogTable = lastLogTypeAsInteger;
   #endif
 
-  printLogEntries(LOG_FILE);
+  
+  
+  
   
   // Set Standard Read Interval
   // Is limited to be not below 2 seconds
@@ -1937,7 +1963,7 @@ void setup()
   else
   {
     #if FLASH_LOGGING == 1
-        addLogEntry(LOG_FILE, "Error", "Couldn't refr. access token", LOGGING_ENTRIES);
+        addLogEntry(LOG_FILE, "5", "Couldn't refr. access token", LOGGING_ENTRIES);
     #endif     
     Serial.println(F("Couldn't refresh accessToken from Viessmann Cloud. Error message is:"));
     Serial.println((char*)bufferStorePtr);
@@ -1959,7 +1985,7 @@ void setup()
   {     
     Serial.println(F("Couldn't read UserId from Viessmann Cloud.\r\nError message is:"));
     #if FLASH_LOGGING == 1
-        addLogEntry(LOG_FILE, "Error", "Couldn't read user", LOGGING_ENTRIES);
+        addLogEntry(LOG_FILE, "10", "Couldn't read user", LOGGING_ENTRIES);
     #endif
     Serial.println((char*)bufferStorePtr);
     ESP.restart();
@@ -1979,7 +2005,7 @@ void setup()
   else
   {
     #if FLASH_LOGGING == 1
-        addLogEntry(LOG_FILE, "Error", "Couldn't read equipment", LOGGING_ENTRIES);
+        addLogEntry(LOG_FILE, "15", "Couldn't read equipment", LOGGING_ENTRIES);
     #endif     
     Serial.println(F("Couldn't read Equipment from Viessmann Cloud.\r\nError message is:"));
     Serial.println((char*)bufferStorePtr);
@@ -2061,7 +2087,7 @@ void loop()
       dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_97_heating_temperature_outside", viessmannApiSelectionPtr_01)).value)); // Aussen
       dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_3_temperature_main", viessmannApiSelectionPtr_01)).value)); // Vorlauf                
       dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"_92_heating_dhw_cylinder_temperature",viessmannApiSelectionPtr_01)).value)); // Boiler
-      dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(3, (const char *)"_6_burner_modulation",viessmannApiSelectionPtr_01)).value));  // Modulation
+      dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(3, (const char *)"_7_burner_modulation",viessmannApiSelectionPtr_01)).value));  // Modulation
       
 
       ledState = !ledState;
@@ -2782,7 +2808,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
           if (Ai_01_Read_Errorcount > 3)
           {
             #if FLASH_LOGGING == 1
-              addLogEntry(LOG_FILE, "Error", "More than 3 invalid readings", LOGGING_ENTRIES);
+              addLogEntry(LOG_FILE, "20", "More than 3 invalid readings", LOGGING_ENTRIES);
             #endif
             Serial.println("Rebooting, reading gasmeter failed 3 times");
             ESP.restart();
@@ -3214,14 +3240,14 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     strcpy(features[0].name, (const char *)"_3_temperature_main");
     features[1] = apiSelectionPtr ->_4_boiler_temperature;
     strcpy(features[1].name, (const char *)"_4_boiler_temperature");
-    features[2] = apiSelectionPtr ->_6_burner_modulation;
-    strcpy(features[2].name, (const char *)"_6_burner_modulation");
-    features[3] = apiSelectionPtr ->_7_burner_hours;
-    strcpy(features[3].name, (const char *)"_7_burner_hours");
-    features[4] = apiSelectionPtr ->_7_burner_starts;
-    strcpy(features[4].name, (const char *)"_7_burner_starts");
-    features[5] = apiSelectionPtr ->_8_burner_is_active;
-    strcpy(features[5].name, (const char *)"_8_burner_is_active");
+    features[2] = apiSelectionPtr ->_7_burner_modulation;
+    strcpy(features[2].name, (const char *)"_7_burner_modulation");
+    features[3] = apiSelectionPtr ->_8_burner_hours;
+    strcpy(features[3].name, (const char *)"_8_burner_hours");
+    features[4] = apiSelectionPtr ->_8_burner_starts;
+    strcpy(features[4].name, (const char *)"_8_burner_starts");
+    features[5] = apiSelectionPtr ->_9_burner_is_active;
+    strcpy(features[5].name, (const char *)"_9_burner_is_active");
     features[6] = apiSelectionPtr ->_22_heating_curve_shift;
     strcpy(features[6].name, (const char *)"_22_heating_curve_shift");
     features[7] = apiSelectionPtr ->_22_heating_curve_slope;
@@ -3250,7 +3276,7 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
        if (strcmp((const char *) features[i].timestamp, "null") == 0)
        {
           #if FLASH_LOGGING == 1
-            addLogEntry(LOG_FILE, "Error", "Viessmann can't read timestamp", LOGGING_ENTRIES);
+            addLogEntry(LOG_FILE, "25", "Viessmann can't read timestamp", LOGGING_ENTRIES);
           #endif
           Serial.println("Unknown timestamp was found. Rebooting\n");
           ESP.restart();
@@ -3264,8 +3290,8 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     
     // Get 4 On/Off sensor values which were read from the Viessmann Api
     // and store them in a 'twin' of the sensor, reflecting its state 
-    OnOffBurnerStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_8_burner_is_active.value), (const char *)"true") == 0, dateTimeUTCNow);
-    OnOffCirculationPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_10_circulation_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
+    OnOffBurnerStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_9_burner_is_active.value), (const char *)"true") == 0, dateTimeUTCNow);
+    OnOffCirculationPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_13_circulation_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
     OnOffHotWaterCircualtionPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_86_heating_dhw_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
     OnOffHotWaterPrimaryPumpStatus.Feed(strcmp((apiSelectionPtr -> _88_heating_dhw_pump_primary_status.value), (const char *)"on") == 0, dateTimeUTCNow);   
   }
@@ -3285,7 +3311,7 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     if (loadViFeaturesResp400Count > 20 || loadViFeaturesRespOtherCount > 20)
     {
       #if FLASH_LOGGING == 1
-        addLogEntry(LOG_FILE, "Error", "Viessmann failed requests", LOGGING_ENTRIES);
+        addLogEntry(LOG_FILE, "30", "Viessmann failed requests", LOGGING_ENTRIES);
       #endif
       Serial.printf("Rebooting, failed Vi-Requests. 400: %d, others: %d\n", loadViFeaturesResp400Count, loadViFeaturesRespOtherCount);
       ESP.restart();
@@ -3667,6 +3693,17 @@ bool isValidFloat(const char* str)
 }
 #pragma endregion
 
+#pragma region Function isValidInt(...)
+bool isValidInt(const char* str)
+{
+  char* endptr;
+  long val = strtol(str, &endptr, 10);
+
+  // Prüfen, ob endptr auf das Ende des Strings zeigt
+  return (*str != '\0' && *endptr == '\0');
+}
+#pragma endregion
+
 #pragma region Function nearlyEqualFloatFloat(...)
 
 #pragma endregion
@@ -3936,7 +3973,7 @@ az_http_status_code createTable(CloudStorageAccount *pAccountPtr, X509Certificat
   {
       sprintf(codeString, "%s %i", "Table Creation failed: ", az_http_status_code(statusCode));
       #if FLASH_LOGGING == 1
-        addLogEntry(LOG_FILE, "Error", "Azure table creation failed", LOGGING_ENTRIES);
+        addLogEntry(LOG_FILE, "40", "Azure table creation failed", LOGGING_ENTRIES);
       #endif
       //#if SERIAL_PRINT == 1   
         Serial.println((char *)codeString);
