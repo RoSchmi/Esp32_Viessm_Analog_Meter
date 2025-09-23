@@ -2735,8 +2735,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
             Serial.printf("LastGasmeterReading: %.1f\n", LastGasmeterReading);
             
             float tempNumber = (float)MAGIC_NUMBER_INVALID;
-
-            //if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
+     
             if (isValidFloat(consumption) && !(nearlyEqualFloat(0.0, atof(consumption))))   
             {
               maxLastDayGasConsumption.isValid = true;              
@@ -2788,8 +2787,7 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         
         //Serial.println("Read value (2)");
         //Serial.printf("writing consumption: %s Length: %d\n", (const char *)consumption, strlen(consumption));
-         
-        //if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
+                
         if (isValidFloat(consumption) && !(nearlyEqualFloat(0.0, atof(consumption))))      
         {
           tempNumber = atof(consumption);
