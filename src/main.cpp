@@ -975,6 +975,10 @@ bool addLogEntry(const char * logFile, const char * logType, const char * logMes
 #pragma endregion
 
 #pragma region printLogEntries
+// Prints the logFile
+// Returns 0 if the value of the last logType was not an integer
+// or the value of the logType if the value was an integer
+// this gives an info about the last boot reason
 int printLogEntries(const char * logFile)
 {
     File file = LittleFS.open(logFile, "r");
@@ -1007,12 +1011,7 @@ int printLogEntries(const char * logFile)
     else
     {
       return 0;
-    }
-    
-
-
-
-    
+    }   
 }
 
 #pragma endregion
@@ -2737,7 +2736,8 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
             
             float tempNumber = (float)MAGIC_NUMBER_INVALID;
 
-            if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
+            //if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
+            if (isValidFloat(consumption) && !(nearlyEqualFloat(0.0, atof(consumption))))   
             {
               maxLastDayGasConsumption.isValid = true;              
               maxLastDayGasConsumption.dayConsumption = LastGasmeterDayConsumption;
@@ -2789,7 +2789,8 @@ ValueStruct ReadAnalogSensorStruct_01(int pSensorIndex)
         //Serial.println("Read value (2)");
         //Serial.printf("writing consumption: %s Length: %d\n", (const char *)consumption, strlen(consumption));
          
-        if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
+        //if (isValidFloat(consumption) && strlen(consumption) > strlen("0.00"))
+        if (isValidFloat(consumption) && !(nearlyEqualFloat(0.0, atof(consumption))))      
         {
           tempNumber = atof(consumption);
           
