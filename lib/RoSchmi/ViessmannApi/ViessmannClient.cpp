@@ -333,8 +333,8 @@ t_httpCode ViessmannClient::RefreshAccessToken(uint8_t* responseBuffer, const ui
             String payload = _viessmannHttpPtr ->getString();
             
             #if SERIAL_PRINT == 1
-                //Serial.println("Got payload:\n");
-                //Serial.println(payload);
+                Serial.println("Got payload:\n");
+                Serial.println(payload);
             #endif
 
             int charsToCopy = payload.length() < reponseBufferLength ? payload.length() : reponseBufferLength;

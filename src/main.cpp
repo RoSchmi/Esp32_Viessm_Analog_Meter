@@ -182,7 +182,8 @@ uint8_t bufferStore[bufferStoreLength] {0};
 uint8_t * bufferStorePtr = &bufferStore[0];
 
 char viessmannClientId[50] = VIESSMANN_CLIENT_ID;
-char viessmannAccessToken[1120] = VIESSMANN_ACCESS_TOKEN;
+//char viessmannAccessToken[1120] = VIESSMANN_ACCESS_TOKEN;
+char viessmannAccessToken[1200] = VIESSMANN_ACCESS_TOKEN;
 char viessmannRefreshToken[60] = VIESSMANN_REFRESH_TOKEN;
 char viessmannUserBaseUri[60] = VIESSMANN_USER_BASE_URI;
 // RoSchmi delete next 2 lines ?
