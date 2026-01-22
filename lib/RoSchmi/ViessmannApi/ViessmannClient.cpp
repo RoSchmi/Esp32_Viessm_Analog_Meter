@@ -51,7 +51,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
     #endif
      // Setting of timeout possibly needed to avoid 'IncompleteInput' errors (not sure)
            
-     _viessmannWifiClient ->setTimeout(7);  //default of WiFiClientSecure is 5000 ms
+     _viessmannWifiClient ->setTimeout(10);  //default of WiFiClientSecure is 5000 ms
                                             // here it is set to 7000 ms
      
      uint32_t wiFiSecureTimeOut = _viessmannWifiClient ->getTimeout();
@@ -65,9 +65,9 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                 
     if (httpResponseCode > 0) 
     { 
-        #if SERIAL_PRINT == 1
+       #if SERIAL_PRINT == 1
             Serial.println(F("Viessmann Received ResponseCode > 0"));
-        #endif
+       #endif
 
         if (httpResponseCode == HTTP_CODE_OK)
         {     
@@ -87,19 +87,20 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
             WiFiClient* stream = _viessmannHttpPtr->getStreamPtr();
             // Setting of timeout seems to be needed to avoid 'IncompleteInput' errors
             // Not sure if the argument plays a role, seems to work with '1' as well
-            stream->setTimeout(2);
+            stream->setTimeout(2);  //Changed from 2 to 4
                           
             //#if SERIAL_PRINT == 1
                 //ReadLoggingStream loggingStream(*stream, Serial);  //use this to print the JSON string
             //#else
-                NullPrint nullPrint;
-                ReadLoggingStream loggingStream(*stream, nullPrint);
+               NullPrint nullPrint;
+               ReadLoggingStream loggingStream(*stream, nullPrint);
             //#endif
                 
             //error = deserializeJson(doc, _viessmannHttpPtr->getStream(), DeserializationOption::Filter(filter));
             error = deserializeJson(doc, loggingStream, DeserializationOption::Filter(filter));
-                                                       
+            // RoSchmi                                           
             if (error == DeserializationError::Ok) // Ok; EmptyInput; IncompleteInput; InvalidInput; NoMemory           
+            //if (true)
             {
             #pragma region if(DeserializationError::Ok)    
                 #if SERIAL_PRINT == 1
@@ -120,47 +121,47 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                     snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][3]["properties"]["value"]["value"]); 
                     snprintf(apiSelectionPtr -> _3_temperature_main.value, valLen - 1, (const char*)tempVal);
                 
-                    //Serial.println("Step 3 (first)");
+                    Serial.println("Step 3 (first)");
                                      
                     apiSelectionPtr -> _4_boiler_temperature.idx = 4;
                     strncpy(apiSelectionPtr-> _4_boiler_temperature.timestamp, doc["data"][4]["timestamp"] | "null", stampLen - 1);
                     snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][4]["properties"]["value"]["value"]); 
                     snprintf(apiSelectionPtr -> _4_boiler_temperature.value, valLen - 1, (const char*)tempVal);
                  
-                    //Serial.println("Step 4");
+                    Serial.println("Step 4");
 
                     apiSelectionPtr -> _7_burner_modulation.idx = 7;
                     strncpy(apiSelectionPtr-> _7_burner_modulation.timestamp, doc["data"][7]["timestamp"] | "null", stampLen - 1);
                     snprintf(tempVal, sizeof(tempVal), "%.0f", (float)doc["data"][7]["properties"]["value"]["value"]); 
                     snprintf(apiSelectionPtr -> _7_burner_modulation.value, valLen - 1, (const char*)tempVal);
                 
-                    //Serial.println("Step 7");
+                    Serial.println("Step 7");
 
                     apiSelectionPtr -> _8_burner_hours.idx = 8;
                     strncpy(apiSelectionPtr-> _8_burner_hours.timestamp, doc["data"][8]["timestamp"] | "null", stampLen - 1);
                     snprintf(tempVal, sizeof(tempVal), "%.2f", (float)doc["data"][8]["properties"]["hours"]["value"]);
                     snprintf(apiSelectionPtr -> _8_burner_hours.value, valLen - 1, (const char*)tempVal);
                 
-                    //Serial.println("Step 8a");
+                    Serial.println("Step 8a");
 
                     apiSelectionPtr -> _8_burner_starts.idx = 8;
                     strncpy(apiSelectionPtr-> _8_burner_starts.timestamp, doc["data"][8]["timestamp"] | "null", stampLen - 1);
                     snprintf(tempVal, sizeof(tempVal), "%.0f", (float)doc["data"][8]["properties"]["starts"]["value"]);
                     snprintf(apiSelectionPtr -> _8_burner_starts.value, valLen - 1, (const char*)tempVal);
                 
-                    //Serial.println("Step 8b");
+                    Serial.println("Step 8b");
 
                     apiSelectionPtr -> _9_burner_is_active.idx = 9;               
                     strncpy(apiSelectionPtr-> _9_burner_is_active.timestamp, doc["data"][9]["timestamp"] | "null", stampLen - 1);
                     strcpy(apiSelectionPtr -> _9_burner_is_active.value, (boolean)doc["data"][9]["properties"]["active"]["value"] ? "true" : "false");
                 
-                    //Serial.println("Step 9");
+                    Serial.println("Step 9");
 
                     apiSelectionPtr -> _13_circulation_pump_status.idx = 13;
                     strncpy(apiSelectionPtr -> _13_circulation_pump_status.timestamp, doc["data"][13]["timestamp"] | "null", stampLen - 1);
                     strncpy(apiSelectionPtr -> _13_circulation_pump_status.value, doc["data"][13]["properties"]["status"]["value"], valLen -1);
                 
-                    //Serial.println("Step 13");
+                    Serial.println("Step 13");
 
                     apiSelectionPtr -> _22_heating_curve_shift.idx = 22;                
                     strncpy(apiSelectionPtr-> _22_heating_curve_shift.timestamp, doc["data"][22]["timestamp"] | "null", stampLen - 1);
@@ -177,19 +178,19 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                     snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][76]["properties"]["value"]["value"]);
                     snprintf(apiSelectionPtr -> _76_temperature_supply.value, valLen - 1, (const char*)tempVal);
                 
-                    //Serial.println("Step 76");
+                    Serial.println("Step 76");
                            
                     apiSelectionPtr -> _84_heating_dhw_charging.idx = 84;
                     strncpy(apiSelectionPtr-> _84_heating_dhw_charging.timestamp, doc["data"][84]["timestamp"]  | "null", stampLen - 1);
                     strcpy(apiSelectionPtr -> _84_heating_dhw_charging.value, (boolean)doc["data"][84]["properties"]["active"]["value"] ? "true" : "false");
                     
-                    //Serial.println("Step 84");
+                    Serial.println("Step 84");
                     
                     apiSelectionPtr -> _86_heating_dhw_pump_status.idx = 86;
                     strncpy(apiSelectionPtr -> _86_heating_dhw_pump_status.timestamp, doc["data"][86]["timestamp"]  | "null", stampLen - 1);
                     strncpy(apiSelectionPtr -> _86_heating_dhw_pump_status.value, doc["data"][86]["properties"]["status"]["value"], valLen -1);
                     
-                    //Serial.println("Step 86");
+                    Serial.println("Step 86");
 
                     apiSelectionPtr -> _88_heating_dhw_pump_primary_status.idx = 88;               
                     strncpy(apiSelectionPtr -> _88_heating_dhw_pump_primary_status.timestamp, doc["data"][88]["timestamp"] | "null", stampLen - 1);
@@ -217,7 +218,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                     
 
 
-                    //Serial.println("Step 92");
+                    Serial.println("Step 92");
                     
                     // RoSchmi change line with tempVal to 93 after 15.9.25
                     apiSelectionPtr -> _93_heating_dhw_outlet_temperature.idx = 93;
@@ -225,7 +226,7 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                     snprintf(tempVal, sizeof(tempVal), "%.1f", (float)doc["data"][92]["properties"]["value"]["value"]);
                     snprintf(apiSelectionPtr -> _93_heating_dhw_outlet_temperature.value, valLen - 1, (const char*)tempVal);
                     
-                    //Serial.println("Step 93");
+                    Serial.println("Step 93");
 
                     apiSelectionPtr -> _97_heating_temperature_outside.idx = 97;               
                     strncpy(apiSelectionPtr-> _97_heating_temperature_outside.timestamp, doc["data"][97]["timestamp"] | "null", stampLen - 1);
@@ -249,7 +250,8 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                 
                 // Set httpResponseCode to -1
                 // so it is handled as a bad request/response
-                httpResponseCode = -1;
+                //RoSchmi
+                //httpResponseCode = -1;
             #pragma endregion           
             }
             doc.clear();   
