@@ -14,7 +14,7 @@
 
 // Must be high enough to create an array 
 // to hold all interesting features
-#define VI_FEATURES_COUNT 16
+#define VI_FEATURES_COUNT 18
 
 
 // Maximal wie viele Werte ein Feature enthalten kann 
@@ -34,7 +34,7 @@ typedef struct VI_Feature {
     }VI_Feature;
 
     
-static VI_Feature vi_features[VI_FEATURES_COUNT];
+extern VI_Feature vi_features[VI_FEATURES_COUNT];
 
 
 VI_Feature* getFeatureByName(VI_Feature* features, int featureCount, const char* name);

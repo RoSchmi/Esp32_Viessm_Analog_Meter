@@ -2088,9 +2088,9 @@ void loop()
       // and store the values in a container
       
       dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"heating.sensors.temperature.outside", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Aussen
-      dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"heating.boiler.sensors.temperature.main", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Vorlauf
-      dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"heating.dhw.sensors.temperature.dhwCylinder", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Warmwasser
-      dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"heating.burners.0.modulation", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Warmwasser
+      dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"heating.boiler.sensors.temperature.main", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Vorlauf
+      dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"heating.dhw.sensors.temperature.dhwCylinder", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Warmwasser
+      dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(3, (const char *)"heating.burners.0.modulation", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Warmwasser
       
       //dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_97_heating_temperature_outside", 0, viessmannApiSelectionPtr_01)).value)); // Aussen
       //dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_3_temperature_main", 0, viessmannApiSelectionPtr_01)).value)); // Vorlauf                
@@ -3304,7 +3304,7 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
        }
        else
        {
-        Serial.printf("After testing Timestamp %s\r\n", "Hallo");
+        Serial.printf("After testing Timestamp %s\r\n", vi_features[0].timestamp);
        } 
     //}
 
@@ -3314,6 +3314,9 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     
     //bool state = strcmp((apiSelectionPtr ->getFeatureByName(features, 4, "heating.circuits.0"))->values[0].value, (const char *)"true") == 0;
     
+    Serial.printf("Address of vi_features in main: %p\n", vi_features);
+
+
     VI_Feature* theFeature = getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.circuits.0");
     Serial.printf("\r\nBefore first feed\r\n");
 
@@ -3328,11 +3331,9 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     theFeature->values[0].value[2],
     theFeature->values[0].value[3]
 );
-    Serial.printf("Name: %s\n", (char*)(theFeature->name));
-    Serial.printf("First char: %d\n", (int)theFeature->values[0].value[0]);
-    Serial.printf("Second char: %d\n", (int)theFeature->values[0].value[1]); 
-    Serial.printf("Last char: %d\n", (int)theFeature->values[0].value[VI_FEATUREVALUELENGTH - 1]);  
-    //Serial.printf("\r\nValue is: %s\r\n", (const char *)theFeature->values[0].value);
+    Serial.printf("Name: %s\n", (const char*)theFeature->name);
+    //Serial.printf("First char: %d\n", (int)theFeature->values[0].value[0]);
+    Serial.printf("\r\nValue is: %s\r\n", (const char *)theFeature->values[0].value);
     
     Serial.printf("\r\nAfter printing value\r\n");
     //ViessmannApiSelection::Feature* theFeature = apiSelectionPtr ->getFeatureByName(features,16, "heating.circuits.0");

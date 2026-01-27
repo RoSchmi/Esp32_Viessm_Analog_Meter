@@ -33,7 +33,8 @@ const ViessmannApiSelection::InterestingProperty ViessmannApiSelection::interest
    sizeof(ViessmannApiSelection::interestingProperties) / 
    sizeof(ViessmannApiSelection::interestingProperties[0]);
 
-  // VI_Feature features[ViessmannApiSelection::NUM_INTERESTING_PROPERTIES];
+   // Definiton of vi_features (declared in ViessmannApiSelection.h)
+VI_Feature vi_features[VI_FEATURES_COUNT];
 
 // Constructor
 ViessmannApiSelection::ViessmannApiSelection()
@@ -136,11 +137,13 @@ void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, VI_Feature* f
         features[i].name[0] = '\0';
         features[i].timestamp[0] = '\0';
         features[i].valueCount = 0;
+        
     }
     Serial.println("all features cleared");
+    Serial.printf("Address of vi_features in parser: %p\n", vi_features);
+
 
     //Serial.printf("\r\nTimestamp: %s\r\n", doc["data"][3]["timestamp"]);
-    
     
     JsonVariantConst dataVar = doc["data"]; 
     if (!dataVar.is<JsonArrayConst>()) 
@@ -148,18 +151,16 @@ void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, VI_Feature* f
         serializeJsonPretty(doc, Serial); 
     return; 
     }
-    
-    //serializeJsonPretty(doc, Serial);
 
-    JsonArrayConst data = doc["data"].as<JsonArrayConst>();
-  //  JsonObjectConst firstData = data[0];
+    serializeJsonPretty(doc, Serial);
+    
+    JsonArrayConst data = doc["data"].as<JsonArrayConst>(); 
     if (data.isNull()) 
     {
         Serial.printf("Data was null\n");
         return;
     }
-    Serial.printf("Data was not null\n");
-    //serializeJsonPretty(data, Serial);
+    
     Serial.printf("\nReady with serializing\r\n");
 
     // Über alle Features aus der API iterieren
@@ -171,9 +172,7 @@ void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, VI_Feature* f
 
         if (!featureName || featureName[0] == '\0') 
         { 
-            Serial.println("Feature name missing or empty");
-            while (true)
-            {delay(500);}
+            Serial.println("Feature name missing or empty");           
             continue; 
         }
       
@@ -195,7 +194,7 @@ void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, VI_Feature* f
         if (!anyMatch) {
             continue;
         }
-        Serial.printf("Found FeatureName: %s\r\n", featureName);
+        Serial.printf("Found selected FeatureName: %s\r\n", featureName);
         // Feature-Eintrag im Ziel-Array sicherstellen
         int fIdx = ensureFeatureEntry(features, featureCount, featureName);
         if (fIdx < 0) {
@@ -203,7 +202,11 @@ void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, VI_Feature* f
             continue;
         }
         
+        VI_Feature* featuresPtr = &features[fIdx];
+
         VI_Feature& f = features[fIdx];
+
+        
 
          // Timestamp übernehmen
         const char* ts = obj["timestamp"] | "";
@@ -212,47 +215,120 @@ void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, VI_Feature* f
 
         JsonObjectConst props = obj["properties"].as<JsonObjectConst>();
         if (props.isNull()) {
+            Serial.printf("\n properties was null\n");
             continue;
         }
 
-    // Jetzt alle interessierenden Properties für dieses Feature durchgehen
-    for (int i = 0; i < featureCount; i++) 
-    {
-        const auto& ip = ViessmannApiSelection::interestingProperties[i];
+        // Jetzt alle interessierenden Properties für dieses Feature durchgehen
+        for (int i = 0; i < NUM_INTERESTING_PROPERTIES; i++) 
+        {
+            const auto& intrProp = ViessmannApiSelection::interestingProperties[i];
 
-        if (strcmp(ip.featureName, featureName) != 0) {
+            if (strcmp(intrProp.featureName, featureName) != 0) {
+                Serial.printf("\nintrProp.featurename is not %s.\n", featureName);       
+                continue;
+            }
+        
+            // Now index i points to actual row of interesting properties
+            const char* key = ViessmannApiSelection::interestingProperties[i].propertyName;
+        
+            JsonVariantConst propVar = props[key]; 
+            if (propVar.isNull()) 
+            continue;
+
+            // Property existiert?
+            Serial.printf("\nintrProp.property is %s.\n", intrProp.propertyName);           
+        
+        
+            // propVar ist ein Objekt mit "value" 
+            JsonVariantConst valVar = propVar["value"]; 
+            if (valVar.isNull()) 
+            continue;
+
+            Serial.printf("\npropVar ist ein Objekt mit 'value'\n");
+        
+            const char* valStr = valVar.as<const char*>();
+
+
+            char tmp[VI_FEATUREVALUELENGTH];
+        
+            if (!valStr) { // Zahl oder bool → in String umwandeln 
+                if (valVar.is<int>()) 
+                    { 
+                        snprintf(tmp, sizeof(tmp), "%d", valVar.as<int>()); 
+                    } 
+                else if (valVar.is<float>()) 
+                { 
+                    snprintf(tmp, sizeof(tmp), "%.2f", valVar.as<float>()); 
+                } 
+                else if (valVar.is<bool>()) 
+                { 
+                    snprintf(tmp, sizeof(tmp), "%s", valVar.as<bool>() ? "true" : "false"); 
+                } 
+                else 
+                { 
+                 continue; 
+                } 
+                valStr = tmp; 
+            }
+
+            Serial.printf("All values are stored as string\n");
+        
+
+            // Wert speichern 
+            if (featuresPtr->valueCount < VI_MAX_VALUES_PER_FEATURE) 
+            { 
+                Serial.printf("\n Going to 1\n");
+                VI_FeatureValue* fv = &featuresPtr->values[featuresPtr->valueCount++]; 
+                Serial.printf("\n Going to 2\n");
+                strncpy(fv->key, key, VI_FEATUREKEYLENGTH);
+                Serial.printf("\n Going to 3\n");
+                fv->key[VI_FEATUREKEYLENGTH - 1] = '\0';
+                Serial.printf("\n Going to 4\n");
+                strncpy(fv->value, valStr, VI_FEATUREVALUELENGTH);
+                Serial.printf("\n Going to 5\n"); 
+                fv->value[VI_FEATUREVALUELENGTH - 1] = '\0';
+                Serial.printf("\n Going to 6\n");  
+            }
+    }
+        Serial.printf("\n Loop for NUM_INTERESTING_PROPERTIES is finished \n");
+        /*
+        JsonObjectConst propObj = props[intrProp.propertyName].as<JsonObjectConst>();
+        if (propObj.isNull()) {
+            Serial.printf("\nProperty with selected name was null.\n");
             continue;
         }
-            // Property existiert?          
-            if (!props[ip.propertyName].is<JsonVariant>()) { 
-                continue; 
-            }
-
-            JsonObjectConst propObj = props[ip.propertyName].as<JsonObjectConst>();
-            if (propObj.isNull()) {
+        */
+        
+        /*
+        JsonVariantConst v = propObj["value"];
+        if (v.isNull()) {
+                Serial.printf("\nProperty value with selected name was null.\n");      
                 continue;
-            }
-
-            JsonVariantConst v = propObj["value"];
-            if (v.isNull()) {
+        }
+        */
+        
+        /*
+        // Platz im values[]-Array?
+        if (f.valueCount >= VI_MAX_VALUES_PER_FEATURE) {
                 continue;
-            }
-
-            // Platz im values[]-Array?
-            if (f.valueCount >= VI_MAX_VALUES_PER_FEATURE) {
-                continue;
-            }
-            VI_FeatureValue& fv = f.values[f.valueCount];
+        }
+        */
+        
+        /*
+        VI_FeatureValue& fv = f.values[f.valueCount];
 
             // Key setzen (z.B. "starts", "hours", "value", "status", ...)
-            strncpy(fv.key, ip.propertyName, VI_FEATURENAMELENGTH);
+            strncpy(fv.key, intrProp.propertyName, VI_FEATURENAMELENGTH);
             fv.key[VI_FEATURENAMELENGTH - 1] = '\0';
 
             // Wert als Text schreiben
             jsonValueToString(v, fv.value, VI_FEATUREVALUELENGTH);
 
             f.valueCount++;
-        }   
+        }
+        */   
     }
+    Serial.printf("\nParsing is finished\n");
 }
 

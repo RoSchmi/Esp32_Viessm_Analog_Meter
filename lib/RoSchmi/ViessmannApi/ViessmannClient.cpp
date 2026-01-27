@@ -123,9 +123,22 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                     //apiSelectionPtr -> parseFeatures(doc, features, VI_FEATURES_COUNT)
                     apiSelectionPtr -> parseFeatures(doc, vi_features, ViessmannApiSelection::NUM_INTERESTING_PROPERTIES);
 
-                   
+                   //vi_features->values[0].value
 
-                    Serial.printf("\r\nFirst name: %s", vi_features[0].name);
+                    Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[0].name, vi_features[0].values[0].key, vi_features[0].values[0].value);
+                    Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[1].name, vi_features[1].values[0].key, vi_features[1].values[0].value);
+                    Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[2].name, vi_features[2].values[0].key, vi_features[2].values[0].value);
+                    Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[3].name, vi_features[3].values[0].key, vi_features[3].values[0].value);
+                    Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[3].name, vi_features[3].values[1].key, vi_features[3].values[1].value);             
+                    Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[4].name, vi_features[4].values[0].key, vi_features[4].values[0].value);
+                    Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[5].name, vi_features[5].values[0].key, vi_features[5].values[0].value);
+                    Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[6].name, vi_features[6].values[0].key, vi_features[6].values[0].value);
+                    Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[6].name, vi_features[6].values[1].key, vi_features[6].values[1].value);                    
+                    Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[7].name, vi_features[7].values[0].key, vi_features[7].values[0].value);
+                    Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[8].name, vi_features[8].values[0].key, vi_features[8].values[0].value);
+                    Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[9].name, vi_features[9].values[0].key, vi_features[9].values[0].value);
+                    Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[10].name, vi_features[10].values[0].key, vi_features[10].values[0].value);
+                    Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[11].name, vi_features[11].values[0].key, vi_features[11].values[0].value);
                     
                     /*
                     apiSelectionPtr -> _3_temperature_main.idx = 3;
