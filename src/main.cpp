@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "config.h"
+#include "ViessmannApiSelection.h"
 
 // Program 'Esp32_Viessm_Analog_Meter' Branch: 
 #define PROGRAMVERSION "v1.0.0"
@@ -218,8 +219,9 @@ char Data_0_Address_HouseNumber[equipBufLen] = {0};
 char Gateways_0_Serial[equipBufLen] = {0};
 char Gateways_0_Devices_0_Id[equipBufLen] = {0};
 
-#define VI_FEATURES_COUNT 16
-ViessmannApiSelection::Feature features[VI_FEATURES_COUNT];
+
+
+//Feature features[VI_FEATURES_COUNT];
 
 #define AI_FEATURES_COUNT 6
 AiOnTheEdgeApiSelection::Feature ai_features[AI_FEATURES_COUNT];
@@ -451,7 +453,7 @@ void GPIOPinISR()
 
 // function forward declarations
 void trimLeadingSpaces(char * workstr);
-ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char * pSensorName, ViessmannApiSelection * pViessmannApiSelectionPtr);
+VI_Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char * pSensorName, int pValueIndex, ViessmannApiSelection * pViessmannApiSelectionPtr);
 AiOnTheEdgeApiSelection:: Feature ReadAiOnTheEdgeApi_Analog_01(int pSensorIndex, RestApiAccount * pRestApiAccount, const char * pSensorName, AiOnTheEdgeApiSelection * pAiOnTheEdgeApiSelectionPtr);
 t_httpCode refresh_Vi_AccessTokenFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, const char * refreshToken);
 t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount * viessmannApiAccountPtr, uint32_t Data_0_Id, const char * p_gateways_0_serial, const char * p_gateways_0_devices_0_id, ViessmannApiSelection * apiSelectionPtr);
@@ -2084,10 +2086,16 @@ void loop()
 
       // Get readings from 4 different analog sensors stored in the Viessmann Cloud    
       // and store the values in a container
-      dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_97_heating_temperature_outside", viessmannApiSelectionPtr_01)).value)); // Aussen
-      dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_3_temperature_main", viessmannApiSelectionPtr_01)).value)); // Vorlauf                
-      dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"_92_heating_dhw_cylinder_temperature",viessmannApiSelectionPtr_01)).value)); // Boiler
-      dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(3, (const char *)"_7_burner_modulation",viessmannApiSelectionPtr_01)).value));  // Modulation
+      
+      dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"heating.sensors.temperature.outside", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Aussen
+      dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"heating.boiler.sensors.temperature.main", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Vorlauf
+      dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"heating.dhw.sensors.temperature.dhwCylinder", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Warmwasser
+      dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"heating.burners.0.modulation", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Warmwasser
+      
+      //dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_97_heating_temperature_outside", 0, viessmannApiSelectionPtr_01)).value)); // Aussen
+      //dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_3_temperature_main", 0, viessmannApiSelectionPtr_01)).value)); // Vorlauf                
+      //dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"_92_heating_dhw_cylinder_temperature", 0, viessmannApiSelectionPtr_01)).value)); // Boiler
+      //dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(3, (const char *)"_7_burner_modulation", 0, viessmannApiSelectionPtr_01)).value));  // Modulation
       
 
       ledState = !ledState;
@@ -3126,20 +3134,20 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestAp
 }
 #pragma endregion
 
-#pragma region Routine ReadViessmannApi_Analog_01(pSensorIndex, const char* pSensorName, * pViessmannApiSelectionPtr)
-ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char* pSensorName, ViessmannApiSelection * pViessmannApiSelectionPtr)
+#pragma region Routine ReadViessmannApi_Analog_01(pSensorIndex, const char* pSensorName, int pValueIndex, * pViessmannApiSelectionPtr)
+VI_Feature ReadViessmannApi_Analog_01(int pSensorIndex, const char* pSensorName, int pValueIndex, ViessmannApiSelection * pViessmannApiSelectionPtr)
 {
   // Use values read from the Viessmann API
   // pSensorIndex determins the position (from 4). 
   // pSensorName is the name of the feature (see ViessmannApiSelection.h)
-  
+ 
   // preset a 'returnFeature' with value = MAGIC_NUMBER_INVALID (999.9)
   // Save lastReadTimeSeconds and readIntervalSeconds
   int64_t tempLastReadTimeSeconds = pViessmannApiSelectionPtr -> lastReadTimeSeconds;
   int32_t tempReadIntervalSeconds = pViessmannApiSelectionPtr ->readIntervalSeconds;
  
-  ViessmannApiSelection::Feature returnFeature;
-  strncpy(returnFeature.value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.value) - 1);
+  VI_Feature returnFeature;
+  strncpy(returnFeature.values[pValueIndex].value, (floToStr(MAGIC_NUMBER_INVALID)).c_str(), sizeof(returnFeature.values[pValueIndex].value) - 1);
   
   int64_t utcNowSecondsTime = (int64_t)dateTimeUTCNow.secondstime();
   int64_t remaining_Vi_seconds = tempLastReadTimeSeconds + tempReadIntervalSeconds - utcNowSecondsTime;
@@ -3176,12 +3184,13 @@ ViessmannApiSelection::Feature ReadViessmannApi_Analog_01(int pSensorIndex, cons
   
   if (analogSensorMgr_Vi_01.HasToBeRead(pSensorIndex, dateTimeUTCNow))
   {     
-    for (int i = 0; i < VI_FEATURES_COUNT; i++)
+    //for (int i = 0; i < VI_FEATURES_COUNT; i++)
+    for (int i = 0; i < ViessmannApiSelection::NUM_INTERESTING_PROPERTIES; i++)
     {       
-      if (strcmp((const char *)features[i].name, pSensorName) == 0)
+      if (strcmp((const char *)vi_features[i].name, pSensorName) == 0)
       {
-        returnFeature = features[i];
-        analogSensorMgr_Vi_01.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, atof(returnFeature.value), 0.0f, MAGIC_NUMBER_INVALID);           
+        returnFeature = vi_features[i];
+        analogSensorMgr_Vi_01.SetReadTimeAndValues(pSensorIndex, dateTimeUTCNow, atof(returnFeature.values[pValueIndex].value), 0.0f, MAGIC_NUMBER_INVALID);           
         break;
       }
     } 
@@ -3236,6 +3245,8 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     // Populate features array and set the name read from Api
     // with the name used in this Application
     // Here VI_FEATURES_COUNT is 16
+
+    /*
     features[0] = apiSelectionPtr ->_3_temperature_main;
     strcpy(features[0].name, (const char *)"_3_temperature_main");
     features[1] = apiSelectionPtr ->_4_boiler_temperature;
@@ -3268,32 +3279,71 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     strcpy(features[14].name, (const char *)"_93_heating_dhw_outlet_temperature");
     features[15] = apiSelectionPtr ->_97_heating_temperature_outside;
     strcpy(features[15].name, (const char *)"_97_heating_temperature_outside");
+    */
     
-    
-    //RoSchmi if timestamp cannot be read something went wrong --> restart
-    for (int i = 0; i < VI_FEATURES_COUNT; i++)
-    {
-       if (strcmp((const char *) features[i].timestamp, "null") == 0)
+    //RoSchmi if timestamp of first feature cannot 
+    // be read something went wrong --> restart
+    //for (int i = 0; i < VI_FEATURES_COUNT; i++)
+    //{
+       Serial.printf("Before testing Timestamp %s\r\n", "");
+       if (strcmp((const char *) vi_features[0].timestamp, "null") == 0)
        {
           #if FLASH_LOGGING == 1
             addLogEntry(LOG_FILE, "25", "Viessmann can't read timestamp", LOGGING_ENTRIES);
           #endif
           Serial.println("Unknown timestamp was found. Rebooting\n");
+          for (int i2 = 0; i2 < 5; i2++)
+          {
+            delay(500);
+          }
           ESP.restart();
           while(true)
           {
             delay(500);
           }
+       }
+       else
+       {
+        Serial.printf("After testing Timestamp %s\r\n", "Hallo");
        } 
-    }
+    //}
 
     
     // Get 4 On/Off sensor values which were read from the Viessmann Api
-    // and store them in a 'twin' of the sensor, reflecting its state 
-    OnOffBurnerStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_9_burner_is_active.value), (const char *)"true") == 0, dateTimeUTCNow);
-    OnOffCirculationPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_13_circulation_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
-    OnOffHotWaterCircualtionPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_86_heating_dhw_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
-    OnOffHotWaterPrimaryPumpStatus.Feed(strcmp((apiSelectionPtr -> _88_heating_dhw_pump_primary_status.value), (const char *)"on") == 0, dateTimeUTCNow);   
+    // and store them in a 'twin' of the sensor, reflecting its state
+    
+    //bool state = strcmp((apiSelectionPtr ->getFeatureByName(features, 4, "heating.circuits.0"))->values[0].value, (const char *)"true") == 0;
+    
+    VI_Feature* theFeature = getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.circuits.0");
+    Serial.printf("\r\nBefore first feed\r\n");
+
+    int theValueCount = (int)theFeature->valueCount;
+    Serial.printf("\r\nassigned to int\r\n");
+    Serial.printf("valueCount = %d\n", theValueCount);
+
+    //Serial.printf("valueCount = %d\n", theFeature->valueCount);
+    Serial.printf("value[0] raw bytes: %02X %02X %02X %02X\n",
+    theFeature->values[0].value[0],
+    theFeature->values[0].value[1],
+    theFeature->values[0].value[2],
+    theFeature->values[0].value[3]
+);
+    Serial.printf("Name: %s\n", (char*)(theFeature->name));
+    Serial.printf("First char: %d\n", (int)theFeature->values[0].value[0]);
+    Serial.printf("Second char: %d\n", (int)theFeature->values[0].value[1]); 
+    Serial.printf("Last char: %d\n", (int)theFeature->values[0].value[VI_FEATUREVALUELENGTH - 1]);  
+    //Serial.printf("\r\nValue is: %s\r\n", (const char *)theFeature->values[0].value);
+    
+    Serial.printf("\r\nAfter printing value\r\n");
+    //ViessmannApiSelection::Feature* theFeature = apiSelectionPtr ->getFeatureByName(features,16, "heating.circuits.0");
+    OnOffBurnerStatus.Feed(strcmp((getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.circuits.0"))->values[0].value, "true") == 0, dateTimeUTCNow);  //That's it
+    Serial.printf("\r\nAfter first feed\r\n");
+    //OnOffBurnerStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_9_burner_is_active.value), (const char *)"true") == 0, dateTimeUTCNow);
+    OnOffBurnerStatus.Feed(strcmp((getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.circuits.0.circulation.pump"))->values[0].value, "on") == 0, dateTimeUTCNow);  
+    //OnOffCirculationPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_13_circulation_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
+    OnOffBurnerStatus.Feed(strcmp((getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.dhw.pumps.circulation"))->values[0].value, "on") == 0, dateTimeUTCNow);
+    OnOffBurnerStatus.Feed(strcmp((getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.dhw.pumps.primary"))->values[0].value, "on") == 0, dateTimeUTCNow); 
+    //OnOffHotWaterPrimaryPumpStatus.Feed(strcmp((apiSelectionPtr -> _88_heating_dhw_pump_primary_status.value), (const char *)"on") == 0, dateTimeUTCNow);   
   }
   else
   {
@@ -3593,6 +3643,7 @@ String floToStr(float value, char decimalChar)
 }
 #pragma endregion
 
+/*
 #pragma region Function ReadViessmannFeatureFromSelection(pSensorName, pFeaturesCountMax100)
 ViessmannApiSelection::Feature ReadViessmannFeatureFromSelection(const char * pSensorName, uint16_t pFeaturesCountMax100)
 {
@@ -3612,7 +3663,7 @@ ViessmannApiSelection::Feature ReadViessmannFeatureFromSelection(const char * pS
   return returnFeature;
 }
 #pragma endregion
-
+*/
 
 #pragma region Function createSampleTime(...)
 //void createSampleTime(const DateTime pDateTimeUTCNow, const int timeZoneOffsetUTC, char * sampleTime, sampleTimeFormatOpt formatOpt = sampleTimeFormatOpt::FORMAT_FULL_1)
