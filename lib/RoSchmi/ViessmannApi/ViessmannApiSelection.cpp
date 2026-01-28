@@ -12,7 +12,7 @@ const ViessmannApiSelection::InterestingProperty ViessmannApiSelection::interest
         {"heating.burners.0.modulation", "value"},
         {"heating.burners.0.statistics", "hours"},
         {"heating.burners.0.statistics", "starts"},
-        {"heating.circuits.0", "active"},
+        {"heating.burners.0", "active"},
         {"heating.circuits.0.circulation.pump", "status"},
         {"heating.circuits.0.heating.curve", "shift"},
         {"heating.circuits.0.heating.curve", "slope"},
@@ -277,57 +277,15 @@ void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, VI_Feature* f
 
             // Wert speichern 
             if (featuresPtr->valueCount < VI_MAX_VALUES_PER_FEATURE) 
-            { 
-                Serial.printf("\n Going to 1\n");
-                VI_FeatureValue* fv = &featuresPtr->values[featuresPtr->valueCount++]; 
-                Serial.printf("\n Going to 2\n");
+            {                
+                VI_FeatureValue* fv = &featuresPtr->values[featuresPtr->valueCount++];                 
                 strncpy(fv->key, key, VI_FEATUREKEYLENGTH);
-                Serial.printf("\n Going to 3\n");
-                fv->key[VI_FEATUREKEYLENGTH - 1] = '\0';
-                Serial.printf("\n Going to 4\n");
-                strncpy(fv->value, valStr, VI_FEATUREVALUELENGTH);
-                Serial.printf("\n Going to 5\n"); 
+                fv->key[VI_FEATUREKEYLENGTH - 1] = '\0';      
+                strncpy(fv->value, valStr, VI_FEATUREVALUELENGTH);   
                 fv->value[VI_FEATUREVALUELENGTH - 1] = '\0';
-                Serial.printf("\n Going to 6\n");  
             }
-    }
-        Serial.printf("\n Loop for NUM_INTERESTING_PROPERTIES is finished \n");
-        /*
-        JsonObjectConst propObj = props[intrProp.propertyName].as<JsonObjectConst>();
-        if (propObj.isNull()) {
-            Serial.printf("\nProperty with selected name was null.\n");
-            continue;
         }
-        */
-        
-        /*
-        JsonVariantConst v = propObj["value"];
-        if (v.isNull()) {
-                Serial.printf("\nProperty value with selected name was null.\n");      
-                continue;
-        }
-        */
-        
-        /*
-        // Platz im values[]-Array?
-        if (f.valueCount >= VI_MAX_VALUES_PER_FEATURE) {
-                continue;
-        }
-        */
-        
-        /*
-        VI_FeatureValue& fv = f.values[f.valueCount];
-
-            // Key setzen (z.B. "starts", "hours", "value", "status", ...)
-            strncpy(fv.key, intrProp.propertyName, VI_FEATURENAMELENGTH);
-            fv.key[VI_FEATURENAMELENGTH - 1] = '\0';
-
-            // Wert als Text schreiben
-            jsonValueToString(v, fv.value, VI_FEATUREVALUELENGTH);
-
-            f.valueCount++;
-        }
-        */   
+        Serial.printf("\n Loop for NUM_INTERESTING_PROPERTIES is finished \n");   
     }
     Serial.printf("\nParsing is finished\n");
 }
