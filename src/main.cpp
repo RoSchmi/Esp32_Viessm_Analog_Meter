@@ -3331,11 +3331,21 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     //Serial.printf("\nCompareResult is ")
     //Serial.printf("\r\nAfter printing value\r\n");
     //ViessmannApiSelection::Feature* theFeature = apiSelectionPtr ->getFeatureByName(features,16, "heating.circuits.0");
+    
+    /*
     OnOffBurnerStatus.Feed(strcmp((const char *)(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.burners.0")->values[0].value), (const char *)"true") == 0, dateTimeUTCNow);
     OnOffCirculationPumpStatus.Feed(strcmp((const char *)(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.circuits.0.circulation.pump")->values[0].value), (const char *)"on") == 0, dateTimeUTCNow);   
     OnOffHotWaterCircualtionPumpStatus.Feed(strcmp((const char *)(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.dhw.pumps.circulation")->values[0].value), (const char *)"on") == 0, dateTimeUTCNow); 
     OnOffHotWaterPrimaryPumpStatus.Feed(strcmp((const char *)(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.dhw.pumps.primary")->values[0].value), (const char *)"on") == 0, dateTimeUTCNow); 
     Serial.printf("\r\nPerformed OnOff-feeds\r\n");
+    */
+   
+    OnOffBurnerStatus.Feed(strcmp(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.burners.0")->values[0].value, "true") == 0, dateTimeUTCNow);
+    OnOffCirculationPumpStatus.Feed(strcmp(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.circuits.0.circulation.pump")->values[0].value, "on") == 0, dateTimeUTCNow);   
+    OnOffHotWaterCircualtionPumpStatus.Feed(strcmp(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.dhw.pumps.circulation")->values[0].value, "on") == 0, dateTimeUTCNow); 
+    OnOffHotWaterPrimaryPumpStatus.Feed(strcmp(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.dhw.pumps.primary")->values[0].value, "on") == 0, dateTimeUTCNow); 
+    Serial.printf("\r\nPerformed OnOff-feeds\r\n");
+
     /*
     //OnOffBurnerStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_9_burner_is_active.value), (const char *)"true") == 0, dateTimeUTCNow);
     OnOffBurnerStatus.Feed(strcmp((getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.circuits.0.circulation.pump")->values[0].value), (const char *)"on") == 0, dateTimeUTCNow);  

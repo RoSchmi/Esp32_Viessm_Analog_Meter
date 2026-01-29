@@ -62,7 +62,6 @@ VI_Feature* getFeatureByName(VI_Feature* features, int featureCount, const char*
         return nullptr;  
 }
     
-
 // Hilfsfunktion: JsonVariant in Text umwandeln
 static void jsonValueToString(JsonVariantConst v, char* buffer, size_t buflen) {
     if (v.is<const char*>()) {
@@ -88,7 +87,6 @@ static void jsonValueToString(JsonVariantConst v, char* buffer, size_t buflen) {
     }
 }
 
-
 // Hilfsfunktion: Index eines Features im Feature-Array finden
 // (anhand des Feature-Namens)
 static int findFeatureIndex(VI_Feature* features, int featureCount, const char* featureName) {
@@ -99,7 +97,6 @@ static int findFeatureIndex(VI_Feature* features, int featureCount, const char* 
     }
     return -1;
 }
-
 
 // Hilfsfunktion: neuen Feature-Eintrag initialisieren (falls noch nicht vorhanden)
 static int ensureFeatureEntry(VI_Feature* features, int featureCount, const char* featureName) 
@@ -121,14 +118,13 @@ static int ensureFeatureEntry(VI_Feature* features, int featureCount, const char
             return i;
         }
     }
-
     // Kein Platz mehr
     return -1;
 }
 
-
-//void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, Feature* features, int featureCount)
-void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, VI_Feature* features, int featureCount)
+// extract interesting feateres from JSON doc, store features in features array,
+// convert different types of property values into strings
+void ViessmannApiSelection::extractFeatures(const JsonDocument& doc, VI_Feature* features, int featureCount)
 {
     // Alle Feature-Einträge im Ziel-Array zurücksetzen
     Serial.println("Going to clear features");
@@ -136,33 +132,27 @@ void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, VI_Feature* f
         features[i].idx = i;
         features[i].name[0] = '\0';
         features[i].timestamp[0] = '\0';
-        features[i].valueCount = 0;
-        
+        features[i].valueCount = 0;   
     }
-    Serial.println("all features cleared");
-    Serial.printf("Address of vi_features in parser: %p\n", vi_features);
-
-
-    //Serial.printf("\r\nTimestamp: %s\r\n", doc["data"][3]["timestamp"]);
     
     JsonVariantConst dataVar = doc["data"]; 
     if (!dataVar.is<JsonArrayConst>()) 
-    { Serial.println("ERROR: JSON has no 'data' array"); 
+    { 
+        //Serial.println("ERROR: JSON has no 'data' array"); 
         serializeJsonPretty(doc, Serial); 
-    return; 
+        return; 
     }
-
-    serializeJsonPretty(doc, Serial);
+    #if SERIAL_PRINT == 1
+        //serializeJsonPretty(doc, Serial);
+    #endif
     
     JsonArrayConst data = doc["data"].as<JsonArrayConst>(); 
     if (data.isNull()) 
     {
-        Serial.printf("Data was null\n");
+        Serial.printf("Viessmann Api 'Data' was null\n");
         return;
     }
     
-    Serial.printf("\nReady with serializing\r\n");
-
     // Über alle Features aus der API iterieren
     for (JsonObjectConst obj : data) 
     {
@@ -176,9 +166,9 @@ void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, VI_Feature* f
             continue; 
         }
       
-        Serial.printf("FeatureName to look for: %s\r\n", featureName);
+        //Serial.printf("FeatureName to look for: %s\r\n", featureName);
         if (!featureName) {
-            Serial.printf("Not found FeatureName: %s\r\n", featureName);
+            //Serial.printf("Not found FeatureName: %s\r\n", featureName);
             continue;
         }
         
@@ -194,7 +184,7 @@ void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, VI_Feature* f
         if (!anyMatch) {
             continue;
         }
-        Serial.printf("Found selected FeatureName: %s\r\n", featureName);
+        
         // Feature-Eintrag im Ziel-Array sicherstellen
         int fIdx = ensureFeatureEntry(features, featureCount, featureName);
         if (fIdx < 0) {
@@ -204,18 +194,14 @@ void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, VI_Feature* f
         
         VI_Feature* featuresPtr = &features[fIdx];
 
-        VI_Feature& f = features[fIdx];
-
-        
-
          // Timestamp übernehmen
         const char* ts = obj["timestamp"] | "";
-        strncpy(f.timestamp, ts, VI_FEATURESTAMPLENGTH);
-        f.timestamp[VI_FEATURESTAMPLENGTH - 1] = '\0';
+        strncpy(featuresPtr->timestamp, ts, VI_FEATURESTAMPLENGTH);
+        featuresPtr->timestamp[VI_FEATURESTAMPLENGTH - 1] = '\0';
 
         JsonObjectConst props = obj["properties"].as<JsonObjectConst>();
         if (props.isNull()) {
-            Serial.printf("\n properties was null\n");
+            //Serial.printf("\n Properties was null\n");
             continue;
         }
 
@@ -224,8 +210,7 @@ void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, VI_Feature* f
         {
             const auto& intrProp = ViessmannApiSelection::interestingProperties[i];
 
-            if (strcmp(intrProp.featureName, featureName) != 0) {
-                Serial.printf("\nintrProp.featurename is not %s.\n", featureName);       
+            if (strcmp(intrProp.featureName, featureName) != 0) {          
                 continue;
             }
         
@@ -237,21 +222,18 @@ void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, VI_Feature* f
             continue;
 
             // Property existiert?
-            Serial.printf("\nintrProp.property is %s.\n", intrProp.propertyName);           
-        
-        
             // propVar ist ein Objekt mit "value" 
             JsonVariantConst valVar = propVar["value"]; 
             if (valVar.isNull()) 
             continue;
 
-            Serial.printf("\npropVar ist ein Objekt mit 'value'\n");
-        
-            const char* valStr = valVar.as<const char*>();
+           // const char* valStr = valVar.as<const char*>();
 
+            char valBuf[VI_FEATUREVALUELENGTH];
 
-            char tmp[VI_FEATUREVALUELENGTH];
-        
+            jsonValueToString(valVar, valBuf, sizeof(valBuf));
+            
+            /*
             if (!valStr) { // Zahl oder bool → in String umwandeln 
                 if (valVar.is<int>()) 
                     { 
@@ -271,9 +253,7 @@ void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, VI_Feature* f
                 } 
                 valStr = tmp; 
             }
-
-            Serial.printf("All values are stored as string\n");
-        
+            */
 
             // Wert speichern 
             if (featuresPtr->valueCount < VI_MAX_VALUES_PER_FEATURE) 
@@ -281,12 +261,12 @@ void ViessmannApiSelection::parseFeatures(const JsonDocument& doc, VI_Feature* f
                 VI_FeatureValue* fv = &featuresPtr->values[featuresPtr->valueCount++];                 
                 strncpy(fv->key, key, VI_FEATUREKEYLENGTH);
                 fv->key[VI_FEATUREKEYLENGTH - 1] = '\0';      
-                strncpy(fv->value, valStr, VI_FEATUREVALUELENGTH);   
+                strncpy(fv->value, valBuf, VI_FEATUREVALUELENGTH);   
                 fv->value[VI_FEATUREVALUELENGTH - 1] = '\0';
             }
         }
-        Serial.printf("\n Loop for NUM_INTERESTING_PROPERTIES is finished \n");   
+        //Serial.printf("\n Loop for NUM_INTERESTING_PROPERTIES is finished \n");   
     }
-    Serial.printf("\nParsing is finished\n");
+    //Serial.printf("\nParsing is finished\n");
 }
 

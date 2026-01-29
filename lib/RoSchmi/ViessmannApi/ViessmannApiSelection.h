@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include "ViessmannApiSelection.h"
+#include "config.h"
 
 #ifndef _VIESSMANNAPISELECTION_H_
 #define _VIESSMANNAPISELECTION_H_
@@ -105,8 +106,8 @@ static const int NUM_INTERESTING_PROPERTIES;
     // - features: Array von Feature-Strukturen 
     // - featureCount: Anzahl der Einträge im Feature-Array
 
-    //void ViessmannApiSelection::parseFeatures(const JsonDocument& doc,, Feature* features, int featureCount);
-    void parseFeatures(const JsonDocument& doc, VI_Feature* features, int featureCount);
+    //void ViessmannApiSelection::extractFeatures(const JsonDocument& doc,, Feature* features, int featureCount);
+    void extractFeatures(const JsonDocument& doc, VI_Feature* features, int featureCount);
    
     
     //static Feature features[];

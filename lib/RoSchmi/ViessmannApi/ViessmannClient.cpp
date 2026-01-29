@@ -119,12 +119,9 @@ t_httpCode ViessmannClient::GetFeatures(uint8_t* responseBuffer, const uint16_t 
                    // #endif
                     // From the long Features JSON string get some chosen entities
                     
-                    //ViessmannApiSelection::parseFeatures(doc, Feature* features, int featureCount)
-                    //apiSelectionPtr -> parseFeatures(doc, features, VI_FEATURES_COUNT)
-                    apiSelectionPtr -> parseFeatures(doc, vi_features, ViessmannApiSelection::NUM_INTERESTING_PROPERTIES);
-
-                   //vi_features->values[0].value
-
+                    
+                    apiSelectionPtr -> extractFeatures(doc, vi_features, ViessmannApiSelection::NUM_INTERESTING_PROPERTIES);
+                 
                     Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[0].name, vi_features[0].values[0].key, vi_features[0].values[0].value);
                     Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[1].name, vi_features[1].values[0].key, vi_features[1].values[0].value);
                     Serial.printf("\r\nKey and Value of %s is '%s' : %s\n", vi_features[2].name, vi_features[2].values[0].key, vi_features[2].values[0].value);
