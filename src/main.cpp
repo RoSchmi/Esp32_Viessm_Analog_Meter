@@ -231,8 +231,8 @@ bool isFirstGasmeterRead = true;
 #define IS_ACTIVE true
 OnOffSensor OnOffBurnerStatus(IS_ACTIVE, false, true, true, DateTime());
 OnOffSensor OnOffCirculationPumpStatus(IS_ACTIVE, false, true, true, DateTime());
-OnOffSensor OnOffHotWaterCircualtionPumpStatus(IS_ACTIVE);
-OnOffSensor OnOffHotWaterPrimaryPumpStatus(IS_ACTIVE);
+OnOffSensor OnOffDhwCircualtionPumpStatus(IS_ACTIVE); // Dhw = domestic hot water
+OnOffSensor OnOffDhwPrimaryPumpStatus(IS_ACTIVE);     // Dhw = domestic hot water
 
 //void * StackPtrAtStart;
 //void * StackPtrEnd;
@@ -2136,14 +2136,14 @@ void loop()
         onOffDataContainer.SetNewOnOffValue(1, OnOffCirculationPumpStatus.GetStateAndResetChangedFlag(), dateTimeUTCNow, timeZoneOffsetUTC);
       }
 
-      if (OnOffHotWaterCircualtionPumpStatus.HasChangedState())
+      if (OnOffDhwCircualtionPumpStatus.HasChangedState())
       {
-        onOffDataContainer.SetNewOnOffValue(2, OnOffHotWaterCircualtionPumpStatus.GetStateAndResetChangedFlag(), dateTimeUTCNow, timeZoneOffsetUTC);
+        onOffDataContainer.SetNewOnOffValue(2, OnOffDhwCircualtionPumpStatus.GetStateAndResetChangedFlag(), dateTimeUTCNow, timeZoneOffsetUTC);
       }
 
-      if (OnOffHotWaterPrimaryPumpStatus.HasChangedState())
+      if (OnOffDhwPrimaryPumpStatus.HasChangedState())
       {
-        onOffDataContainer.SetNewOnOffValue(3, OnOffHotWaterPrimaryPumpStatus.GetStateAndResetChangedFlag(), dateTimeUTCNow, timeZoneOffsetUTC);
+        onOffDataContainer.SetNewOnOffValue(3, OnOffDhwPrimaryPumpStatus.GetStateAndResetChangedFlag(), dateTimeUTCNow, timeZoneOffsetUTC);
       }
       #pragma endregion
       
@@ -3242,118 +3242,32 @@ t_httpCode read_Vi_FeaturesFromApi(X509Certificate pCaCert, ViessmannApiAccount 
     loadViFeaturesResp400Count = 0;
     loadViFeaturesRespOtherCount = 0;
 
-    // Populate features array and set the name read from Api
-    // with the name used in this Application
-    // Here VI_FEATURES_COUNT is 16
-
-    /*
-    features[0] = apiSelectionPtr ->_3_temperature_main;
-    strcpy(features[0].name, (const char *)"_3_temperature_main");
-    features[1] = apiSelectionPtr ->_4_boiler_temperature;
-    strcpy(features[1].name, (const char *)"_4_boiler_temperature");
-    features[2] = apiSelectionPtr ->_7_burner_modulation;
-    strcpy(features[2].name, (const char *)"_7_burner_modulation");
-    features[3] = apiSelectionPtr ->_8_burner_hours;
-    strcpy(features[3].name, (const char *)"_8_burner_hours");
-    features[4] = apiSelectionPtr ->_8_burner_starts;
-    strcpy(features[4].name, (const char *)"_8_burner_starts");
-    features[5] = apiSelectionPtr ->_9_burner_is_active;
-    strcpy(features[5].name, (const char *)"_9_burner_is_active");
-    features[6] = apiSelectionPtr ->_22_heating_curve_shift;
-    strcpy(features[6].name, (const char *)"_22_heating_curve_shift");
-    features[7] = apiSelectionPtr ->_22_heating_curve_slope;
-    strcpy(features[7].name, (const char *)"_22_heating_curve_slope");
-    features[8] = apiSelectionPtr ->_76_temperature_supply;
-    strcpy(features[8].name, (const char *)"_76_temperature_supply");
-    features[9] = apiSelectionPtr ->_84_heating_dhw_charging;
-    strcpy(features[9].name, (const char *)"_84_heating_dhw_charging");
-    features[10] = apiSelectionPtr ->_86_heating_dhw_pump_status;
-    strcpy(features[10].name, (const char *)"_86_heating_dhw_pump_status");
-    features[11] = apiSelectionPtr ->_88_heating_dhw_pump_primary_status;
-    strcpy(features[11].name, (const char *)"_88_heating_dhw_pump_primary_status");
-    features[12] = apiSelectionPtr ->_92_heating_dhw_cylinder_temperature;
-    strcpy(features[12].name, (const char *)"_92_heating_dhw_cylinder_temperature");
-    //features[13] = apiSelectionPtr ->_92_heating_dhw_main_temperature;
-    //strcpy(features[13].name, (const char *)"_92_heating_dhw_main_temperature");
-    features[14] = apiSelectionPtr ->_93_heating_dhw_outlet_temperature;
-    strcpy(features[14].name, (const char *)"_93_heating_dhw_outlet_temperature");
-    features[15] = apiSelectionPtr ->_97_heating_temperature_outside;
-    strcpy(features[15].name, (const char *)"_97_heating_temperature_outside");
-    */
-    
-    //RoSchmi if timestamp of first feature cannot 
-    // be read something went wrong --> restart
-    //for (int i = 0; i < VI_FEATURES_COUNT; i++)
-    //{
-       Serial.printf("Before testing Timestamp %s\r\n", "");
-       if (strcmp((const char *) vi_features[0].timestamp, "null") == 0)
-       {
-          #if FLASH_LOGGING == 1
-            addLogEntry(LOG_FILE, "25", "Viessmann can't read timestamp", LOGGING_ENTRIES);
-          #endif
-          Serial.println("Unknown timestamp was found. Rebooting\n");
-          for (int i2 = 0; i2 < 5; i2++)
-          {
-            delay(500);
-          }
-          ESP.restart();
-          while(true)
-          {
-            delay(500);
-          }
-       }
-       else
-       {
-        Serial.printf("After testing Timestamp %s\r\n", vi_features[0].timestamp);
-       } 
-    //}
-
-    
+    //RoSchmi: if timestamp of first feature is empty, 
+    // propably something went wrong --> restart 
+    if (vi_features[0].timestamp[0] == '\0')
+    {
+      #if FLASH_LOGGING == 1
+      addLogEntry(LOG_FILE, "25", "Viessmann can't read timestamp", LOGGING_ENTRIES);
+      #endif
+      Serial.println("Unknown timestamp was found. Rebooting\n");
+      for (int i2 = 0; i2 < 5; i2++)
+      {
+        delay(500);
+      }
+      ESP.restart();
+      while(true)
+      {
+        delay(500);
+      }
+    }
+       
     // Get 4 On/Off sensor values which were read from the Viessmann Api
     // and store them in a 'twin' of the sensor, reflecting its state
     
-    //bool state = strcmp((apiSelectionPtr ->getFeatureByName(features, 4, "heating.circuits.0"))->values[0].value, (const char *)"true") == 0;
-    
-    VI_Feature* theFeature = getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.burners.0");
-    Serial.printf("\r\nBefore first feed\r\n");
-
-    int theValueCount = (int)theFeature->valueCount;
-   
-    Serial.printf("valuesCount = %d\n", theValueCount);
-    Serial.printf("FeatureName: %s Key: '%s' : %s\n", 
-      theFeature->name,
-      theFeature->values[0].key,
-      getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.burners.0")->values[0].value);
-   
-    Serial.printf("\r\nValue is: %s\r\n", theFeature->values[0].value);
-    
-    //int cmpResult = strcmp((getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.burners.0")->values[0].value), "true");
-    //Serial.printf("\nCompareResult is ")
-    //Serial.printf("\r\nAfter printing value\r\n");
-    //ViessmannApiSelection::Feature* theFeature = apiSelectionPtr ->getFeatureByName(features,16, "heating.circuits.0");
-    
-    /*
-    OnOffBurnerStatus.Feed(strcmp((const char *)(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.burners.0")->values[0].value), (const char *)"true") == 0, dateTimeUTCNow);
-    OnOffCirculationPumpStatus.Feed(strcmp((const char *)(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.circuits.0.circulation.pump")->values[0].value), (const char *)"on") == 0, dateTimeUTCNow);   
-    OnOffHotWaterCircualtionPumpStatus.Feed(strcmp((const char *)(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.dhw.pumps.circulation")->values[0].value), (const char *)"on") == 0, dateTimeUTCNow); 
-    OnOffHotWaterPrimaryPumpStatus.Feed(strcmp((const char *)(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.dhw.pumps.primary")->values[0].value), (const char *)"on") == 0, dateTimeUTCNow); 
-    Serial.printf("\r\nPerformed OnOff-feeds\r\n");
-    */
-   
     OnOffBurnerStatus.Feed(strcmp(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.burners.0")->values[0].value, "true") == 0, dateTimeUTCNow);
     OnOffCirculationPumpStatus.Feed(strcmp(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.circuits.0.circulation.pump")->values[0].value, "on") == 0, dateTimeUTCNow);   
-    OnOffHotWaterCircualtionPumpStatus.Feed(strcmp(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.dhw.pumps.circulation")->values[0].value, "on") == 0, dateTimeUTCNow); 
-    OnOffHotWaterPrimaryPumpStatus.Feed(strcmp(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.dhw.pumps.primary")->values[0].value, "on") == 0, dateTimeUTCNow); 
-    Serial.printf("\r\nPerformed OnOff-feeds\r\n");
-
-    /*
-    //OnOffBurnerStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_9_burner_is_active.value), (const char *)"true") == 0, dateTimeUTCNow);
-    OnOffBurnerStatus.Feed(strcmp((getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.circuits.0.circulation.pump")->values[0].value), (const char *)"on") == 0, dateTimeUTCNow);  
-    //OnOffCirculationPumpStatus.Feed(strcmp((const char *)(apiSelectionPtr ->_13_circulation_pump_status.value), (const char *)"on") == 0, dateTimeUTCNow);
-    OnOffBurnerStatus.Feed(strcmp((getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.dhw.pumps.circulation"))->values[0].value, "on") == 0, dateTimeUTCNow);
-    OnOffBurnerStatus.Feed(strcmp((getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.dhw.pumps.primary"))->values[0].value, "on") == 0, dateTimeUTCNow); 
-    //OnOffHotWaterPrimaryPumpStatus.Feed(strcmp((apiSelectionPtr -> _88_heating_dhw_pump_primary_status.value), (const char *)"on") == 0, dateTimeUTCNow);
-    */
+    OnOffDhwCircualtionPumpStatus.Feed(strcmp(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.dhw.pumps.circulation")->values[0].value, "on") == 0, dateTimeUTCNow); 
+    OnOffDhwPrimaryPumpStatus.Feed(strcmp(getFeatureByName(vi_features, VI_FEATURES_COUNT, "heating.dhw.pumps.primary")->values[0].value, "on") == 0, dateTimeUTCNow);    
   }
   else
   {

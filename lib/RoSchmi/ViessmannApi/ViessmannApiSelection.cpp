@@ -231,30 +231,9 @@ void ViessmannApiSelection::extractFeatures(const JsonDocument& doc, VI_Feature*
 
             char valBuf[VI_FEATUREVALUELENGTH];
 
+            // convert all types of value to string equivalent
             jsonValueToString(valVar, valBuf, sizeof(valBuf));
-            
-            /*
-            if (!valStr) { // Zahl oder bool → in String umwandeln 
-                if (valVar.is<int>()) 
-                    { 
-                        snprintf(tmp, sizeof(tmp), "%d", valVar.as<int>()); 
-                    } 
-                else if (valVar.is<float>()) 
-                { 
-                    snprintf(tmp, sizeof(tmp), "%.2f", valVar.as<float>()); 
-                } 
-                else if (valVar.is<bool>()) 
-                { 
-                    snprintf(tmp, sizeof(tmp), "%s", valVar.as<bool>() ? "true" : "false"); 
-                } 
-                else 
-                { 
-                 continue; 
-                } 
-                valStr = tmp; 
-            }
-            */
-
+                        
             // Wert speichern 
             if (featuresPtr->valueCount < VI_MAX_VALUES_PER_FEATURE) 
             {                
