@@ -4,7 +4,6 @@
 // Definition der interessierenden Feature-Properties 
 // ------------------------------------------------------------ 
 
-
 const ViessmannApiSelection::InterestingProperty ViessmannApiSelection::interestingProperties[] =
    {
         {"heating.boiler.sensors.temperature.main", "value"}, 

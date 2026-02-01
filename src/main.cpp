@@ -3,15 +3,19 @@
 #include "ViessmannApiSelection.h"
 
 // Program 'Esp32_Viessm_Analog_Meter' Branch: 
-#define PROGRAMVERSION "v1.0.0"
-// Last updated: 2025_09_14
+#define PROGRAMVERSION "v1.1.0"
+// Last updated: 2026_02_02
 // Copyright: RoSchmi 2024 License: Apache 2.0
 // the App was tested only on ESP32 Dev Board, no attempts were made to run it 
 // on variations of ESP32 or ESP8266
 
-// Uses
+// New in version from 2026_02_02:
+// Selects interesting features of the API response by searching for feature names instead
+// of indices
+
+// uses
 // platform espressif32@6.7.0 and platform_package framework-arduinoespressif32 @ 3.20017.0
-// Switched to built-in Filesystem 'LittleFS' instead of 'LITTLEFS'
+// uses built-in Filesystem 'LittleFS' instead of 'LITTLEFS'
 //
 // In cases of a wrong (old) format of the LittleFS flash storage,
 // the flash must be cleared with the command (cmd window)
@@ -55,12 +59,13 @@
 // As Viessmann provides access to the actual heating sensor data via an API
 // I decided to download the sensor data via the API around every minute 
 // (1440 downloads per day are free) and store the values of several sensors
-// on Azure Storage Tables. This is not free but very cheap (only several cents
-// per month) but requires a Microsoft Azure Account.
+// on Azure Storage Tables. Using Azure Storage Tables is not free but very 
+// cheap (only several cents per month) but requires a Microsoft Azure Account.
 // So I made this App which loads the sensor data from the Viessmann Cloud
 // and stores the data in Azure Storage Tables in a certain way.
 // To display these data graphically on an Apple iPhone I use the iPhone App
-// 'Charts4Azure' (Android version and a Microsoft Store App with minor functionality
+// 'Charts4Azure' (Actually not available in the App Store) (Android version 
+// and a Microsoft Store App with minor functionality
 // exist as well). The App 'Charts4Azure' allways displays the combination of
 // 4 analog timeline graphs (e.g. 4 temperature sensors) and 4 On/Off timeline graphs 
 // (e.g. for burner or pump activity) on one page.
@@ -3098,11 +3103,6 @@ t_httpCode readJsonFromRestApi(X509Certificate pCaCert, RestApiAccount * pRestAp
   t_httpCode responseCode = aiOnTheEdgeClient.GetFeatures((const char *)url, bufferStorePtr, bufferStoreLength, apiSelectionPtr);
   
   // Serial.printf("LastReadTime in Hex: %x\n", viessmannApiSelectionPtr_01 ->lastReadTimeSeconds);
-  
-
-  //Restore
-  //viessmannApiSelectionPtr_01 ->lastReadTimeSeconds = tempLast_Vi_ReadTimeSeconds;
-  //viessmannApiSelectionPtr_01 ->readIntervalSeconds = temp_Vi_ReadIntervalSeconds;
   
   loadGasMeterJsonCount++;
   

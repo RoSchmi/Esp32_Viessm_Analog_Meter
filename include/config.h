@@ -29,12 +29,14 @@
 // The credentials of your WiFi router and the name and key of your
 // Azure Storage Account are set through WiFi-Manager
 
+// not used in this App
 #define USED_MICROPHONE 0        // 0 = SPH0645LM4H, 1 = INMP441
-
+// not used in this App
 #define SOUNDSWITCHER_THRESHOLD "200"       // The arbitrary sound Threshold to toggle High/Low
-                                            // (Can be changed in WiFi-Manager)
+ // not used in this App                                           // (Can be changed in WiFi-Manager)
 #define SOUNDSWITCHER_UPDATEINTERVAL 400    // Interval in ms for reading sound level
 #define SOUNDSWITCHER_READ_DELAYTIME 4000   // Delay in ms from switch to displayed value
+
 
 #define SENDINTERVAL_MINUTES_AI   10   // Sendinterval in minutes (5 - 10 is recommended), in this interval                                        
                                        // data are sent to the Cloud (is limited to be not below 1 second)

@@ -1,8 +1,5 @@
-#pragma once
-
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include "ViessmannApiSelection.h"
 #include "config.h"
 
 #ifndef _VIESSMANNAPISELECTION_H_
@@ -16,7 +13,6 @@
 // Must be high enough to create an array 
 // to hold all interesting features
 #define VI_FEATURES_COUNT 18
-
 
 // Maximal wie viele Werte ein Feature enthalten kann 
 #define VI_MAX_VALUES_PER_FEATURE 4
@@ -34,13 +30,12 @@ typedef struct VI_Feature {
         int valueCount = 0;
     }VI_Feature;
 
-    
+// Array of interesting feature entries to be extracted
+// See definition in ViessmannApiSelection.cpp   
 extern VI_Feature vi_features[VI_FEATURES_COUNT];
-
 
 VI_Feature* getFeatureByName(VI_Feature* features, int featureCount, const char* name);
     
-
 class ViessmannApiSelection
 {
     private:
@@ -51,8 +46,6 @@ class ViessmannApiSelection
      
     public:
 
-
-
     // Ein Eintrag beschreibt: 
     // - welches Feature 
     // - welches Property innerhalb dieses Features 
@@ -61,38 +54,10 @@ class ViessmannApiSelection
     const char* propertyName;
 };
 
-
-
-
 // Deklaration der statischen Liste 
 static const InterestingProperty interestingProperties[]; 
 // Anzahl der Einträge 
 static const int NUM_INTERESTING_PROPERTIES;
-
-//static const int VI_FEATURES_COUNT = 16;
-/*
-   static const InterestingProperty interestingProperties[] =
-   {
-        {"heating.boiler.sensors.temperature.main", "value"}, 
-        {"heating.boiler.temperature", "value"}, 
-        {"heating.burners.0.modulation", "value"},
-        {"heating.burners.0.statistics", "hours"},
-        {"heating.burners.0.statistics", "starts"},
-        {"heating.circuits.0", "active"},
-        {"heating.circuits.0.circulation.pump", "status"},
-        {"heating.circuits.0.heating.curve", "shift"},
-        {"heating.circuits.0.heating.curve", "slope"},
-        {"heating.circuits.0.sensors.temperature.supply", "value"},       
-        {"heating.dhw.charging", "active"},
-        {"heating.dhw.pumps.circulation", "status"},
-        {"heating.dhw.pumps.primary", "status"},
-        {"heating.dhw.sensors.temperature.dhwCylinder", "value"},
-        {"heating.dhw.sensors.temperature.outlet", "value"},
-        {"heating.sensors.temperature.outside", "value"}
-   };
-   */
-
-   //const int NUM_FEATURES = sizeof(interestingProperties) / sizeof(interestingProperties[0]);
 
    public:
     int64_t lastReadTimeSeconds;
@@ -101,28 +66,13 @@ static const int NUM_INTERESTING_PROPERTIES;
     ViessmannApiSelection();
     ViessmannApiSelection(const char * pObjLabel, int64_t pLastReadTimeSeconds, int32_t pReadIntervalSeconds);
     
-    // Füllt das übergebene Feature-Array anhand des JSON-Dokuments. 
-    // - doc: JsonDocument mit der Viessmann-API-Antwort 
-    // - features: Array von Feature-Strukturen 
-    // - featureCount: Anzahl der Einträge im Feature-Array
+    // Extracts the items listed in .cpp (interestingProperties) out of all items in the JSON doc returned by the Viessmann API. 
+    // - doc: JsonDocument containing the full Viessmann API response 
+    // - features: Array of feature entries to be filled with the selected data
+    // - featureCount: Number of items in the features array
 
-    //void ViessmannApiSelection::extractFeatures(const JsonDocument& doc,, Feature* features, int featureCount);
     void extractFeatures(const JsonDocument& doc, VI_Feature* features, int featureCount);
-   
-    
-    //static Feature features[];
-    
-    private:
-    //int ensureFeatureEntry(Feature features[], int featureCount, const char *featureName);
-     
-    /*
-    Feature _3_temperature_main;
-    Feature _4_boiler_temperature;
-    Feature _7_burner_modulation;
-    Feature _8_burner_hours;
-    Feature _8_burner_starts;
-    
-    */    
+         
 };
 
 #endif
