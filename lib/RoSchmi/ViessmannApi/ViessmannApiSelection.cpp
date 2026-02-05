@@ -6,22 +6,22 @@
 
 const ViessmannApiSelection::InterestingProperty ViessmannApiSelection::interestingProperties[] =
    {
-        {"heating.boiler.sensors.temperature.main", "value"}, 
-        {"heating.boiler.temperature", "value"}, 
-        {"heating.burners.0.modulation", "value"},
-        {"heating.burners.0.statistics", "hours"},
-        {"heating.burners.0.statistics", "starts"},
-        {"heating.burners.0", "active"},
-        {"heating.circuits.0.circulation.pump", "status"},
-        {"heating.circuits.0.heating.curve", "shift"},
-        {"heating.circuits.0.heating.curve", "slope"},
-        {"heating.circuits.0.sensors.temperature.supply", "value"},       
-        {"heating.dhw.charging", "active"},
-        {"heating.dhw.pumps.circulation", "status"},
-        {"heating.dhw.pumps.primary", "status"},
-        {"heating.dhw.sensors.temperature.dhwCylinder", "value"},
-        {"heating.dhw.sensors.temperature.outlet", "value"},
-        {"heating.sensors.temperature.outside", "value"}
+        {"heating.boiler.sensors.temperature.main", "value"},       // Heizkessel-Temperatur
+        {"heating.boiler.temperature", "value"},                    // Verschidene Properties
+        {"heating.burners.0.modulation", "value"},                  // Brenner-Modulation
+        {"heating.burners.0.statistics", "hours"},                  // Brenner-Betriebsstunden
+        {"heating.burners.0.statistics", "starts"},                 // Brenner-Starts
+        {"heating.burners.0", "active"},                            // Brenner-Status
+        {"heating.circuits.0.circulation.pump", "status"},          // Heizung-Zirkulation
+        {"heating.circuits.0.heating.curve", "shift"},              // Regelungsniveauverschiebung
+        {"heating.circuits.0.heating.curve", "slope"},              // Regelungssteilheit
+        {"heating.circuits.0.sensors.temperature.supply", "value"}, // Vorlauf-Temperatur     
+        {"heating.dhw.charging", "active"},                         // Dhw-Ladepumpe
+        {"heating.dhw.pumps.circulation", "status"},                // Dhw-Zirkulation
+        {"heating.dhw.pumps.primary", "status"},                    // Dhw-Pumpe-Primary
+        {"heating.dhw.sensors.temperature.dhwCylinder", "value"},   // Dhw-Temperatur-Zylinder
+        {"heating.dhw.sensors.temperature.outlet", "value"},        // Dhw-Temperatur-Outlet
+        {"heating.sensors.temperature.outside", "value"}            // Außenthermometer
    };
 
    // ------------------------------------------------------------ 
