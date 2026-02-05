@@ -2093,16 +2093,10 @@ void loop()
       // and store the values in a container
       
       dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"heating.sensors.temperature.outside", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Aussen
-      dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"heating.boiler.sensors.temperature.main", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Vorlauf
+      dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"heating.circuits.0.sensors.temperature.supply", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Vorlauf
       dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"heating.dhw.sensors.temperature.dhwCylinder", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Warmwasser
-      dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(3, (const char *)"heating.burners.0.modulation", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Warmwasser
+      dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(3, (const char *)"heating.burners.0.modulation", 0, viessmannApiSelectionPtr_01)).values[0].value)); // Modulation
       
-      //dataContainerAnalogViessmann01.SetNewValue(0, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(0, (const char *)"_97_heating_temperature_outside", 0, viessmannApiSelectionPtr_01)).value)); // Aussen
-      //dataContainerAnalogViessmann01.SetNewValue(1, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(1, (const char *)"_3_temperature_main", 0, viessmannApiSelectionPtr_01)).value)); // Vorlauf                
-      //dataContainerAnalogViessmann01.SetNewValue(2, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(2, (const char *)"_92_heating_dhw_cylinder_temperature", 0, viessmannApiSelectionPtr_01)).value)); // Boiler
-      //dataContainerAnalogViessmann01.SetNewValue(3, dateTimeUTCNow, atof((ReadViessmannApi_Analog_01(3, (const char *)"_7_burner_modulation", 0, viessmannApiSelectionPtr_01)).value));  // Modulation
-      
-
       ledState = !ledState;
       digitalWrite(LED_BUILTIN, ledState);    // toggle LED to signal that App is running
 
